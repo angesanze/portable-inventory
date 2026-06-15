@@ -1,0 +1,309 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global dark base — prevents white flash in iframe and management app */
+html, body, #root {
+  background-color: #09090b;
+  margin: 0;
+  padding: 0;
+}
+
+/* Widget typography scale — STYLE-COHESION-07.
+   Every widget panel pulls type from this scale. Update here, not inline.
+
+     - Title (panel root):        text-base font-bold                   (16px / 700)
+     - Section heading (h3 etc):  text-sm font-semibold uppercase tracking-wider
+     - Body label (pi-label):     text-xs font-medium uppercase + --pi-muted
+     - Body value (default):      text-sm + --pi-text
+     - Identifier / SKU / serial: font-mono text-sm
+     - Stock display (header):    text-5xl font-mono font-bold tracking-tight
+*/
+
+/* Widget theming — CSS custom properties set by SDK theme param.
+   Defaults mirror the management app design tokens (Inter, zinc surfaces,
+   indigo accent) so the warehouse widget reads as the same product. */
+.pi-theme {
+  --pi-primary: #6366f1;
+  --pi-bg: #09090b;
+  --pi-text: #f4f4f5;
+  --pi-radius: 12px;
+  --pi-font: 'Inter', system-ui, -apple-system, sans-serif;
+  --pi-success: #10b981;
+  --pi-danger: #f43f5e;
+  --pi-muted: #a1a1aa;
+  --pi-border: rgba(255, 255, 255, 0.08);
+  --pi-surface: #18181b;
+  --pi-input-bg: #27272a;
+  background-color: var(--pi-bg);
+  color: var(--pi-text);
+  font-family: var(--pi-font);
+  min-height: 100vh;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* --- Focus rings (STYLE-COHESION-08) ---
+   Every interactive widget element gets a visible focus-visible outline driven
+   by --pi-primary so per-company branding flows through. Uses outline + offset
+   so we never clash with box-shadow accents on buttons. */
+.pi-theme :focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--pi-primary) 60%, transparent);
+  outline-offset: 2px;
+  border-radius: var(--pi-radius);
+}
+
+.pi-theme :focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* --- Surfaces --- */
+
+.pi-theme .pi-card {
+  background-color: var(--pi-surface);
+  border: 1px solid var(--pi-border);
+  border-radius: var(--pi-radius);
+}
+
+/* --- Buttons ---
+   Warehouse-first: tall tap targets (52px), bold labels, glow on accent
+   actions, and a tactile press effect for confident on-device feedback. */
+
+.pi-theme .pi-btn-primary,
+.pi-theme .pi-btn-success,
+.pi-theme .pi-btn-danger,
+.pi-theme .pi-btn-accent,
+.pi-theme .pi-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 3.25rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--pi-radius);
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid transparent;
+  transition: transform 0.1s ease, filter 0.15s ease, box-shadow 0.15s ease,
+    background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.pi-theme .pi-btn-primary:active,
+.pi-theme .pi-btn-success:active,
+.pi-theme .pi-btn-danger:active,
+.pi-theme .pi-btn-accent:active,
+.pi-theme .pi-btn-ghost:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+.pi-theme .pi-btn-primary:hover,
+.pi-theme .pi-btn-success:hover,
+.pi-theme .pi-btn-danger:hover,
+.pi-theme .pi-btn-accent:hover {
+  filter: brightness(1.08);
+}
+
+.pi-theme .pi-btn-primary:disabled,
+.pi-theme .pi-btn-success:disabled,
+.pi-theme .pi-btn-danger:disabled,
+.pi-theme .pi-btn-accent:disabled,
+.pi-theme .pi-btn-ghost:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  filter: none;
+  box-shadow: none;
+}
+
+.pi-theme .pi-btn-primary,
+.pi-theme .pi-btn-accent {
+  background-color: var(--pi-primary);
+  color: #fff;
+  box-shadow: 0 6px 18px -6px color-mix(in srgb, var(--pi-primary) 65%, transparent);
+}
+
+.pi-theme .pi-btn-success {
+  background-color: var(--pi-success);
+  color: #fff;
+  box-shadow: 0 6px 18px -6px color-mix(in srgb, var(--pi-success) 55%, transparent);
+}
+
+.pi-theme .pi-btn-danger {
+  background-color: var(--pi-danger);
+  color: #fff;
+  box-shadow: 0 6px 18px -6px color-mix(in srgb, var(--pi-danger) 55%, transparent);
+}
+
+/* Neutral / secondary action (e.g. CHECK OUT) */
+.pi-theme .pi-btn-ghost {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: var(--pi-border);
+  color: var(--pi-text);
+}
+
+.pi-theme .pi-btn-ghost:hover {
+  background-color: rgba(255, 255, 255, 0.09);
+}
+
+/* --- Inputs --- */
+
+.pi-theme .pi-input {
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--pi-border);
+  border-radius: var(--pi-radius);
+  background-color: var(--pi-input-bg);
+  color: var(--pi-text);
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.pi-theme .pi-input:focus {
+  border-color: var(--pi-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pi-primary) 25%, transparent);
+}
+
+.pi-theme .pi-input::placeholder {
+  color: color-mix(in srgb, var(--pi-muted) 75%, transparent);
+}
+
+.pi-theme .pi-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pi-muted);
+  margin-bottom: 0.4rem;
+}
+
+/* --- Computed value (dimensional engine) --- */
+
+.pi-theme .pi-computed {
+  background-color: color-mix(in srgb, var(--pi-primary) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pi-primary) 30%, transparent);
+  border-radius: var(--pi-radius);
+  padding: 0.9rem;
+  text-align: center;
+}
+
+.pi-theme .pi-computed-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pi-primary);
+  margin-bottom: 0.25rem;
+}
+
+.pi-theme .pi-computed-value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--pi-primary);
+  letter-spacing: -0.02em;
+}
+
+.pi-theme .pi-computed-hint {
+  font-size: 0.72rem;
+  color: var(--pi-muted);
+  margin-top: 0.25rem;
+}
+
+/* --- Status pills (tracker engine) --- */
+
+.pi-theme .pi-status-btn {
+  padding: 0.55rem 0.8rem;
+  border-radius: var(--pi-radius);
+  font-size: 0.875rem;
+  font-weight: 700;
+  transition: background-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+/* --- Selectable tile (location / item picker) --- */
+
+.pi-theme .pi-tile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  text-align: left;
+  border-radius: var(--pi-radius);
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--pi-border);
+  color: var(--pi-text);
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.pi-theme .pi-tile:hover {
+  background-color: rgba(255, 255, 255, 0.07);
+  border-color: color-mix(in srgb, var(--pi-primary) 35%, transparent);
+}
+
+.pi-theme .pi-tile:active {
+  transform: scale(0.99);
+}
+
+.pi-theme .pi-tile-accent {
+  background-color: color-mix(in srgb, var(--pi-primary) 10%, transparent);
+  border-color: color-mix(in srgb, var(--pi-primary) 28%, transparent);
+}
+
+/* --- Batch Manager dark surface classes --- */
+
+.pi-theme .pi-surface-dark {
+  background-color: color-mix(in srgb, var(--pi-text) 95%, transparent);
+  color: #fff;
+}
+
+.pi-theme .pi-card-dark {
+  background-color: color-mix(in srgb, var(--pi-text) 85%, transparent);
+  border: 1px solid color-mix(in srgb, #fff 5%, transparent);
+  border-radius: var(--pi-radius);
+}
+
+.pi-theme .pi-input-focus:focus {
+  border-color: var(--pi-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pi-primary) 25%, transparent);
+}
+
+.pi-theme .pi-header-gradient {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--pi-primary) 16%, transparent) 0%,
+    color-mix(in srgb, var(--pi-primary) 5%, transparent) 100%);
+}
+
+.pi-theme .pi-hover-tint:hover {
+  background-color: color-mix(in srgb, var(--pi-text) 7%, transparent);
+}
+
+/* --- Compact mode --- */
+
+.pi-theme.pi-compact {
+  font-size: 0.875rem;
+}
+
+.pi-theme.pi-compact .p-6 {
+  padding: 1rem;
+}
+
+.pi-theme.pi-compact .p-4 {
+  padding: 0.75rem;
+}
+
+.pi-theme.pi-compact .pi-btn-primary,
+.pi-theme.pi-compact .pi-btn-success,
+.pi-theme.pi-compact .pi-btn-danger,
+.pi-theme.pi-compact .pi-btn-accent,
+.pi-theme.pi-compact .pi-btn-ghost {
+  min-height: 2.75rem;
+}

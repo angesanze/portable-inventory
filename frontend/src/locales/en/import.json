@@ -1,0 +1,51 @@
+{
+  "title": "Import Products",
+  "subtitle": "Bulk-create or update your catalogue from a CSV or Excel file.",
+  "step": {
+    "upload": "Upload",
+    "preview": "Preview",
+    "result": "Result"
+  },
+  "upload": {
+    "dropHere": "Drag & drop a CSV or Excel file here",
+    "or": "or",
+    "browse": "Browse files",
+    "selected": "Selected file:",
+    "hint": "Accepted formats: .csv, .xlsx (max 5 MB, 2000 rows).",
+    "downloadTemplate": "Download template (.xlsx)",
+    "analyze": "Analyze file",
+    "analyzing": "Analyzing…",
+    "errorParsing": "Could not read the file."
+  },
+  "preview": {
+    "title": "Validation preview",
+    "create": "To create",
+    "update": "To update",
+    "error": "Errors",
+    "row": "Row",
+    "sku": "SKU",
+    "name": "Name",
+    "action": "Action",
+    "messages": "Messages",
+    "skipErrors": "Skip rows with errors and import the rest",
+    "blockedByErrors": "There are rows with errors. Enable \"skip rows with errors\" to continue, or fix the file and re-upload.",
+    "back": "Back",
+    "confirm": "Confirm import",
+    "importing": "Importing…",
+    "empty": "No rows found in the file."
+  },
+  "result": {
+    "title": "Import complete",
+    "created": "Created",
+    "updated": "Updated",
+    "errors": "Errors",
+    "rowsWithErrors": "Rows with errors",
+    "done": "Done",
+    "importAnother": "Import another file"
+  },
+  "action": {
+    "CREATE": "Create",
+    "UPDATE": "Update",
+    "ERROR": "Error"
+  }
+}

@@ -1,0 +1,30 @@
+import { render, type RenderOptions, type RenderResult } from "@testing-library/react";
+import { I18nextProvider } from "react-i18next";
+import type { ReactElement, ReactNode } from "react";
+import i18n from "../i18n";
+
+/**
+ * Provides i18n context to components under test.
+ *
+ * The shared `i18n` instance is already auto-initialized for the test
+ * environment via `src/setupTests.ts`, so wrapping with this provider makes the
+ * i18n dependency explicit at the render site (and keeps renders working if the
+ * global auto-init is ever removed). Defaults to English; switch languages in a
+ * test with `i18n.changeLanguage("it")` and reset in a `finally`.
+ */
+export const I18nWrapper = ({ children }: { children: ReactNode }) => (
+    <I18nextProvider i18n={i18n}>{children}</I18nextProvider>
+);
+
+/**
+ * Drop-in replacement for Testing Library's `render` that wraps the UI in
+ * {@link I18nWrapper}. Use for new test renders going forward.
+ */
+export function renderWithI18n(
+    ui: ReactElement,
+    options?: Omit<RenderOptions, "wrapper">,
+): RenderResult {
+    return render(ui, { wrapper: I18nWrapper, ...options });
+}
+
+export { i18n };

@@ -1,0 +1,58 @@
+{
+  "title": "Restock Board",
+  "subtitle": "Triage products by stock urgency",
+  "columns": {
+    "HEALTHY": "Healthy",
+    "REORDER": "Reorder",
+    "CRITICAL": "Critical",
+    "OUT": "Out of stock",
+    "OVERSTOCK": "Overstock"
+  },
+  "card": {
+    "qty": "On hand",
+    "reorderAt": "Reorder at {{n}}",
+    "daysToRunout": "{{n}}d to runout",
+    "noVelocity": "No recent movement"
+  },
+  "drawer": {
+    "title": "{{name}} — Stock analytics",
+    "tabHistory": "History",
+    "tabVelocity": "Velocity",
+    "tabThreshold": "Thresholds",
+    "daysToReorder": "Days to reorder",
+    "daysToCritical": "Days to critical",
+    "daysToOut": "Days to out",
+    "suggestedReorder": "Suggested reorder qty"
+  },
+  "threshold": {
+    "reorder": "Reorder threshold",
+    "critical": "Critical threshold",
+    "max": "Max (overstock)",
+    "reorderQty": "Default reorder qty",
+    "save": "Save thresholds",
+    "saved": "Thresholds updated",
+    "saveFailed": "Could not save thresholds",
+    "readOnly": "Read-only — ask a manager",
+    "errCritOverReorder": "Critical must be ≤ reorder",
+    "errReorderOverMax": "Reorder must be ≤ max"
+  },
+  "bulk": {
+    "openButton": "Edit thresholds",
+    "title": "Edit thresholds in bulk",
+    "search": "Search SKU or name",
+    "colSku": "SKU",
+    "colName": "Product",
+    "colReorder": "Reorder",
+    "colCritical": "Critical",
+    "colMax": "Max",
+    "colReorderQty": "Reorder qty",
+    "save": "Save changes",
+    "cancel": "Cancel",
+    "noProducts": "No products yet",
+    "noMatch": "No products match the search",
+    "saved": "{{count}} product(s) updated",
+    "saveFailed": "Could not save thresholds",
+    "rowInvalid": "Fix highlighted rows before saving",
+    "noChanges": "No changes to save"
+  }
+}

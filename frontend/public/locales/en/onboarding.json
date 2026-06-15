@@ -1,0 +1,70 @@
+{
+  "login": {
+    "subtitle": "Sign in to your account",
+    "errorTitle": "Login failed",
+    "email": "Email",
+    "emailPlaceholder": "you@company.com",
+    "password": "Password",
+    "passwordPlaceholder": "Enter password",
+    "signIn": "Sign in",
+    "noAccount": "Don't have an account?",
+    "register": "Register"
+  },
+  "register": {
+    "subtitle": "Create your account",
+    "companyName": "Company Name",
+    "companyPlaceholder": "Acme Industries",
+    "adminEmail": "Admin Email",
+    "adminEmailPlaceholder": "admin@company.com",
+    "password": "Password",
+    "passwordPlaceholder": "Minimum 8 characters",
+    "industry": "Industry",
+    "createAccount": "Create account",
+    "hasAccount": "Already have an account?",
+    "signIn": "Sign in",
+    "industries": {
+      "manufacturing": "Manufacturing",
+      "retail": "Retail",
+      "food_beverage": "Food & Beverage",
+      "electronics": "Electronics",
+      "logistics": "Logistics",
+      "healthcare": "Healthcare",
+      "other": "Other"
+    }
+  },
+  "wizard": {
+    "steps": {
+      "welcome": "Welcome",
+      "product": "Product",
+      "done": "Done"
+    },
+    "welcomeTitle": "Welcome to Varasto",
+    "welcomeDesc": "Your workspace is ready. We auto-created default locations so you can start managing inventory right away.",
+    "warehouseCreated": "Default warehouse created",
+    "profilesAvailable": "Inventory profiles available",
+    "apiKeyGenerated": "API key generated",
+    "dashboardReady": "Dashboard ready",
+    "startCta": "Let's set up your first product",
+    "skipSetup": "Skip setup, go to dashboard",
+    "createTitle": "Create Product Model",
+    "createDesc": "Define your first product to start tracking inventory.",
+    "productName": "Product Name",
+    "productNamePlaceholder": "e.g. Steel Widget",
+    "sku": "SKU",
+    "skuPlaceholder": "e.g. WIDGET-001",
+    "trackingMode": "Tracking Mode",
+    "createContinue": "Create & Continue",
+    "trackingModes": {
+      "bulk": "Bulk",
+      "bulkDesc": "Track total quantity — simplest mode",
+      "individual": "Individual",
+      "individualDesc": "Track each unit with a unique serial",
+      "batch": "Batch",
+      "batchDesc": "Track groups by lot or batch number"
+    },
+    "doneTitle": "You're all set!",
+    "doneDesc": "Your inventory workspace is configured and ready to go.",
+    "goToDashboard": "Go to Dashboard",
+    "createMore": "Create more products"
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "accessDenied": "Access Denied",
+  "unknownError": "Unknown error",
+  "units": "units",
+  "scanner": {
+    "qrScanner": "QR Scanner",
+    "scanTitle": "Scan Inventory QR Code",
+    "resolving": "Resolving QR code...",
+    "enterManually": "Enter QR Code Manually",
+    "manualPlaceholder": "e.g. AB12CD34",
+    "lookUpCode": "Look Up Code",
+    "looking": "Resolving...",
+    "startingCamera": "Starting camera...",
+    "tryAgain": "Try Again",
+    "lightOff": "Light Off",
+    "lightOn": "Light On",
+    "useCamera": "Use Camera",
+    "typeCode": "Type Code",
+    "aria": {
+      "enterCodeManually": "Enter code manually",
+      "switchToCamera": "Switch to camera",
+      "manualEntry": "QR code manual entry",
+      "submitCode": "Submit QR code",
+      "retryScanning": "Retry scanning",
+      "turnOnFlashlight": "Turn on flashlight",
+      "turnOffFlashlight": "Turn off flashlight"
+    },
+    "errors": {
+      "missingApiKey": "Missing API key",
+      "camera_denied": "Camera access denied. Please allow camera permissions in your browser settings.",
+      "no_camera": "No camera found on this device.",
+      "invalid_qr": "This QR code is not a valid Varasto code.",
+      "expired_code": "This QR code has expired or is no longer active.",
+      "locked_code": "This QR code is locked and cannot be used for scanning.",
+      "network_error": "Unable to reach the server. Check your connection.",
+      "unknown": "An unexpected error occurred. Please try again."
+    }
+  },
+  "result": {
+    "scanned": "Scanned",
+    "selectOperation": "Select Operation",
+    "unknownProduct": "Unknown Product",
+    "stock": "Stock:",
+    "scanAnotherCode": "Scan Another Code",
+    "aria": {
+      "backToScanner": "Back to scanner",
+      "scanAnother": "Scan another code"
+    },
+    "ops": {
+      "allocate": "Allocate",
+      "allocateDesc": "Add to batch",
+      "deallocate": "Deallocate",
+      "deallocateDesc": "Remove from batch",
+      "transferBatch": "Transfer",
+      "transferBatchDesc": "Move batch",
+      "addExpiry": "Add",
+      "addExpiryDesc": "Add stock with expiry",
+      "subtract": "Subtract",
+      "subtractDesc": "Remove stock",
+      "transfer": "Transfer",
+      "transferDesc": "Move stock",
+      "startWorkOrder": "Start",
+      "startWorkOrderDesc": "Begin work order",
+      "completeWorkOrder": "Complete",
+      "completeWorkOrderDesc": "Finish work order",
+      "checkIn": "Check In",
+      "checkInDesc": "Receive item",
+      "checkOut": "Check Out",
+      "checkOutDesc": "Release item",
+      "transferItem": "Transfer",
+      "transferItemDesc": "Move item",
+      "addMeasured": "Add",
+      "addMeasuredDesc": "Add measured stock",
+      "subtractMeasured": "Subtract",
+      "subtractMeasuredDesc": "Remove measured stock",
+      "add": "Add",
+      "addDesc": "Increase stock",
+      "subtractCount": "Subtract",
+      "subtractCountDesc": "Decrease stock"
+    }
+  }
+}

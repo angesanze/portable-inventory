@@ -1,0 +1,82 @@
+{
+  "accessDenied": "Accesso Negato",
+  "unknownError": "Errore sconosciuto",
+  "units": "unità",
+  "scanner": {
+    "qrScanner": "Scanner QR",
+    "scanTitle": "Scansiona Codice QR Inventario",
+    "resolving": "Risoluzione codice QR...",
+    "enterManually": "Inserisci Codice QR Manualmente",
+    "manualPlaceholder": "es. AB12CD34",
+    "lookUpCode": "Cerca Codice",
+    "looking": "Risoluzione...",
+    "startingCamera": "Avvio fotocamera...",
+    "tryAgain": "Riprova",
+    "lightOff": "Luce Off",
+    "lightOn": "Luce On",
+    "useCamera": "Usa Fotocamera",
+    "typeCode": "Digita Codice",
+    "aria": {
+      "enterCodeManually": "Inserisci codice manualmente",
+      "switchToCamera": "Passa alla fotocamera",
+      "manualEntry": "Inserimento manuale codice QR",
+      "submitCode": "Invia codice QR",
+      "retryScanning": "Riprova scansione",
+      "turnOnFlashlight": "Accendi torcia",
+      "turnOffFlashlight": "Spegni torcia"
+    },
+    "errors": {
+      "missingApiKey": "Chiave API mancante",
+      "camera_denied": "Accesso alla fotocamera negato. Consenti i permessi della fotocamera nelle impostazioni del browser.",
+      "no_camera": "Nessuna fotocamera trovata su questo dispositivo.",
+      "invalid_qr": "Questo codice QR non è un codice Varasto valido.",
+      "expired_code": "Questo codice QR è scaduto o non è più attivo.",
+      "locked_code": "Questo codice QR è bloccato e non può essere usato per la scansione.",
+      "network_error": "Impossibile raggiungere il server. Controlla la connessione.",
+      "unknown": "Si è verificato un errore imprevisto. Riprova."
+    }
+  },
+  "result": {
+    "scanned": "Scansionato",
+    "selectOperation": "Seleziona Operazione",
+    "unknownProduct": "Prodotto Sconosciuto",
+    "stock": "Giacenza:",
+    "scanAnotherCode": "Scansiona un Altro Codice",
+    "aria": {
+      "backToScanner": "Torna allo scanner",
+      "scanAnother": "Scansiona un altro codice"
+    },
+    "ops": {
+      "allocate": "Alloca",
+      "allocateDesc": "Aggiungi al lotto",
+      "deallocate": "Dealloca",
+      "deallocateDesc": "Rimuovi dal lotto",
+      "transferBatch": "Trasferisci",
+      "transferBatchDesc": "Sposta lotto",
+      "addExpiry": "Aggiungi",
+      "addExpiryDesc": "Aggiungi stock con scadenza",
+      "subtract": "Sottrai",
+      "subtractDesc": "Rimuovi stock",
+      "transfer": "Trasferisci",
+      "transferDesc": "Sposta stock",
+      "startWorkOrder": "Avvia",
+      "startWorkOrderDesc": "Inizia ordine di lavoro",
+      "completeWorkOrder": "Completa",
+      "completeWorkOrderDesc": "Termina ordine di lavoro",
+      "checkIn": "Check In",
+      "checkInDesc": "Ricevi articolo",
+      "checkOut": "Check Out",
+      "checkOutDesc": "Rilascia articolo",
+      "transferItem": "Trasferisci",
+      "transferItemDesc": "Sposta articolo",
+      "addMeasured": "Aggiungi",
+      "addMeasuredDesc": "Aggiungi stock misurato",
+      "subtractMeasured": "Sottrai",
+      "subtractMeasuredDesc": "Rimuovi stock misurato",
+      "add": "Aggiungi",
+      "addDesc": "Aumenta stock",
+      "subtractCount": "Sottrai",
+      "subtractCountDesc": "Diminuisci stock"
+    }
+  }
+}

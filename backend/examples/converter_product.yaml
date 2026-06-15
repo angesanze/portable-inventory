@@ -1,0 +1,13 @@
+sku: "FILAMENT-ABS-RED"
+name: "3D Printer Filament - ABS Red"
+profile: "UNIT_CONVERSION"
+attributes:
+  color: "Red"
+  material: "ABS"
+  weight_per_meter: 2.8 # grams/meter
+engine_config:
+  input_label: "Meters Used"
+  stock_unit: "g"
+  ratio_source: "attribute:weight_per_meter"
+  precision: 2
+initial_stock: 1000.0

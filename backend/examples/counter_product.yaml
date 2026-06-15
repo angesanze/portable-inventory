@@ -1,0 +1,9 @@
+sku: "STAPLER-001"
+name: "Office Supplies - Staplers"
+profile: "SIMPLE_COUNT"
+attributes:
+  category: "Stationery"
+engine_config:
+  step: 1
+  allow_negative: false
+initial_stock: 50

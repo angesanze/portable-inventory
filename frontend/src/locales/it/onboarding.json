@@ -1,0 +1,80 @@
+{
+  "login": {
+    "subtitle": "Accedi al tuo account",
+    "errorTitle": "Accesso non riuscito",
+    "email": "Email",
+    "emailPlaceholder": "tu@azienda.com",
+    "password": "Password",
+    "passwordPlaceholder": "Inserisci la password",
+    "licenseCode": "Codice licenza",
+    "licenseCodePlaceholder": "Codice licenza della tua azienda",
+    "signIn": "Accedi",
+    "noAccount": "Non hai un account?",
+    "register": "Registrati"
+  },
+  "register": {
+    "subtitle": "Crea il tuo account",
+    "companyName": "Nome Azienda",
+    "companyPlaceholder": "Acme Industries",
+    "adminEmail": "Email Amministratore",
+    "adminEmailPlaceholder": "admin@azienda.com",
+    "password": "Password",
+    "passwordPlaceholder": "Almeno 8 caratteri",
+    "vat": "Partita IVA",
+    "vatPlaceholder": "es. 00743110157",
+    "industry": "Settore",
+    "createAccount": "Crea account",
+    "successTitle": "Account creato",
+    "saveLicenseNote": "Salva questo codice licenza — ti servirà per accedere.",
+    "licenseCodeLabel": "Il tuo codice licenza",
+    "copyLicense": "Copia codice licenza",
+    "licenseCopied": "Codice licenza copiato negli appunti",
+    "continueToSetup": "Continua alla configurazione",
+    "hasAccount": "Hai già un account?",
+    "signIn": "Accedi",
+    "industries": {
+      "manufacturing": "Produzione",
+      "retail": "Vendita al Dettaglio",
+      "food_beverage": "Alimentari e Bevande",
+      "electronics": "Elettronica",
+      "logistics": "Logistica",
+      "healthcare": "Sanità",
+      "other": "Altro"
+    }
+  },
+  "wizard": {
+    "steps": {
+      "welcome": "Benvenuto",
+      "product": "Prodotto",
+      "done": "Fatto"
+    },
+    "welcomeTitle": "Benvenuto in Varasto",
+    "welcomeDesc": "Il tuo spazio di lavoro è pronto. Abbiamo creato automaticamente le posizioni predefinite così puoi iniziare subito a gestire l'inventario.",
+    "warehouseCreated": "Magazzino predefinito creato",
+    "profilesAvailable": "Profili di inventario disponibili",
+    "apiKeyGenerated": "Chiave API generata",
+    "dashboardReady": "Dashboard pronta",
+    "startCta": "Configura il tuo primo prodotto",
+    "skipSetup": "Salta la configurazione, vai alla dashboard",
+    "createTitle": "Crea Modello Prodotto",
+    "createDesc": "Definisci il tuo primo prodotto per iniziare a tracciare l'inventario.",
+    "productName": "Nome Prodotto",
+    "productNamePlaceholder": "es. Widget in Acciaio",
+    "sku": "SKU",
+    "skuPlaceholder": "es. WIDGET-001",
+    "trackingMode": "Modalità di Tracciamento",
+    "createContinue": "Crea e Continua",
+    "trackingModes": {
+      "bulk": "Sfuso",
+      "bulkDesc": "Traccia la quantità totale — la modalità più semplice",
+      "individual": "Individuale",
+      "individualDesc": "Traccia ogni unità con un numero di serie univoco",
+      "batch": "Lotto",
+      "batchDesc": "Traccia i gruppi per lotto o partita"
+    },
+    "doneTitle": "Tutto pronto!",
+    "doneDesc": "Il tuo spazio di lavoro per l'inventario è configurato e pronto all'uso.",
+    "goToDashboard": "Vai alla Dashboard",
+    "createMore": "Crea altri prodotti"
+  }
+}

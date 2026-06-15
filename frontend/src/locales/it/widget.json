@@ -1,0 +1,166 @@
+{
+  "accessDenied": "Accesso Negato",
+  "unknownError": "Errore sconosciuto",
+  "units": "unità",
+  "scanner": {
+    "qrScanner": "Scanner QR",
+    "scanTitle": "Scansiona Codice QR Inventario",
+    "resolving": "Risoluzione codice QR...",
+    "enterManually": "Inserisci Codice QR Manualmente",
+    "manualPlaceholder": "es. AB12CD34",
+    "lookUpCode": "Cerca Codice",
+    "looking": "Risoluzione...",
+    "startingCamera": "Avvio fotocamera...",
+    "tryAgain": "Riprova",
+    "lightOff": "Luce Off",
+    "lightOn": "Luce On",
+    "useCamera": "Usa Fotocamera",
+    "typeCode": "Digita Codice",
+    "aria": {
+      "enterCodeManually": "Inserisci codice manualmente",
+      "switchToCamera": "Passa alla fotocamera",
+      "manualEntry": "Inserimento manuale codice QR",
+      "submitCode": "Invia codice QR",
+      "retryScanning": "Riprova scansione",
+      "turnOnFlashlight": "Accendi torcia",
+      "turnOffFlashlight": "Spegni torcia"
+    },
+    "errors": {
+      "missingApiKey": "Chiave API mancante",
+      "camera_denied": "Accesso alla fotocamera negato. Consenti i permessi della fotocamera nelle impostazioni del browser.",
+      "no_camera": "Nessuna fotocamera trovata su questo dispositivo.",
+      "invalid_qr": "Questo codice QR non è un codice Varasto valido.",
+      "expired_code": "Questo codice QR è scaduto o non è più attivo.",
+      "locked_code": "Questo codice QR è bloccato e non può essere usato per la scansione.",
+      "network_error": "Impossibile raggiungere il server. Controlla la connessione.",
+      "unknown": "Si è verificato un errore imprevisto. Riprova."
+    }
+  },
+  "result": {
+    "scanned": "Scansionato",
+    "selectOperation": "Seleziona Operazione",
+    "unknownProduct": "Prodotto Sconosciuto",
+    "stock": "Giacenza:",
+    "scanAnotherCode": "Scansiona un Altro Codice",
+    "aria": {
+      "backToScanner": "Torna allo scanner",
+      "scanAnother": "Scansiona un altro codice"
+    },
+    "ops": {
+      "allocate": "Alloca",
+      "allocateDesc": "Aggiungi al lotto",
+      "deallocate": "Dealloca",
+      "deallocateDesc": "Rimuovi dal lotto",
+      "transferBatch": "Trasferisci",
+      "transferBatchDesc": "Sposta lotto",
+      "addExpiry": "Aggiungi",
+      "addExpiryDesc": "Aggiungi stock con scadenza",
+      "subtract": "Sottrai",
+      "subtractDesc": "Rimuovi stock",
+      "transfer": "Trasferisci",
+      "transferDesc": "Sposta stock",
+      "startWorkOrder": "Avvia",
+      "startWorkOrderDesc": "Inizia ordine di lavoro",
+      "completeWorkOrder": "Completa",
+      "completeWorkOrderDesc": "Termina ordine di lavoro",
+      "checkIn": "Check In",
+      "checkInDesc": "Ricevi articolo",
+      "checkOut": "Check Out",
+      "checkOutDesc": "Rilascia articolo",
+      "transferItem": "Trasferisci",
+      "transferItemDesc": "Sposta articolo",
+      "addMeasured": "Aggiungi",
+      "addMeasuredDesc": "Aggiungi stock misurato",
+      "subtractMeasured": "Sottrai",
+      "subtractMeasuredDesc": "Rimuovi stock misurato",
+      "add": "Aggiungi",
+      "addDesc": "Aumenta stock",
+      "subtractCount": "Sottrai",
+      "subtractCountDesc": "Diminuisci stock"
+    }
+  },
+  "workOrder": {
+    "fulfill": "Evadi ordine",
+    "fulfillConfirm": "Scaricare tutti gli articoli di questo ordine di lavoro e chiuderlo? Le quantità verranno stornate dal magazzino e l'operazione non è reversibile.",
+    "fulfillSuccess": "Ordine di lavoro evaso e chiuso",
+    "fulfillFailed": "Impossibile evadere l'ordine di lavoro"
+  },
+  "common": {
+    "quantity": "Quantità",
+    "qty": "Qtà",
+    "qtyColon": "qtà:",
+    "notes": "Note",
+    "notesOptional": "Note opzionali...",
+    "selectItem": "Seleziona Articolo",
+    "selectItemPlaceholder": "Seleziona articolo...",
+    "chooseSerial": "Scegli un seriale...",
+    "serialBarcode": "Numero Seriale / Codice a barre",
+    "scanOrEnterId": "Scansiona o Inserisci ID",
+    "scanOrTypeSerial": "Scansiona o Digita Seriale",
+    "add": "AGGIUNGI",
+    "remove": "RIMUOVI",
+    "addPlus": "+ AGGIUNGI",
+    "removeMinus": "- RIMUOVI",
+    "removeStock": "RIMUOVI STOCK",
+    "addStock": "Aggiungi Stock",
+    "removeStockTitle": "Rimuovi Stock",
+    "checkIn": "Check In",
+    "checkOut": "Check Out",
+    "checkInCaps": "CHECK IN",
+    "checkOutCaps": "CHECK OUT",
+    "receiveItem": "Ricevi Articolo",
+    "releaseItem": "Rilascia Articolo",
+    "unknownModel": "Modello Sconosciuto",
+    "current": "Attuale:",
+    "max": "Max",
+    "clear": "Azzera",
+    "quickAdjust": "Regolazione Rapida",
+    "batchDetails": "Dettagli Lotto"
+  },
+  "panels": {
+    "trackerForm": {
+      "title": "Identificazione Articolo"
+    },
+    "trackerStatusForm": {
+      "title": "Cambio Stato Articolo",
+      "newStatus": "Nuovo Stato",
+      "submit": "APPLICA CAMBIO STATO"
+    },
+    "batchComposition": {
+      "title": "Composizione Lotto",
+      "modeBulk": "Bulk",
+      "modeSerial": "Seriale",
+      "assignedSerials": "Seriali Assegnati",
+      "addRemoveSerial": "Aggiungi / Rimuovi Seriale"
+    },
+    "dimensionForm": {
+      "title": "Inserimento Dimensione",
+      "computedValue": "Valore Calcolato",
+      "formula": "Formula:"
+    },
+    "timeBasedForm": {
+      "title": "Inserimento Temporizzato",
+      "expiryDate": "Data Scadenza",
+      "batchReference": "Riferimento Lotto",
+      "batchReferenceOptional": "Riferimento lotto opzionale",
+      "addWithExpiry": "Aggiungi con Scadenza"
+    },
+    "trackerPanel": {
+      "itemsLoadedFromProduct": "Articoli caricati dall'inventario prodotto",
+      "updateStatus": "AGGIORNA STATO"
+    },
+    "batchManager": {
+      "title": "Console Gestione Lotti",
+      "totalStock": "Stock Totale",
+      "activeLots": "Lotti / Batch Attivi",
+      "lotIdentifier": "Identificativo Lotto",
+      "withdrawItem": "Preleva articolo",
+      "scanOrSearchSerial": "Scansiona o Cerca Seriale...",
+      "onlyAvailableNote": "Solo lo stock disponibile in Magazzino è mostrato nella ricerca.",
+      "synchronizingStock": "Sincronizzazione Stock...",
+      "noActiveLots": "Nessun lotto attivo per questo modello",
+      "noSerialsAssigned": "Nessun seriale assegnato",
+      "noContentsDefined": "Nessun contenuto definito per questo lotto"
+    }
+  }
+}

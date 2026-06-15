@@ -1,0 +1,51 @@
+{
+  "title": "Importa prodotti",
+  "subtitle": "Crea o aggiorna in blocco il tuo catalogo da un file CSV o Excel.",
+  "step": {
+    "upload": "Caricamento",
+    "preview": "Anteprima",
+    "result": "Esito"
+  },
+  "upload": {
+    "dropHere": "Trascina qui un file CSV o Excel",
+    "or": "oppure",
+    "browse": "Scegli file",
+    "selected": "File selezionato:",
+    "hint": "Formati accettati: .csv, .xlsx (max 5 MB, 2000 righe).",
+    "downloadTemplate": "Scarica modello (.xlsx)",
+    "analyze": "Analizza file",
+    "analyzing": "Analisi in corso…",
+    "errorParsing": "Impossibile leggere il file."
+  },
+  "preview": {
+    "title": "Anteprima validazione",
+    "create": "Da creare",
+    "update": "Da aggiornare",
+    "error": "Errori",
+    "row": "Riga",
+    "sku": "SKU",
+    "name": "Nome",
+    "action": "Azione",
+    "messages": "Messaggi",
+    "skipErrors": "Salta le righe in errore e importa le altre",
+    "blockedByErrors": "Ci sono righe in errore. Attiva \"salta righe in errore\" per continuare, oppure correggi il file e ricaricalo.",
+    "back": "Indietro",
+    "confirm": "Conferma importazione",
+    "importing": "Importazione in corso…",
+    "empty": "Nessuna riga trovata nel file."
+  },
+  "result": {
+    "title": "Importazione completata",
+    "created": "Creati",
+    "updated": "Aggiornati",
+    "errors": "Errori",
+    "rowsWithErrors": "Righe in errore",
+    "done": "Fatto",
+    "importAnother": "Importa un altro file"
+  },
+  "action": {
+    "CREATE": "Crea",
+    "UPDATE": "Aggiorna",
+    "ERROR": "Errore"
+  }
+}

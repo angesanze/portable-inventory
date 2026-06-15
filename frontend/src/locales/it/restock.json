@@ -1,0 +1,58 @@
+{
+  "title": "Riassortimento",
+  "subtitle": "Triage dei prodotti per urgenza di scorta",
+  "columns": {
+    "HEALTHY": "In salute",
+    "REORDER": "Da riordinare",
+    "CRITICAL": "Critico",
+    "OUT": "Esaurito",
+    "OVERSTOCK": "Sovrascorta"
+  },
+  "card": {
+    "qty": "Disponibili",
+    "reorderAt": "Riordina a {{n}}",
+    "daysToRunout": "{{n}}g all'esaurimento",
+    "noVelocity": "Nessun movimento recente"
+  },
+  "drawer": {
+    "title": "{{name}} — Analisi giacenze",
+    "tabHistory": "Storico",
+    "tabVelocity": "Velocità",
+    "tabThreshold": "Soglie",
+    "daysToReorder": "Giorni al riordino",
+    "daysToCritical": "Giorni al critico",
+    "daysToOut": "Giorni all'esaurimento",
+    "suggestedReorder": "Quantità di riordino suggerita"
+  },
+  "threshold": {
+    "reorder": "Soglia di riordino",
+    "critical": "Soglia critica",
+    "max": "Massimo (sovrascorta)",
+    "reorderQty": "Quantità di riordino predefinita",
+    "save": "Salva soglie",
+    "saved": "Soglie aggiornate",
+    "saveFailed": "Salvataggio soglie non riuscito",
+    "readOnly": "Sola lettura — chiedi a un manager",
+    "errCritOverReorder": "La critica deve essere ≤ riordino",
+    "errReorderOverMax": "Il riordino deve essere ≤ massimo"
+  },
+  "bulk": {
+    "openButton": "Modifica soglie",
+    "title": "Modifica soglie in blocco",
+    "search": "Cerca SKU o nome",
+    "colSku": "SKU",
+    "colName": "Prodotto",
+    "colReorder": "Riordino",
+    "colCritical": "Critico",
+    "colMax": "Massimo",
+    "colReorderQty": "Qtà riordino",
+    "save": "Salva modifiche",
+    "cancel": "Annulla",
+    "noProducts": "Nessun prodotto",
+    "noMatch": "Nessun prodotto corrisponde alla ricerca",
+    "saved": "{{count}} prodotto/i aggiornato/i",
+    "saveFailed": "Salvataggio soglie non riuscito",
+    "rowInvalid": "Correggi le righe evidenziate prima di salvare",
+    "noChanges": "Nessuna modifica da salvare"
+  }
+}

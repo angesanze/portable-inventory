@@ -1,0 +1,34 @@
+{
+  "name": "@portable-inventory/widget-sdk",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "JavaScript SDK for embedding Varasto widgets",
+  "main": "./dist/portable-inventory-sdk.umd.js",
+  "module": "./dist/portable-inventory-sdk.es.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/portable-inventory-sdk.es.js",
+      "require": "./dist/portable-inventory-sdk.umd.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build && tsc --emitDeclarationOnly",
+    "dev": "vite build --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "demo": "node demo/serve.js"
+  },
+  "devDependencies": {
+    "typescript": "~5.6.0",
+    "vite": "^6.0.0",
+    "@types/node": "^22.10.0",
+    "vitest": "^3.0.0",
+    "jsdom": "^25.0.0"
+  },
+  "license": "UNLICENSED"
+}

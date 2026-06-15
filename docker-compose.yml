@@ -1,0 +1,98 @@
+# Docker Compose — Development Stack
+#
+# Production override: create docker-compose.prod.yml with:
+#   - DEBUG=0, real SECRET_KEY, SECURE_SSL_REDIRECT=1
+#   - gunicorn instead of runserver
+#   - Persistent volume paths on host
+#   - DROP `seed_e2e` from the backend command (the dev command below seeds
+#     demo/E2E data on every boot — never run it against a prod database)
+#
+# Launch production: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# See docs/operations/deployment.md for full guide.
+
+x-backend-defaults: &backend-defaults
+  build:
+    context: ./backend
+  command: sh -c "python manage.py migrate && python manage.py seed_e2e && python manage.py runserver 0.0.0.0:8000"
+  volumes:
+    - ./backend:/app
+  environment:
+    - DATABASE_URL=postgres://postgres:postgres@db:5432/portable_inventory
+    - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1] backend frontend
+    - DEBUG=1
+    - SECRET_KEY=dev_secret_key
+    # Frontend SPA origin — used to build QR codes + /go/<code>/ redirects so
+    # scanned codes land on the React /widget route, not the backend (404).
+    - FRONTEND_BASE_URL=http://localhost:5173
+    # Email for active notifications (NOTIFICATIONS-02). In DEBUG the console
+    # backend prints mails to the backend log; for real SMTP set:
+    #   - EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+    #   - EMAIL_HOST=smtp.example.com
+    #   - EMAIL_PORT=587
+    #   - EMAIL_HOST_USER=notifier
+    #   - EMAIL_HOST_PASSWORD=...
+    #   - EMAIL_USE_TLS=True
+    #   - DEFAULT_FROM_EMAIL=alerts@example.com
+  expose:
+    - "8000"
+  healthcheck:
+    test: [ "CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/admin/login/\")' || exit 1" ]
+    interval: 10s
+    timeout: 5s
+    retries: 5
+  depends_on:
+    db:
+      condition: service_healthy
+
+services:
+  demo-client:
+    image: nginx:alpine
+    ports:
+      - "8081:80"
+    volumes:
+      - ./demo_client:/usr/share/nginx/html:ro
+
+  docs:
+    image: squidfunk/mkdocs-material
+    ports:
+      - "8002:8000"
+    volumes:
+      - .:/docs
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=/
+
+  backend:
+    <<: *backend-defaults
+    ports:
+      # Host 8001 → container 8000. Host 8000 conflicts with Portainer
+      # (`docker ps | grep portainer` shows 0.0.0.0:8000->8000). Vite proxy uses
+      # internal Docker DNS `http://backend:8000`, unaffected by host remap.
+      - "8001:8000"
+
+  db:
+    image: postgres:17-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=portable_inventory
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

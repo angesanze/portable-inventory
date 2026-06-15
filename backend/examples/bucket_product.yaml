@@ -1,0 +1,15 @@
+sku: "MED-BATCH-001"
+name: "Medical Supply - Batch A"
+profile: "BATCH_TRACKED"
+attributes:
+  requires_cold_chain: true
+engine_config:
+  primary_key: "batch_number"
+  fields:
+    - key: "batch_number"
+      label: "Batch Number"
+      type: "string"
+    - key: "expiry_date"
+      label: "Expiry Date"
+      type: "date"
+initial_stock: []

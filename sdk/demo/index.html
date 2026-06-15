@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Varasto SDK Demo</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 2rem;
+      background: #f8fafc;
+      color: #1e293b;
+    }
+    h1 { margin: 0 0 0.5rem; font-size: 1.75rem; }
+    .subtitle { color: #64748b; margin: 0 0 2rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .card h2 {
+      margin: 0 0 0.25rem;
+      font-size: 1.1rem;
+    }
+    .card .tag {
+      display: inline-block;
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+    .tag-js { background: #fef3c7; color: #92400e; }
+    .tag-wc { background: #dbeafe; color: #1e40af; }
+    .tag-iframe { background: #f1f5f9; color: #475569; }
+    .widget-container {
+      min-height: 200px;
+      border: 2px dashed #e2e8f0;
+      border-radius: 8px;
+      background: #fafafa;
+    }
+    .controls {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .controls h2 { margin: 0 0 1rem; font-size: 1.1rem; }
+    .btn-group { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+    .btn {
+      padding: 0.5rem 1rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+    .btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
+    .btn-primary { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+    .btn-primary:hover { background: #2563eb; }
+    .event-log {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.8rem;
+      background: #0f172a;
+      color: #94a3b8;
+      padding: 1rem;
+      border-radius: 8px;
+      height: 180px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+    .event-log .event-time { color: #475569; }
+    .event-log .event-type { color: #38bdf8; }
+    .event-log .event-data { color: #a5f3fc; }
+  </style>
+</head>
+<body>
+  <h1>Varasto SDK Demo</h1>
+  <p class="subtitle">Three ways to embed the inventory widget. Each uses a different theme.</p>
+
+  <div class="grid">
+    <!-- Method 1: JavaScript API -->
+    <div class="card">
+      <h2>JavaScript API</h2>
+      <span class="tag tag-js">JS SDK</span>
+      <pre style="font-size:0.75rem; background:#f8fafc; padding:0.75rem; border-radius:6px; overflow-x:auto; margin:0 0 1rem;"><code>const widget = new PortableInventory({
+  apiKey: 'demo',
+  container: '#widget-js',
+  theme: { primaryColor: '#3b82f6' }
+});
+widget.mount();</code></pre>
+      <div id="widget-js" class="widget-container"></div>
+    </div>
+
+    <!-- Method 2: Web Component -->
+    <div class="card">
+      <h2>Web Component</h2>
+      <span class="tag tag-wc">Custom Element</span>
+      <pre style="font-size:0.75rem; background:#f8fafc; padding:0.75rem; border-radius:6px; overflow-x:auto; margin:0 0 1rem;"><code>&lt;portable-inventory
+  api-key="demo"
+  product-id="1"
+  theme-primary="#10b981"
+  theme-bg="#f0fdf4"
+&gt;&lt;/portable-inventory&gt;</code></pre>
+      <div id="widget-wc" class="widget-container">
+        <portable-inventory
+          api-key="demo"
+          base-url=""
+          product-id="1"
+          theme-primary="#10b981"
+          theme-bg="#f0fdf4"
+        ></portable-inventory>
+      </div>
+    </div>
+
+    <!-- Method 3: Raw iframe -->
+    <div class="card">
+      <h2>Raw iframe</h2>
+      <span class="tag tag-iframe">Legacy</span>
+      <pre style="font-size:0.75rem; background:#f8fafc; padding:0.75rem; border-radius:6px; overflow-x:auto; margin:0 0 1rem;"><code>&lt;iframe src="/widget?api_key=demo"
+  style="width:100%; border:none;"
+&gt;&lt;/iframe&gt;</code></pre>
+      <div class="widget-container">
+        <iframe
+          id="widget-iframe"
+          src="/widget?api_key=demo"
+          style="width:100%; min-height:200px; border:none;"
+          title="Varasto Widget (iframe)"
+        ></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- Programmatic Controls -->
+  <div class="controls">
+    <h2>Programmatic Controls (JS API widget)</h2>
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="setProduct(1)">Product 1</button>
+      <button class="btn btn-primary" onclick="setProduct(2)">Product 2</button>
+      <button class="btn btn-primary" onclick="setProduct(3)">Product 3</button>
+      <button class="btn" onclick="setLocation(1)">Location 1</button>
+      <button class="btn" onclick="setLocation(2)">Location 2</button>
+      <button class="btn" onclick="destroyWidget()">Destroy</button>
+      <button class="btn" onclick="remountWidget()">Remount</button>
+    </div>
+    <h3 style="font-size:0.9rem; margin:0 0 0.5rem;">Event Log</h3>
+    <div id="event-log" class="event-log">Waiting for events...\n</div>
+  </div>
+
+  <script src="../dist/portable-inventory-sdk.umd.js"></script>
+  <script>
+    // Resolve base URL to the origin serving the actual app (default: same origin)
+    const BASE_URL = window.location.origin;
+
+    // Set base-url on web component dynamically
+    const wcEl = document.querySelector('portable-inventory');
+    if (wcEl && !wcEl.getAttribute('base-url')) {
+      wcEl.setAttribute('base-url', BASE_URL);
+    }
+
+    // Update raw iframe src with proper origin
+    const iframeEl = document.getElementById('widget-iframe');
+    if (iframeEl) {
+      iframeEl.src = BASE_URL + '/widget?api_key=demo';
+    }
+
+    // --- JavaScript API integration ---
+    const SDK = window['PortableInventorySDK'];
+    let widget = null;
+
+    function createWidget() {
+      if (!SDK || !SDK.PortableInventory) {
+        logEvent('error', 'SDK not loaded — make sure to run "npm run build" in sdk/');
+        return null;
+      }
+      const w = new SDK.PortableInventory({
+        apiKey: 'demo',
+        baseUrl: BASE_URL,
+        container: '#widget-js',
+        theme: {
+          primaryColor: '#3b82f6',
+          backgroundColor: '#ffffff',
+          borderRadius: '8px',
+        },
+      });
+
+      w.on('ready', (data) => logEvent('ready', JSON.stringify(data)));
+      w.on('resize', (data) => logEvent('resize', JSON.stringify(data)));
+      w.on('transaction_complete', (data) => logEvent('transaction_complete', JSON.stringify(data)));
+      w.on('error', (data) => logEvent('error', JSON.stringify(data)));
+
+      w.mount();
+      logEvent('info', 'Widget mounted via JS API');
+      return w;
+    }
+
+    widget = createWidget();
+
+    function setProduct(id) {
+      if (!widget) { logEvent('error', 'Widget not mounted'); return; }
+      widget.setProduct(id);
+      logEvent('command', 'setProduct(' + id + ')');
+    }
+
+    function setLocation(id) {
+      if (!widget) { logEvent('error', 'Widget not mounted'); return; }
+      widget.setLocation(id);
+      logEvent('command', 'setLocation(' + id + ')');
+    }
+
+    function destroyWidget() {
+      if (!widget) return;
+      widget.destroy();
+      widget = null;
+      logEvent('info', 'Widget destroyed');
+    }
+
+    function remountWidget() {
+      if (widget) widget.destroy();
+      widget = createWidget();
+    }
+
+    // --- Event log ---
+    function logEvent(type, data) {
+      const log = document.getElementById('event-log');
+      const time = new Date().toLocaleTimeString();
+      const line = '<span class="event-time">' + time + '</span> '
+        + '<span class="event-type">[' + type + ']</span> '
+        + '<span class="event-data">' + (data || '') + '</span>\n';
+      log.innerHTML += line;
+      log.scrollTop = log.scrollHeight;
+    }
+  </script>
+</body>
+</html>

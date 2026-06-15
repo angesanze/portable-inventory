@@ -1,0 +1,6 @@
+src/
+tests/
+demo/
+vite.config.ts
+tsconfig.json
+.npmignore

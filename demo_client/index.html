@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Commerce Admin Dashboard</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: #f3f4f6;
+        }
+
+        .header {
+            background: #1f2937;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 64px);
+        }
+
+        .sidebar {
+            width: 250px;
+            background: white;
+            border-right: 1px solid #e5e7eb;
+            padding: 2rem;
+        }
+
+        .main {
+            flex: 1;
+            padding: 2rem;
+            overflow: auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            margin-top: 0;
+            color: #111827;
+        }
+
+        .nav-item {
+            padding: 0.75rem 1rem;
+            color: #4b5563;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-item:hover {
+            background-color: #f3f4f6;
+            color: #111827;
+        }
+
+        .nav-item.active {
+            background-color: #e0e7ff;
+            color: #4f46e5;
+            font-weight: 600;
+        }
+
+        /* Widget Container Style */
+        .widget-frame {
+            width: 100%;
+            height: 600px;
+            border: none;
+            border-radius: 0.5rem;
+            background: #f9fafb;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <div style="font-weight: bold; font-size: 1.25rem;">MyECom Store</div>
+        <div style="color: #9ca3af;">admin@myecom.com</div>
+    </div>
+    <div class="container">
+        <div class="sidebar">
+            <div class="nav-item">Dashboard</div>
+            <div class="nav-item">Orders</div>
+            <div class="nav-item">Products</div>
+            <div class="nav-item active">Inventory Management</div>
+            <div class="nav-item">Settings</div>
+        </div>
+        <div class="main">
+            <h1>Inventory Management</h1>
+            <p style="color: #6b7280; margin-bottom: 2rem;">Manage your stock levels directly connected to Portable
+                Inventory.</p>
+
+            <div class="card">
+                <h2 style="font-size: 1.1rem; margin-bottom: 1rem;">Quick Stock Adjustment</h2>
+                <!-- WIDGET EMBED -->
+                <iframe
+                    src="http://localhost/widget?api_key=2e63217af7a64a37eb72156a7cde2b588761f9ec1f426a5611b5b48de9a9df96"
+                    className="widget-frame" style="width: 100%; border: none;" title="Inventory Widget"></iframe>
+            </div>
+
+            <div class="card">
+                <h2>Recent Activity</h2>
+                <div style="color: #6b7280; font-size: 0.875rem;">No recent local activity.</div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Listen for messages from the widget iframe
+        window.addEventListener('message', function (event) {
+            const { type, height, payload } = event.data;
+
+            if (type === 'WIDGET_RESIZE') {
+                const iframe = document.querySelector('iframe');
+                if (iframe && height) {
+                    iframe.style.height = (height + 20) + 'px'; // Add small buffer
+                }
+            }
+
+            if (type === 'STOCK_UPDATE') {
+                const { product, quantity, location, timestamp } = payload;
+                const activityContainer = document.querySelector('.card:last-child div');
+
+                // Clear "No recent activity" text if it's there
+                if (activityContainer.innerText.includes("No recent local activity")) {
+                    activityContainer.innerHTML = '';
+                }
+
+                const entry = document.createElement('div');
+                entry.style.padding = '0.75rem 0';
+                entry.style.borderBottom = '1px solid #f3f4f6';
+                entry.style.display = 'flex';
+                entry.style.justifyContent = 'space-between';
+                entry.style.alignItems = 'center';
+
+                const isReceive = quantity > 0;
+                const color = isReceive ? '#10b981' : '#ef4444';
+                const sign = isReceive ? '+' : '';
+
+                entry.innerHTML = `
+                    <div>
+                        <div style="font-weight: 600; color: #374151;">${product}</div>
+                        <div style="font-size: 0.8rem; color: #9ca3af;">${location} • ${new Date(timestamp).toLocaleTimeString()}</div>
+                    </div>
+                    <div style="font-weight: bold; color: ${color}; font-size: 1.1rem;">
+                        ${sign}${quantity}
+                    </div>
+                `;
+
+                activityContainer.prepend(entry);
+
+                // Optional: Flash effect
+                entry.style.backgroundColor = '#ecfdf5';
+                setTimeout(() => entry.style.backgroundColor = 'transparent', 500);
+            }
+        });
+    </script>
+</body>
+
+</html>

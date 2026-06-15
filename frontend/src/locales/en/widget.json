@@ -1,0 +1,166 @@
+{
+  "accessDenied": "Access Denied",
+  "unknownError": "Unknown error",
+  "units": "units",
+  "scanner": {
+    "qrScanner": "QR Scanner",
+    "scanTitle": "Scan Inventory QR Code",
+    "resolving": "Resolving QR code...",
+    "enterManually": "Enter QR Code Manually",
+    "manualPlaceholder": "e.g. AB12CD34",
+    "lookUpCode": "Look Up Code",
+    "looking": "Resolving...",
+    "startingCamera": "Starting camera...",
+    "tryAgain": "Try Again",
+    "lightOff": "Light Off",
+    "lightOn": "Light On",
+    "useCamera": "Use Camera",
+    "typeCode": "Type Code",
+    "aria": {
+      "enterCodeManually": "Enter code manually",
+      "switchToCamera": "Switch to camera",
+      "manualEntry": "QR code manual entry",
+      "submitCode": "Submit QR code",
+      "retryScanning": "Retry scanning",
+      "turnOnFlashlight": "Turn on flashlight",
+      "turnOffFlashlight": "Turn off flashlight"
+    },
+    "errors": {
+      "missingApiKey": "Missing API key",
+      "camera_denied": "Camera access denied. Please allow camera permissions in your browser settings.",
+      "no_camera": "No camera found on this device.",
+      "invalid_qr": "This QR code is not a valid Varasto code.",
+      "expired_code": "This QR code has expired or is no longer active.",
+      "locked_code": "This QR code is locked and cannot be used for scanning.",
+      "network_error": "Unable to reach the server. Check your connection.",
+      "unknown": "An unexpected error occurred. Please try again."
+    }
+  },
+  "result": {
+    "scanned": "Scanned",
+    "selectOperation": "Select Operation",
+    "unknownProduct": "Unknown Product",
+    "stock": "Stock:",
+    "scanAnotherCode": "Scan Another Code",
+    "aria": {
+      "backToScanner": "Back to scanner",
+      "scanAnother": "Scan another code"
+    },
+    "ops": {
+      "allocate": "Allocate",
+      "allocateDesc": "Add to batch",
+      "deallocate": "Deallocate",
+      "deallocateDesc": "Remove from batch",
+      "transferBatch": "Transfer",
+      "transferBatchDesc": "Move batch",
+      "addExpiry": "Add",
+      "addExpiryDesc": "Add stock with expiry",
+      "subtract": "Subtract",
+      "subtractDesc": "Remove stock",
+      "transfer": "Transfer",
+      "transferDesc": "Move stock",
+      "startWorkOrder": "Start",
+      "startWorkOrderDesc": "Begin work order",
+      "completeWorkOrder": "Complete",
+      "completeWorkOrderDesc": "Finish work order",
+      "checkIn": "Check In",
+      "checkInDesc": "Receive item",
+      "checkOut": "Check Out",
+      "checkOutDesc": "Release item",
+      "transferItem": "Transfer",
+      "transferItemDesc": "Move item",
+      "addMeasured": "Add",
+      "addMeasuredDesc": "Add measured stock",
+      "subtractMeasured": "Subtract",
+      "subtractMeasuredDesc": "Remove measured stock",
+      "add": "Add",
+      "addDesc": "Increase stock",
+      "subtractCount": "Subtract",
+      "subtractCountDesc": "Decrease stock"
+    }
+  },
+  "workOrder": {
+    "fulfill": "Fulfill order",
+    "fulfillConfirm": "Discharge all items in this work order and close it? This removes the quantities from stock and cannot be undone.",
+    "fulfillSuccess": "Work order fulfilled and closed",
+    "fulfillFailed": "Failed to fulfill work order"
+  },
+  "common": {
+    "quantity": "Quantity",
+    "qty": "Qty",
+    "qtyColon": "qty:",
+    "notes": "Notes",
+    "notesOptional": "Optional notes...",
+    "selectItem": "Select Item",
+    "selectItemPlaceholder": "Select item...",
+    "chooseSerial": "Choose a serial...",
+    "serialBarcode": "Serial Number / Barcode",
+    "scanOrEnterId": "Scan or Enter ID",
+    "scanOrTypeSerial": "Scan or Type Serial",
+    "add": "ADD",
+    "remove": "REMOVE",
+    "addPlus": "+ ADD",
+    "removeMinus": "- REMOVE",
+    "removeStock": "REMOVE STOCK",
+    "addStock": "Add Stock",
+    "removeStockTitle": "Remove Stock",
+    "checkIn": "Check In",
+    "checkOut": "Check Out",
+    "checkInCaps": "CHECK IN",
+    "checkOutCaps": "CHECK OUT",
+    "receiveItem": "Receive Item",
+    "releaseItem": "Release Item",
+    "unknownModel": "Unknown Model",
+    "current": "Current:",
+    "max": "Max",
+    "clear": "Clear",
+    "quickAdjust": "Quick Adjust",
+    "batchDetails": "Batch Details"
+  },
+  "panels": {
+    "trackerForm": {
+      "title": "Item Identification"
+    },
+    "trackerStatusForm": {
+      "title": "Item Status Change",
+      "newStatus": "New Status",
+      "submit": "APPLY STATUS CHANGE"
+    },
+    "batchComposition": {
+      "title": "Batch Composition",
+      "modeBulk": "Bulk",
+      "modeSerial": "Serial",
+      "assignedSerials": "Assigned Serials",
+      "addRemoveSerial": "Add / Remove Serial"
+    },
+    "dimensionForm": {
+      "title": "Dimension Input",
+      "computedValue": "Computed Value",
+      "formula": "Formula:"
+    },
+    "timeBasedForm": {
+      "title": "Time-Based Entry",
+      "expiryDate": "Expiry Date",
+      "batchReference": "Batch Reference",
+      "batchReferenceOptional": "Optional batch reference",
+      "addWithExpiry": "Add with Expiry"
+    },
+    "trackerPanel": {
+      "itemsLoadedFromProduct": "Items loaded from product inventory",
+      "updateStatus": "UPDATE STATUS"
+    },
+    "batchManager": {
+      "title": "Batch Management Console",
+      "totalStock": "Total Stock",
+      "activeLots": "Active Lots / Batches",
+      "lotIdentifier": "Lot Identifier",
+      "withdrawItem": "Withdraw item",
+      "scanOrSearchSerial": "Scan or Search Serial...",
+      "onlyAvailableNote": "Only available Warehouse stock is shown in search.",
+      "synchronizingStock": "Synchronizing Stock...",
+      "noActiveLots": "No active lots for this model",
+      "noSerialsAssigned": "No serials assigned",
+      "noContentsDefined": "No contents defined for this batch"
+    }
+  }
+}
