@@ -13,6 +13,9 @@
 x-backend-defaults: &backend-defaults
   build:
     context: ./backend
+    args:
+      # Dev/test stack pulls pytest + debug-toolbar; the prod image omits them (BP-05).
+      INSTALL_DEV: "1"
   command: sh -c "python manage.py migrate && python manage.py seed_e2e && python manage.py runserver 0.0.0.0:8000"
   volumes:
     - ./backend:/app

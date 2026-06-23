@@ -1,6 +1,6 @@
 ---
 type: reference
-title: Webhooks (Planned)
+title: Webhooks
 created: 2026-04-22
 tags:
   - api
@@ -13,11 +13,16 @@ related:
 
 # Webhooks
 
-> **Status:** Planned for a future release. This document describes the intended design.
+> **Status:** Implemented. Delivery is handled by `NotificationService`
+> (`inventory/services/notifications.py`) and persisted via the
+> `NotificationChannel` / `NotificationDelivery` models — payloads are
+> HMAC-SHA256 signed and retried with exponential backoff.
 
-Webhooks will allow external systems to receive real-time notifications when inventory events occur, eliminating the need for polling.
+Webhooks allow external systems to receive real-time notifications when
+inventory events occur, eliminating the need for polling. The authoritative
+list of emitted events lives in the code; the table below summarises them.
 
-## Planned Event Types
+## Event Types
 
 | Event | Description | Trigger |
 |-------|-------------|---------|
@@ -32,7 +37,7 @@ Webhooks will allow external systems to receive real-time notifications when inv
 | `product.created` | New product model created | Product creation |
 | `batch.created` | New batch created | Batch creation via work order |
 
-## Planned Payload Format
+## Payload Format
 
 ```json
 {
@@ -52,30 +57,32 @@ Webhooks will allow external systems to receive real-time notifications when inv
 }
 ```
 
-## Planned Configuration
+## Configuration
 
-Webhooks will be configurable per company via the Authority Dashboard:
+Webhooks are configurable per company via the Authority Dashboard:
 
 - **URL:** HTTPS endpoint to receive POST requests
 - **Events:** Select which event types to subscribe to
 - **Secret:** HMAC-SHA256 signing key for payload verification
-- **Retry policy:** Exponential backoff with 3 retries on failure (5s, 30s, 300s)
+- **Retry policy:** Up to 5 attempts with exponential backoff (`2^n × 60s`), retried on subsequent monitor evaluation runs
 
-## Planned Security
+## Security
 
-- Payloads signed with `X-Webhook-Signature` header (HMAC-SHA256)
+- Payloads signed with the `X-PI-Signature: sha256=<hex>` header (HMAC-SHA256 of the raw JSON body)
 - HTTPS required for webhook URLs
 - IP allowlisting optional
-- Failed deliveries logged in event log for debugging
+- Failed deliveries are recorded in `NotificationDelivery` for debugging
 
 ## Integration Pattern
 
-Until webhooks are available, use polling with the existing API:
+Webhooks are the recommended way to react to inventory events. Polling the
+existing API remains possible as a fallback (send the key as an `X-Api-Key`
+header rather than in the URL):
 
 ```bash
 # Poll every 60 seconds for stock changes
 while true; do
-  curl -s "https://your-domain.com/api/v1/widget/?api_key=key" | jq '.products'
+  curl -s -H "X-Api-Key: $API_KEY" "https://your-domain.com/api/v1/widget/" | jq '.products'
   sleep 60
 done
 ```

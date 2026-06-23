@@ -114,16 +114,8 @@ $$
 
 (The latter might fail if the system enforces existence constraints).
 
-### 4.3 Conservation of Mass (Ledger Invariant)
-The system enforces a global invariant across all Locations $\mathbb{L}$:
-
-$$ 
-\sum_{l \in \mathbb{L}} S_l(t) = C 
-$$
-
-*(Where $C$ is constant, assuming a closed system. In an open system with Vendor/Consumer nodes, the sum includes virtual nodes)*.
-
-Every transaction $T$ is actually a **Movement** vector affecting two states $S_{source}$ and $S_{dest}$:
+### 4.3 Conservation of Mass (per-transaction invariant)
+Every transaction $T$ is a **Movement** vector affecting two states $S_{source}$ and $S_{dest}$:
 
 $$ 
 S_{source}' = f(S_{source}, -T) 
@@ -133,7 +125,29 @@ $$
 S_{dest}' = f(S_{dest}, +T) 
 $$
 
-This ensures that $\Delta S_{total} = 0$.
+so each movement conserves mass, $\Delta S_{total} = 0$ (in an open system the sum
+includes the virtual Vendor/Customer/Adjustment/Transit nodes a movement is
+booked against). The `Movement` ledger is therefore append-only and every
+movement is individually auditable.
+
+> **Scope of the invariant — important.** "Current stock is a *pure derivative*
+> of the ledger" holds **only for `BULK` products** (`SIMPLE_COUNT`,
+> `UNIT_CONVERSION`, `DIMENSIONAL`), where the on-hand quantity is computed as
+> $\sum \text{in} - \sum \text{out}$ over `Movement` rows (see
+> `services/stock.py`).
+>
+> For the other tracking modes the ledger is a **parallel audit log** that can
+> *diverge* from the authoritative state:
+>
+> * `BATCH` (`BATCH_TRACKED`, `PERISHABLE`) → the source of truth is the mutable
+>   field `ProductBatch.quantity`.
+> * `INDIVIDUAL` (`SERIALIZED`) → the source of truth is the **count of
+>   `PhysicalProduct`** rows in a location.
+>
+> The code says as much in the `services/stock.py` docstring. Treat the
+> conservation law as a *per-transaction* guarantee, not a global "stock is
+> always re-derivable from the ledger" guarantee. (A future ledger↔state
+> reconciliation command could surface any drift.)
 
 ---
 

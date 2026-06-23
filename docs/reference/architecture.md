@@ -17,22 +17,38 @@ Varasto is a modular web application designed for inventory management. It runs 
 ### 2. Backend (Django REST Framework)
 - **Tech Stack**: Python, Django, Django REST Framework.
 - **Role**: API provider, business logic, and database interaction.
-- **Deployment**: Single `backend` service published directly on `:8000`.
+- **Deployment**: `backend` service listening on container port `:8000`, mapped to host `:8001` (host `8000` is left free to avoid the common Portainer conflict).
 - **Database**: PostgreSQL.
 
 ### 3. Database (PostgreSQL)
 - **Role**: Persistent data storage.
-- **Models**: `License`, `Company`, `User`, `ApiKey`, `ProductModel`, `PhysicalProduct`, etc.
+- **Models**: `Company`, `User`, `ApiKey`, `ProductModel`, `PhysicalProduct`, `ProductBatch`, `Movement`, etc. (There is no `License` model — licensing lives on `Company`.)
 
 ## Topology
 
 ```
 db          (postgres :5432)
-backend     (django :8000  -> 8000:8000)
+backend     (django :8000  -> 8001:8000)   # host 8001 (8000 left free for Portainer)
 frontend    (vite :5173    -> 5173:5173)   # proxies /api,/admin,/static,/go -> backend:8000
 docs        (mkdocs :8002)
 demo-client (nginx :8081)
 ```
+
+## Polymorphic Product Layering
+
+A product's polymorphic behaviour is split across **two parallel abstractions**
+on purpose — keep them distinct when extending the system:
+
+| Layer | Base class | Lives in | Responsibility |
+| :--- | :--- | :--- | :--- |
+| Write / ledger | `ProfileBehavior` | `inventory/strategies.py` | How a movement is committed to the ledger (bulk vs batch vs serialized vs assembled). |
+| UI / calculation | `BaseEngine` | `inventory/engines/` | How the widget renders inputs and computes the stock delta (e.g. counter, converter, dimension, bucket, time_based, tracker). |
+
+The mapping is `profile → {tracking_mode, engine_type} → {behavior, engine}`,
+resolved by `inventory/profiles.py` (`PROFILE_MAP`) and
+`inventory/engines/factory.py`. A given `ProductModel` therefore picks up **both**
+a `ProfileBehavior` (write path) and a `BaseEngine` (read/UI path) from its single
+`profile` field. See [Strategies](../concepts/strategies.md) for the full table.
 
 ## Directory Structure
 

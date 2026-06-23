@@ -27,10 +27,11 @@ The easiest way to run the system is via Docker Compose.
     docker-compose up --build
     ```
 
-4.  **Access the App**:
-    *   **Frontend**: [http://localhost](http://localhost)
-    *   **Backend API**: [http://localhost/api/v1/](http://localhost/api/v1/)
-    *   **Documentation**: [http://localhost/docs/](http://localhost/docs/)
+4.  **Access the App** (the dev stack runs each service on its own port):
+    *   **Frontend (SPA)**: [http://localhost:5173](http://localhost:5173)
+    *   **Backend API**: [http://localhost:8001/api/v1/](http://localhost:8001/api/v1/) — host `8001` maps to the container's `8000` (host `8000` is left free to avoid the common Portainer conflict). In normal use the frontend proxies `/api` to the backend, so you browse the app at `:5173`.
+    *   **Documentation**: [http://localhost:8002](http://localhost:8002)
+    *   **Demo widget host**: [http://localhost:8081](http://localhost:8081)
 
 ---
 

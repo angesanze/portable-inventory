@@ -13,7 +13,11 @@ test-sdk:
 	cd sdk && npm run build && npm test
 
 typecheck:
-	cd frontend && npx tsc --noEmit
+	# Frontend root tsconfig is references-only (`files: []`), so a bare
+	# `tsc --noEmit` checks NOTHING (false green). `tsc -b --force` type-checks
+	# the referenced app+node projects in full (they set `noEmit`, so nothing is
+	# emitted); `--force` ignores the stale .tsbuildinfo incremental cache.
+	cd frontend && npx tsc -b --force
 	cd sdk && npx tsc --noEmit
 
 lint:

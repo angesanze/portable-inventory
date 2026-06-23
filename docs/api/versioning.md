@@ -76,6 +76,6 @@ pre-emptively.
 
 ## Publishing the schema
 
-The versioned schema is embedded in these docs via ReDoc at
-[`/api/redoc/`](/api/redoc/) and Swagger UI at [`/api/docs/`](/api/docs/). The
+The versioned schema is served by the backend via ReDoc at `/api/redoc/` and
+Swagger UI at `/api/docs/` (e.g. `http://localhost:8001/api/docs/`). The
 canonical machine-readable contract is `/api/schema/`.

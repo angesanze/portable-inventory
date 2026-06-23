@@ -1,5 +1,6 @@
 site_name: Varasto
-site_url: http://localhost/docs/
+# Product name is "Varasto"; "portable-inventory" is the technical slug.
+site_url: http://localhost:8002/
 repo_url: https://github.com/my-org/portable-inventory
 theme:
   name: material

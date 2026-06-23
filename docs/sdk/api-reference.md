@@ -272,8 +272,6 @@ import type {
   ThemeConfig,
   WidgetEvent,
   WidgetEventMap,
-  WidgetEventType,
   PostMessagePayload,
-  PostMessageType,
 } from '@portable-inventory/widget-sdk';
 ```

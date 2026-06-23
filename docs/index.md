@@ -11,7 +11,7 @@
 | Feature | Description |
 | :--- | :--- |
 | **Polymorphic** | Treat a screw, a laptop, and a batch of glue with distinct logic, all in one DB. |
-| **Audit-Ready** | Ledger-based accounting ensures every stock change is recorded and reversible. |
+| **Audit-Ready** | An append-only `Movement` ledger records every stock change. For bulk products the on-hand quantity is derived directly from the ledger; for batch/serialized items the ledger is a parallel audit trail (see [Theory §4.3](concepts/theory.md)). |
 | **Context-Aware UI** | The interface adapts to the item type (e.g., showing "+/-" for bulk, "Assign User" for assets). |
 | **Modern Stack** | Built with Python (Django), React (Refine), and Docker. |
 
