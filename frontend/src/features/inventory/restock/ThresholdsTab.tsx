@@ -146,7 +146,7 @@ export const ThresholdsTab = ({ card, onSaved }: ThresholdsTabProps) => {
                     inputMode="decimal"
                     step="any"
                     min="0"
-                    disabled={!canEdit}
+                    disabled={!canEdit || isFetching}
                     value={form[f.key]}
                     onChange={(e) => setField(f.key, e.target.value)}
                     data-testid={f.testid}

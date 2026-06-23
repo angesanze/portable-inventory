@@ -5,9 +5,10 @@ validate company ownership via DRF validated_data (not initial_data).
 """
 from django.test import TestCase, RequestFactory
 from rest_framework.exceptions import ValidationError
-from inventory.models import ProductModel, Location, PhysicalProduct
+from inventory.models import ProductModel, Location, PhysicalProduct, WorkOrder
 from inventory.serializers.products import PhysicalProductSerializer
 from inventory.serializers.locations import LocationSerializer
+from inventory.serializers.work_orders import WorkOrderSerializer
 from inventory.tests.helpers import make_company as _make_company
 
 
@@ -153,3 +154,41 @@ class LocationSerializerCrossTenantTest(TestCase):
         self.assertTrue(serializer.is_valid(), serializer.errors)
         loc = serializer.save()
         self.assertIsNone(loc.parent)
+
+
+class WorkOrderSerializerCrossTenantTest(TestCase):
+    """L4: WorkOrderSerializer must reject a product_model from another tenant
+    (defense-in-depth on top of WorkOrder.clean())."""
+
+    def setUp(self):
+        self.company_a, self.user_a, _ = _make_company("A")
+        self.company_b, self.user_b, _ = _make_company("B")
+
+        self.model_a = ProductModel.objects.create(
+            company=self.company_a, sku="WO-MOD-A", name="Model A",
+        )
+        self.model_b = ProductModel.objects.create(
+            company=self.company_b, sku="WO-MOD-B", name="Model B",
+        )
+
+    def test_create_with_own_product_model_succeeds(self):
+        request = _fake_request(self.user_a)
+        data = {"name": "WO-OK", "product_model": str(self.model_a.id)}
+        serializer = WorkOrderSerializer(data=data, context={"request": request})
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        wo = serializer.save(company=self.company_a)
+        self.assertEqual(wo.product_model_id, self.model_a.id)
+
+    def test_create_with_cross_tenant_product_model_rejected(self):
+        request = _fake_request(self.user_a)
+        data = {"name": "WO-BAD", "product_model": str(self.model_b.id)}
+        serializer = WorkOrderSerializer(data=data, context={"request": request})
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("product_model", serializer.errors)
+
+    def test_create_without_product_model_succeeds(self):
+        """product_model is optional; absence must not trip the scoped check."""
+        request = _fake_request(self.user_a)
+        data = {"name": "WO-NONE"}
+        serializer = WorkOrderSerializer(data=data, context={"request": request})
+        self.assertTrue(serializer.is_valid(), serializer.errors)

@@ -95,7 +95,12 @@ class InviteUserSerializer(serializers.Serializer):
     email = serializers.EmailField(required=False, allow_blank=True, default='')
     password = serializers.CharField(write_only=True, min_length=8)
     company = serializers.UUIDField()
-    role = serializers.CharField(required=False, allow_blank=True, default='')
+    # Constrain to the canonical role enum so an unknown role 400s instead of
+    # being persisted verbatim (and silently normalized to ADMIN downstream).
+    # Blank stays accepted (legacy/unspecified → treated as ADMIN).
+    role = serializers.ChoiceField(
+        choices=User.Role.choices, required=False, allow_blank=True, default=''
+    )
 
 class ApiKeyViewSet(viewsets.ModelViewSet):
     """Key management surface — gated to tiers that may manage API keys.

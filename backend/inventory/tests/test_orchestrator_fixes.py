@@ -142,6 +142,57 @@ def test_manual_adjustment_books_against_adjustment_not_vendor(company_setup):
 
 
 @pytest.mark.django_db
+def test_orchestrator_rejects_malformed_idempotency_key(company_setup):
+    """L2: a non-UUID idempotency_key must raise a clean ValidationError up front,
+    not bubble a deep error out of the ledger's UUIDField as a generic 500."""
+    from rest_framework.exceptions import ValidationError as DRFValidationError
+
+    company = company_setup
+    loc = Location.objects.create(name="Idem Warehouse", type="WAREHOUSE", company=company)
+    product = ProductModel.objects.create(
+        company=company,
+        name="Idem Bulk",
+        sku=f"SKU-IDEM-{uuid.uuid4()}",
+        profile="SIMPLE_COUNT",
+    )
+
+    with pytest.raises(DRFValidationError):
+        InventoryOrchestrator.handle_widget_movement(
+            company=company,
+            product_model=product,
+            location=loc,
+            data={"quantity": 5, "idempotency_key": "not-a-uuid"},
+        )
+    # The bad request created no Movement.
+    assert not Movement.objects.filter(product_model=product).exists()
+
+
+@pytest.mark.django_db
+def test_orchestrator_accepts_valid_idempotency_key(company_setup):
+    """L2: a well-formed UUID idempotency_key is accepted and threaded to the
+    ledger (the movement is stamped with it)."""
+    company = company_setup
+    loc = Location.objects.create(name="Idem OK Warehouse", type="WAREHOUSE", company=company)
+    product = ProductModel.objects.create(
+        company=company,
+        name="Idem OK Bulk",
+        sku=f"SKU-IDEMOK-{uuid.uuid4()}",
+        profile="SIMPLE_COUNT",
+    )
+    key = str(uuid.uuid4())
+
+    result = InventoryOrchestrator.handle_widget_movement(
+        company=company,
+        product_model=product,
+        location=loc,
+        data={"quantity": 5, "idempotency_key": key},
+    )
+    assert result["status"] == "success"
+    movement = Movement.objects.filter(product_model=product).latest("occurred_at")
+    assert str(movement.idempotency_key) == key
+
+
+@pytest.mark.django_db
 def test_explicit_vendor_counterparty_uses_external_vendor(company_setup):
     """Passing counterparty='VENDOR' still books against 'External Vendor'."""
     company = company_setup

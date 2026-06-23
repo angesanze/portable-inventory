@@ -37,13 +37,12 @@ export interface ProductStockRow {
 }
 
 /**
- * A `physical-products` row augmented with the flattened, list-only fields
- * the Individual Items tab renders (batch + timestamps) which are not part
- * of the canonical `PhysicalProduct` shape.
+ * A `physical-products` row augmented with the flattened, list-only field
+ * the Individual Items tab renders (`updated_at`) which is not part of the
+ * canonical `PhysicalProduct` shape. A serialized unit has no batch, so no
+ * batch/quantity fields are surfaced here.
  */
 export interface PhysicalProductRow extends PhysicalProduct {
-    batch_identifier?: string | null;
-    quantity?: number | null;
     updated_at?: string | null;
 }
 

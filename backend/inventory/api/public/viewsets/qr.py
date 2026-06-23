@@ -2,6 +2,7 @@ from rest_framework import viewsets, permissions, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
 from inventory.models import DynamicQRCode, ProductModel, PhysicalProduct, Location
@@ -86,53 +87,69 @@ class QRCodeWidgetViewSet(ApiKeyAuthMixin, viewsets.ViewSet):
         
         product_model_id = request.data.get('product_model_id')
         physical_identifier = request.data.get('physical_identifier')
-        
-        qr = get_object_or_404(DynamicQRCode, code=code, company=api_key.company)
-        
-        if qr.status != 'VIRGIN':
-            raise QRCodeStateError(
-                detail="QR Code is already configured.",
-                current_state=qr.status,
-                allowed_transitions=['VIRGIN'],
-            )
 
-        # Support target_type architecture (Authority Dashboard)
-        if target_type == 'PRODUCT':
-            qr.product_model = get_object_or_404(ProductModel, id=target_id, company=api_key.company)
-            qr.physical_product = None
-            qr.work_order = None
-        elif target_type == 'ITEM':
-            qr.physical_product = get_object_or_404(PhysicalProduct, id=target_id, product_model__company=api_key.company)
-            qr.product_model = None
-            qr.work_order = None
-        elif target_type == 'WORK_ORDER':
-            from inventory.models import WorkOrder
-            qr.work_order = get_object_or_404(WorkOrder, id=target_id, company=api_key.company)
-            qr.product_model = None
-            qr.physical_product = None
-        # Support legacy Widget parameters (Widget UI)
-        elif product_model_id:
-            pm = get_object_or_404(ProductModel, id=product_model_id, company=api_key.company)
-            if physical_identifier:
-                pp, _ = PhysicalProduct.objects.get_or_create(
-                    identifier=physical_identifier, 
-                    product_model=pm,
-                    defaults={'status': 'ACTIVE', 'location': get_object_or_404(Location, id=location_id, company=api_key.company) if location_id else None}
+        # Resolve the (optional) Location ONCE up front. The legacy
+        # get_or_create previously evaluated this 404 lookup inside ``defaults``,
+        # which re-queries it on every call and resolves it even on the
+        # existing-item path; resolving the instance here is queried once and
+        # reused for both the get_or_create default and the qr.location set.
+        location = (
+            get_object_or_404(Location, id=location_id, company=api_key.company)
+            if location_id else None
+        )
+
+        # The read-check-then-write below must be atomic: get_or_create may
+        # create a PhysicalProduct and then qr.save() persists the QR pointing
+        # at it. Without a single transaction, a failure after get_or_create
+        # would leave an orphan PhysicalProduct committed while the QR is not
+        # configured.
+        with transaction.atomic():
+            qr = get_object_or_404(DynamicQRCode, code=code, company=api_key.company)
+
+            if qr.status != 'VIRGIN':
+                raise QRCodeStateError(
+                    detail="QR Code is already configured.",
+                    current_state=qr.status,
+                    allowed_transitions=['VIRGIN'],
                 )
-                qr.physical_product = pp
-                qr.product_model = None
-                qr.work_order = None
-            else:
-                qr.product_model = pm
+
+            # Support target_type architecture (Authority Dashboard)
+            if target_type == 'PRODUCT':
+                qr.product_model = get_object_or_404(ProductModel, id=target_id, company=api_key.company)
                 qr.physical_product = None
                 qr.work_order = None
-            
-        if location_id:
-            qr.location = get_object_or_404(Location, id=location_id, company=api_key.company)
-            
-        qr.status = 'CONFIGURED'
-        qr.save()
-        
+            elif target_type == 'ITEM':
+                qr.physical_product = get_object_or_404(PhysicalProduct, id=target_id, product_model__company=api_key.company)
+                qr.product_model = None
+                qr.work_order = None
+            elif target_type == 'WORK_ORDER':
+                from inventory.models import WorkOrder
+                qr.work_order = get_object_or_404(WorkOrder, id=target_id, company=api_key.company)
+                qr.product_model = None
+                qr.physical_product = None
+            # Support legacy Widget parameters (Widget UI)
+            elif product_model_id:
+                pm = get_object_or_404(ProductModel, id=product_model_id, company=api_key.company)
+                if physical_identifier:
+                    pp, _ = PhysicalProduct.objects.get_or_create(
+                        identifier=physical_identifier,
+                        product_model=pm,
+                        defaults={'status': 'ACTIVE', 'location': location},
+                    )
+                    qr.physical_product = pp
+                    qr.product_model = None
+                    qr.work_order = None
+                else:
+                    qr.product_model = pm
+                    qr.physical_product = None
+                    qr.work_order = None
+
+            if location is not None:
+                qr.location = location
+
+            qr.status = 'CONFIGURED'
+            qr.save()
+
         return Response({"status": "success", "new_status": qr.status})
 
     @extend_schema(

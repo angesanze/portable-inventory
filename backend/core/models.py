@@ -190,7 +190,10 @@ class ApiKey(models.Model):
         help_text="Transient: a plaintext set here is hashed into key_hash on save and not stored.",
     )
     key_hash = models.CharField(
-        max_length=64, unique=True, null=True, blank=True, db_index=True,
+        # `unique=True` already creates the index — adding `db_index=True` too is
+        # redundant AND makes the Postgres migration try to create the varchar
+        # `_like` index twice (DuplicateTable on a fresh deploy). See 0016.
+        max_length=64, unique=True, null=True, blank=True,
         help_text="SHA-256 of the API key. Lookups match on this; the plaintext is shown once at creation.",
     )
     key_prefix = models.CharField(

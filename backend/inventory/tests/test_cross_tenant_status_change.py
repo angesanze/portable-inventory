@@ -107,3 +107,36 @@ def test_same_tenant_physical_product_id_still_works(tenants):
     assert res.status_code == 200, res.content
     pp.refresh_from_db()
     assert pp.status == "IN_USE"
+
+
+@pytest.mark.django_db(transaction=True)
+def test_client_supplied_user_is_ignored_on_widget_status_change(tenants):
+    """M3: the public widget path must not let a client forge audit attribution.
+
+    ``strategies.execute_status_change`` writes ``delta_payload['user']`` to
+    ``Movement.performed_by``; the widget service strips ``user``/``performed_by``
+    from the raw body so a forged actor is dropped. Supply a bogus ``user`` UUID
+    and assert the resulting status-change Movement has ``performed_by=None``.
+    """
+    from inventory.models import Movement
+
+    owner = tenants["A"]
+    pp = owner["pp"]
+    forged = str(uuid.uuid4())
+
+    client = APIClient()
+    url = f"/api/v1/widget/{owner['product'].id}/transaction/?api_key={owner['api_key'].key}"
+    payload = {
+        "operation": "status_change",
+        "physical_product_id": str(pp.id),
+        "new_status": "IN_USE",
+        "user": forged,            # forged attribution — must be ignored
+        "performed_by": forged,    # alternate field name — must also be ignored
+    }
+    res = client.post(url, payload, format="json")
+
+    assert res.status_code == 200, res.content
+    mv = Movement.objects.filter(
+        physical_product=pp, reason__startswith="Status:"
+    ).latest("occurred_at")
+    assert mv.performed_by_id is None, "client-supplied user must not be attributed"

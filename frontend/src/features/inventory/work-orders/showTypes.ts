@@ -47,7 +47,6 @@ export interface WorkOrderContentItem {
     unit?: string;
     identifier?: string;
     batch_identifier?: string;
-    status?: string;
 }
 
 /** Location reference embedded on a movement. */

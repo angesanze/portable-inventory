@@ -125,6 +125,36 @@ E2E/QA manuale, backfill della migrazione, Postgres (i test usano sqlite), primo
 run CI. Un ulteriore audit *troverebbe ancora* (perf/N+1, a11y, concorrenza, SDK)
 — con rendimenti decrescenti.
 
+### 5ª tornata — esecuzione reale (Docker + Postgres) — RUN-08..18
+Abbiamo **eseguito l'app** (`docker compose up`, Postgres reale) + due passate
+adversariali read-only. Esito: un **deploy-blocker** e un **Critical** che TUTTI
+i gate (sqlite + `--no-migrations` + tipi/lint/unit) non potevano vedere.
+- 🔴 **RUN-08 [deploy-blocker]** `0016_apikey_hash` **crasha su Postgres fresco**:
+  `DuplicateTable` sull'indice `_like` perché `key_hash` aveva `unique=True` **e**
+  `db_index=True` (ridondante; la transizione ricrea l'indice varchar_pattern_ops).
+  `pytest --no-migrations` + sqlite non lo vedono mai. **Fix:** rimosso `db_index`
+  da modello + migrazione; backfill reso robusto ai plaintext duplicati. Verificato:
+  migrazione applica pulita su Postgres **e** sqlite, `makemigrations --check` = no-drift.
+- 🔴 **RUN-09 [C1] throttle bypassabile via header**: `throttling.py` leggeva la
+  chiave solo da query/body → richieste con `X-Api-Key` **non throttlate** (e la
+  SEC-04 *spinge* all'header). **Fix:** estrazione credenziale uniforme (header
+  incluso) + bucket per id-chiave (token e raw condividono il limite) + test.
+- 🟠 **RUN-10/11 [H1/H2]** fulfillment WorkOrder non idempotente (`select_for_update`
+  + chiavi `uuid5` per-riga) · `configure_qr` non atomico → atomic.
+- 🟡 **RUN-12..15 [M1/M3/L2-4]** orphan WorkOrder → atomic · `performed_by` forgiabile
+  → strippato sul path widget · `idempotency_key` validato come UUID nell'orchestrator
+  · invite `role` → `ChoiceField` · `validate_product_model` scoped (defense-in-depth).
+- 🟡 **RUN-16..18 [frontend]** badge status seriale sempre grigio → emerald · colonna
+  "Batch" morta rimossa (il `PhysicalProduct` non ha batch) · ThresholdsTab non
+  scarta più gli edit durante il fetch.
+- ✅ **Smoke-test live** `GET /widget/{wo}/`: `grouped_items` esce nested
+  `{model:{id,name,sku,tracking_mode}, items:[{id,batch_identifier,quantity}]}` —
+  conferma che il fix `BatchManagerPanel` combacia col backend reale.
+
+**Stato gate dopo la 5ª tornata:** backend **1006 passed / 0 regressioni**;
+frontend `tsc -b` 0 / `eslint` 0 / `vitest` 1277; migrazione applica su Postgres
+reale + sqlite; app **booota e serve**.
+
 ---
 
 ## 2. Legenda

@@ -81,8 +81,6 @@ const mockPhysicalProducts = [
         status: "IN_USE",
         location: "loc-002",
         location_name: "Store Front",
-        batch_identifier: "BATCH-001",
-        quantity: 50,
         updated_at: "2026-04-22T08:00:00Z",
     },
 ];
@@ -262,9 +260,10 @@ describe("PhysicalProductList", () => {
         expect(headerTexts).toContain("Product Model");
         expect(headerTexts).toContain("Status");
         expect(headerTexts).toContain("Location");
-        expect(headerTexts).toContain("Batch");
         expect(headerTexts).toContain("Updated");
         expect(headerTexts).toContain("Actions");
+        // A serialized unit has no batch — the dead "Batch" column was removed.
+        expect(headerTexts).not.toContain("Batch");
     });
 
     it("navigates to stock detail on individual item row click", () => {

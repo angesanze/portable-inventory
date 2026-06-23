@@ -63,8 +63,18 @@ class InventoryOrchestrator:
         batch_id = data.get('batch_id')
         batch_data = data.get('batch_data')
         work_order_id = data.get('work_order_id')
+        # Client-supplied idempotency key (offline queue retries). Must be a
+        # UUID — Movement.idempotency_key is a UUIDField, so a malformed value
+        # would otherwise raise deep in the ledger and surface as a generic
+        # 500. Mirror the validation in WidgetTransactionService.process_transaction.
         idempotency_key = data.get('idempotency_key')
-        
+        if idempotency_key:
+            import uuid
+            try:
+                idempotency_key = str(uuid.UUID(str(idempotency_key)))
+            except (ValueError, AttributeError, TypeError):
+                raise ValidationError("idempotency_key must be a valid UUID")
+
         work_order = None
         if work_order_id:
             try:

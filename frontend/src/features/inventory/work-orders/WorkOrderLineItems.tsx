@@ -207,15 +207,8 @@ const LineItemRow = ({
                                     {t("workOrders.snLabel")} {item.identifier}
                                 </span>
                             )}
-                            <Badge
-                                variant={
-                                    item.status === "ACTIVE"
-                                        ? "emerald"
-                                        : "neutral"
-                                }
-                                size="sm"
-                            >
-                                {item.status || "ACTIVE"}
+                            <Badge variant="emerald" size="sm">
+                                ACTIVE
                             </Badge>
                         </div>
                     )}

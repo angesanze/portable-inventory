@@ -2,6 +2,7 @@ import logging
 import uuid
 
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from decimal import Decimal, InvalidOperation
 from ..models import Movement, Location, ProductModel, PhysicalProduct, WorkOrder
 from ..engines import EngineFactory
@@ -82,6 +83,14 @@ class WidgetTransactionService:
         try:
             # Resolve physical_identifier → physical_product_id (TrackerStatusBehavior expects pk)
             resolved_payload = dict(data)
+            # The widget path is unauthenticated/public: never let a client-
+            # supplied attribution leak into the audit trail. strategies.py
+            # `execute_status_change` reads `delta_payload.get('user')` and
+            # writes it to `Movement.performed_by`, so a forged `user`/
+            # `performed_by` here would fabricate who did the change. Force the
+            # actor to None (anonymous widget action).
+            resolved_payload.pop('user', None)
+            resolved_payload.pop('performed_by', None)
             if not resolved_payload.get('physical_product_id'):
                 ident = resolved_payload.get('physical_identifier')
                 if ident:
@@ -217,15 +226,21 @@ class WidgetTransactionService:
 
         # SPECIAL: If produce_kit called on a ProductModel, create a new WorkOrder
         if operation == 'produce_kit' and product.components.exists():
-            # Create new Work Order
+            # Create new Work Order. The WO-create and the batch-manager call
+            # must share ONE transaction: handle_batch_manager_transaction has
+            # its own (nested) atomic, so if it raises, an outer-committed WO
+            # would be orphaned (a WorkOrder with no kit production booked).
+            # Wrapping both makes the WO roll back alongside the failed batch
+            # production.
             wo_name = f"{product.sku}-BATCH-{uuid.uuid4().hex[:6].upper()}"
-            new_wo = WorkOrder.objects.create(
-                company=company,
-                name=wo_name,
-                product_model=product,
-                status='OPEN'
-            )
-            BatchManagerService.handle_batch_manager_transaction(new_wo, data)
+            with transaction.atomic():
+                new_wo = WorkOrder.objects.create(
+                    company=company,
+                    name=wo_name,
+                    product_model=product,
+                    status='OPEN'
+                )
+                BatchManagerService.handle_batch_manager_transaction(new_wo, data)
             return {
                 "success": True,
                 "work_order_id": str(new_wo.id),

@@ -78,6 +78,36 @@ class InviteUserGateTests(APITestCase):
         self.assertFalse(created.is_superuser)
         self.assertFalse(created.is_staff)
 
+    def test_invalid_role_is_rejected(self):
+        """L3: an unknown role 400s (ChoiceField) instead of being persisted
+        verbatim and silently normalized to ADMIN downstream."""
+        self.client.force_authenticate(user=self.developer_user)
+        before = User.objects.count()
+        response = self.client.post(
+            self.url,
+            self._payload(
+                self.child_company, username='bad_role', role='SUPERADMIN'
+            ),
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('role', response.data)
+        self.assertEqual(User.objects.count(), before)
+
+    def test_valid_role_is_accepted_and_persisted(self):
+        """L3: a canonical role enum value still works and is stored as given."""
+        self.client.force_authenticate(user=self.developer_user)
+        response = self.client.post(
+            self.url,
+            self._payload(
+                self.child_company, username='op_user', role=User.Role.OPERATOR
+            ),
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        created = User.objects.get(username='op_user')
+        self.assertEqual(created.role, User.Role.OPERATOR)
+
     def test_developer_cannot_invite_into_foreign_company(self):
         """A developer cannot attach a user to a company that is not its child."""
         self.client.force_authenticate(user=self.developer_user)

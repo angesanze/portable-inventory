@@ -122,13 +122,12 @@ export const IndividualItemsTab = () => {
                             <TableHead>{t("stock.productModel")}</TableHead>
                             <TableHead>{t("common:status")}</TableHead>
                             <TableHead>{t("stock.location")}</TableHead>
-                            <TableHead>{t("stock.batch")}</TableHead>
                             <TableHead>{t("common:updated")}</TableHead>
                             <TableHead className="text-right">{t("common:actions")}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        <SkeletonRow columns={8} />
+                        <SkeletonRow columns={7} />
                     </TableBody>
                 </Table>
             ) : items.length === 0 ? (
@@ -191,7 +190,6 @@ export const IndividualItemsTab = () => {
                             <TableHead>{t("stock.productModel")}</TableHead>
                             <TableHead>{t("common:status")}</TableHead>
                             <TableHead>{t("stock.location")}</TableHead>
-                            <TableHead>{t("stock.batch")}</TableHead>
                             <TableHead>{t("common:updated")}</TableHead>
                             <TableHead className="text-right">{t("common:actions")}</TableHead>
                         </TableRow>
@@ -228,18 +226,6 @@ export const IndividualItemsTab = () => {
                                 </TableCell>
                                 <TableCell className="text-zinc-400">
                                     {item.location_name || t("stock.notAssigned")}
-                                </TableCell>
-                                <TableCell className="text-zinc-400 font-mono text-sm">
-                                    {item.batch_identifier
-                                        ? <>
-                                            {item.batch_identifier}
-                                            {item.quantity != null && (
-                                                <span className="ml-1 text-zinc-500">
-                                                    (×{item.quantity})
-                                                </span>
-                                            )}
-                                          </>
-                                        : "—"}
                                 </TableCell>
                                 <TableCell className="text-zinc-400 text-sm">
                                     {item.updated_at

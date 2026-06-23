@@ -14,13 +14,23 @@ from django.db import migrations, models
 
 def hash_existing_keys(apps, schema_editor):
     ApiKey = apps.get_model('core', 'ApiKey')
+    seen = set()
     for api_key in ApiKey.objects.all().iterator():
         raw = (api_key.key or '').strip()
         if not raw:
             continue
-        api_key.key_hash = hashlib.sha256(raw.encode()).hexdigest()
+        digest = hashlib.sha256(raw.encode()).hexdigest()
         api_key.key_prefix = raw[:12]
         api_key.key = ''
+        if digest in seen:
+            # Two keys shared the same plaintext: keep the first, leave this
+            # one's key_hash NULL so the upcoming unique constraint holds. The
+            # duplicate is then unusable (no hash to match) and must be rotated.
+            api_key.key_hash = None
+            api_key.save(update_fields=['key_prefix', 'key'])
+            continue
+        seen.add(digest)
+        api_key.key_hash = digest
         api_key.save(update_fields=['key_hash', 'key_prefix', 'key'])
 
 
@@ -40,7 +50,7 @@ class Migration(migrations.Migration):
             model_name='apikey',
             name='key_hash',
             field=models.CharField(
-                blank=True, db_index=True, max_length=64, null=True,
+                blank=True, max_length=64, null=True,
                 help_text='SHA-256 of the API key. Lookups match on this; the plaintext is shown once at creation.',
             ),
         ),
@@ -65,7 +75,7 @@ class Migration(migrations.Migration):
             model_name='apikey',
             name='key_hash',
             field=models.CharField(
-                blank=True, db_index=True, max_length=64, null=True, unique=True,
+                blank=True, max_length=64, null=True, unique=True,
                 help_text='SHA-256 of the API key. Lookups match on this; the plaintext is shown once at creation.',
             ),
         ),

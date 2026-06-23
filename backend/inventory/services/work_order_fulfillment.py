@@ -1,4 +1,5 @@
 import logging
+import uuid
 from decimal import Decimal
 
 from django.db import transaction
@@ -52,9 +53,24 @@ class WorkOrderFulfillmentService:
     @staticmethod
     @transaction.atomic
     def fulfill(work_order, *, user=None, reason="WO_FULFILL", idempotency_key=None):
-        # 1. Idempotency guard.
+        # 1. Idempotency guard — re-load the row UNDER a row lock and re-check
+        # status while holding it. Two concurrent/retried fulfills both read
+        # ``status != 'CLOSED'`` on stale copies and each discharges stock
+        # twice; serializing on ``select_for_update`` means the second waiter
+        # only proceeds after the first has committed ``CLOSED``, so it now sees
+        # the closed state and short-circuits. The passed-in ``work_order`` is
+        # rebound to the locked instance so every subsequent write/save targets
+        # the row we hold.
+        work_order = (
+            type(work_order).objects.select_for_update().get(pk=work_order.pk)
+        )
         if work_order.status == 'CLOSED':
             raise InventoryError(detail="Work order already fulfilled/closed.")
+
+        # If a deterministic idempotency_key was supplied, thread a per-line
+        # derivative into each LedgerService call so a retry that reaches the
+        # ledger collapses onto the same Movement instead of double-booking.
+        idem_base = str(idempotency_key) if idempotency_key else None
 
         # 2. Resolve the External VIRTUAL sink location.
         external = WorkOrderFulfillmentService._resolve_external_location(
@@ -79,6 +95,10 @@ class WorkOrderFulfillmentService:
                     reason=f"{reason}: batch {batch.batch_identifier} from WO {work_order.name}",
                     batch_id=batch.id,
                     work_order=work_order,
+                    idempotency_key=(
+                        str(uuid.uuid5(uuid.NAMESPACE_OID, f"{idem_base}:batch:{batch.id}"))
+                        if idem_base else None
+                    ),
                 )
                 batches_fulfilled += 1
                 batch_units += batch.quantity
@@ -104,6 +124,10 @@ class WorkOrderFulfillmentService:
                     reason=f"{reason}: item {item.identifier} from WO {work_order.name}",
                     physical_product=item,
                     work_order=work_order,
+                    idempotency_key=(
+                        str(uuid.uuid5(uuid.NAMESPACE_OID, f"{idem_base}:item:{item.id}"))
+                        if idem_base else None
+                    ),
                 )
                 # SerializedBehavior re-binds the WO and leaves status ACTIVE;
                 # detach so the consumed item leaves contents().

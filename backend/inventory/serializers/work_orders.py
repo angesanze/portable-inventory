@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 from drf_spectacular.types import OpenApiTypes
-from ..models import WorkOrder, ProductBatch, PhysicalProduct
+from ..models import WorkOrder, ProductBatch, PhysicalProduct, ProductModel
 
 class WorkOrderListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for WorkOrder listing.
@@ -38,6 +38,26 @@ class WorkOrderSerializer(serializers.ModelSerializer):
 
     items = serializers.ListField(child=serializers.DictField(), write_only=True, required=False)
     product_model_details = serializers.SerializerMethodField()
+
+    def validate_product_model(self, value):
+        """SEC-01 (defense-in-depth): a WorkOrder may only reference a product
+        model owned by the caller's company.
+
+        ``WorkOrder.clean()`` already enforces this, but ``clean()`` is only run
+        on the paths that call ``full_clean()``; pinning the tenant here as well
+        means the FK can never be set cross-tenant even if a future code path
+        bypasses the model-level check. Mirrors the scoped
+        ``.get(id=..., company=...)`` lookup used across the serializers.
+        """
+        if value is None:
+            return value
+        request = self.context.get('request')
+        company = getattr(getattr(request, 'user', None), 'company', None)
+        if company is None:
+            raise serializers.ValidationError("Authentication required.")
+        if not ProductModel.objects.filter(id=value.id, company=company).exists():
+            raise serializers.ValidationError("Product model not found.")
+        return value
 
     @extend_schema_field(OpenApiTypes.OBJECT)
     def get_product_model_details(self, obj):
