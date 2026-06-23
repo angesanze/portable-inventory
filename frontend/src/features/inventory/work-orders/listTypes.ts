@@ -14,6 +14,10 @@ import type { WorkOrderExportRow } from "./exportColumns";
  */
 export interface WorkOrderListRow extends WorkOrderExportRow {
     id: string;
+    // NOTE: `contents_summary` is NOT emitted by WorkOrderListSerializer (it is
+    // detail-only) — the "Line items" column reads it but always degrades to
+    // "—" on the list. Kept optional so the read stays safe; see the show
+    // screen for the populated summary.
     contents_summary?: { total_items?: number | null } | null;
     updated_at?: string | null;
 }

@@ -4,13 +4,24 @@ from drf_spectacular.types import OpenApiTypes
 from ..models import WorkOrder, ProductBatch, PhysicalProduct
 
 class WorkOrderListSerializer(serializers.ModelSerializer):
-    """Lightweight serializer for WorkOrder listing."""
+    """Lightweight serializer for WorkOrder listing.
+
+    Exposes ``updated_at`` (free, native model column) and a flattened
+    ``product_model_name`` alongside the existing ``product_model_sku`` so the
+    list table's "Product model" / "Updated" columns have a real source. The
+    heavier ``contents_summary`` (per-row COUNT queries) stays detail-only.
+    """
     product_model_sku = serializers.ReadOnlyField(source='product_model.sku')
-    
+    product_model_name = serializers.ReadOnlyField(source='product_model.name')
+
     class Meta:
         model = WorkOrder
-        fields = ['id', 'name', 'status', 'product_model', 'product_model_sku', 'created_at']
-        read_only_fields = ['id', 'created_at', 'company']
+        fields = [
+            'id', 'name', 'status', 'product_model',
+            'product_model_sku', 'product_model_name',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at', 'company']
 
 class WorkOrderSerializer(serializers.ModelSerializer):
     """Detailed serializer for WorkOrder management and composition."""

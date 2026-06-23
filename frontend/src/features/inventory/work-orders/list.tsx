@@ -353,7 +353,7 @@ export const WorkOrderList = () => {
                                         {order.name}
                                     </TableCell>
                                     <TableCell className="text-zinc-400 text-sm">
-                                        {order.product_model_name || order.product_model?.name || "—"}
+                                        {order.product_model_name || order.product_model_sku || "—"}
                                     </TableCell>
                                     <TableCell>
                                         <Badge

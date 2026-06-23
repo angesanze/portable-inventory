@@ -77,9 +77,11 @@ export const BatchManagerPanel: React.FC<BatchManagerPanelProps> = ({
                 </div>
 
                 {items.map((model) => {
-                    // The id is read from the flat `product_model_id`; assert here so it
-                    // can key the `serialInputs` record (runtime value unchanged).
-                    const modelId = model.product_model_id as string;
+                    // `model` is a grouped_items entry; its per-model header is
+                    // NESTED under `model.model` (real backend shape, widget_product.py),
+                    // while `total_quantity`/`items`/`candidates` sit at the entry level.
+                    const m = model.model;
+                    const modelId = m.id;
                     return (
                     <div
                         key={modelId}
@@ -96,7 +98,7 @@ export const BatchManagerPanel: React.FC<BatchManagerPanelProps> = ({
                         >
                             <div className="flex justify-between items-start">
                                 <div className="space-y-1">
-                                    <h3 className="text-base font-bold tracking-tight" style={{ color: 'var(--pi-text)' }}>{model.name}</h3>
+                                    <h3 className="text-base font-bold tracking-tight" style={{ color: 'var(--pi-text)' }}>{m.name}</h3>
                                     <div className="flex items-center gap-2">
                                         <span
                                             className="text-xs font-mono px-2 py-0.5 rounded-md"
@@ -106,11 +108,11 @@ export const BatchManagerPanel: React.FC<BatchManagerPanelProps> = ({
                                                 border: '1px solid var(--pi-border)',
                                             }}
                                         >
-                                            {model.sku}
+                                            {m.sku}
                                         </span>
                                         <span
                                             className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter"
-                                            style={model.tracking_mode === 'INDIVIDUAL'
+                                            style={m.tracking_mode === 'INDIVIDUAL'
                                                 ? {
                                                     backgroundColor: 'color-mix(in srgb, var(--pi-primary, #3b82f6) 10%, transparent)',
                                                     color: 'var(--pi-primary, #3b82f6)',
@@ -123,7 +125,7 @@ export const BatchManagerPanel: React.FC<BatchManagerPanelProps> = ({
                                                 }
                                             }
                                         >
-                                            {model.tracking_mode}
+                                            {m.tracking_mode}
                                         </span>
                                     </div>
                                 </div>
@@ -149,7 +151,7 @@ export const BatchManagerPanel: React.FC<BatchManagerPanelProps> = ({
 
                         <div className="p-5 space-y-4">
                             {/* BULK: Per-Lot Controls */}
-                            {model.tracking_mode === 'BULK' && (
+                            {m.tracking_mode === 'BULK' && (
                                 <div className="space-y-4">
                                     <div className="space-y-2">
                                         <label
@@ -161,7 +163,7 @@ export const BatchManagerPanel: React.FC<BatchManagerPanelProps> = ({
                                         <div className="grid gap-2">
                                             {model.items.map((batch) => (
                                                 <div
-                                                    key={batch.batch_id}
+                                                    key={batch.id}
                                                     className="rounded-2xl p-4 flex items-center justify-between transition-colors"
                                                     style={{
                                                         backgroundColor: 'var(--pi-surface)',
@@ -169,7 +171,7 @@ export const BatchManagerPanel: React.FC<BatchManagerPanelProps> = ({
                                                     }}
                                                 >
                                                     <div>
-                                                        <div className="text-sm font-bold" style={{ color: 'var(--pi-text)' }}>{batch.batch_identifier}</div>
+                                                        <div className="text-sm font-bold" style={{ color: 'var(--pi-text)' }}>{batch.identifier}</div>
                                                         <div className="text-[10px] font-mono mt-0.5 uppercase" style={{ color: 'var(--pi-muted, #64748b)' }}>{t('panels.batchManager.lotIdentifier')}</div>
                                                     </div>
                                                     <div className="flex items-center gap-4">
@@ -177,7 +179,7 @@ export const BatchManagerPanel: React.FC<BatchManagerPanelProps> = ({
                                                             <div className="text-lg font-bold leading-none" style={{ color: 'var(--pi-text)' }}>{batch.quantity}</div>
                                                             <div className="text-[10px] uppercase font-bold" style={{ color: 'var(--pi-muted, #64748b)' }}>{t('common.qty')}</div>
                                                         </div>
-                                                        {withdrawFor === batch.batch_id ? (
+                                                        {withdrawFor === batch.id ? (
                                                             <div className="flex items-center gap-1.5">
                                                                 <input
                                                                     type="number"
@@ -224,7 +226,7 @@ export const BatchManagerPanel: React.FC<BatchManagerPanelProps> = ({
                                                             </div>
                                                         ) : (
                                                             <button
-                                                                onClick={() => { setWithdrawFor(batch.batch_id); setWithdrawQty("1"); }}
+                                                                onClick={() => { setWithdrawFor(batch.id); setWithdrawQty("1"); }}
                                                                 disabled={submitting}
                                                                 aria-label="Withdraw from lot"
                                                                 className="flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-150 active:scale-90"
@@ -259,7 +261,7 @@ export const BatchManagerPanel: React.FC<BatchManagerPanelProps> = ({
                             )}
 
                             {/* INDIVIDUAL: Serial Listing */}
-                            {model.tracking_mode === 'INDIVIDUAL' && (
+                            {m.tracking_mode === 'INDIVIDUAL' && (
                                 <div className="space-y-4">
                                     <div className="space-y-2">
                                         <label

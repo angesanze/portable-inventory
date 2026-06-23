@@ -102,6 +102,29 @@ Tutti gli item prima rinviati sono stati chiusi e **verificati col gate**:
 - **Frontend** `tsc -b --force`: **0**; `eslint .`: **0 errori**; `vitest`: **1277 passed / 1277**, 0 falliti.
 - **CI** `.github/workflows/ci.yml`: gate reali (backend py3.11 + frontend `tsc -b`/eslint/vitest). Da validare al primo run su GitHub.
 
+### 4ª tornata — caccia adversariale "forma del payload" (RUN-01..07)
+Domanda: *"un audit fresco troverebbe altro?"* → **sì**. Una passata mirata, che
+incrocia le **letture frontend** con ciò che il **backend serializer/service
+emette davvero**, ha trovato **7 bug runtime** che **tsc + eslint + vitest
+avevano tutti mancato**: ogni cast `as <Tipo>` mascherava una lettura di
+proprietà sbagliata, e le **fixture dei test codificavano la stessa forma
+errata** (verde ma scorretto).
+- `BatchManagerPanel` (il peggiore): leggeva `entry.product_model_id`/`.name`/
+  `.tracking_mode` e `batch.batch_id`, ma il backend (`widget_product.py`) annida
+  sotto `model:{...}` e usa `item.id`. A runtime: nomi vuoti, **nessun ramo
+  BULK/INDIVIDUAL renderizzato**, withdraw aperto su tutti i lotti. Tipo stretto
+  alla forma reale → una lettura sbagliata ora **fallisce `tsc`**.
+- `WorkOrderMovements` (`product_name`/`reason`), `work-orders/list`
+  (`product_model_name`/`updated_at`, aggiunti al serializer), `poly/show`
+  (`reason`), `ApiKeyList` (`key_prefix`).
+- Gap backend annotato: `candidates` (autocomplete seriali) non emesso → scan libero.
+
+**Insegnamento:** gate verdi (tipi+unit) **non** dimostrano correttezza runtime
+contro il backend reale. I punti ciechi che restano richiedono **esecuzione**:
+E2E/QA manuale, backfill della migrazione, Postgres (i test usano sqlite), primo
+run CI. Un ulteriore audit *troverebbe ancora* (perf/N+1, a11y, concorrenza, SDK)
+— con rendimenti decrescenti.
+
 ---
 
 ## 2. Legenda

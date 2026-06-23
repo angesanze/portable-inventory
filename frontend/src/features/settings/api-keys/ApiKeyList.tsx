@@ -215,7 +215,7 @@ export const ApiKeyList = () => {
                                     <TableCell>
                                         <div className="font-medium text-zinc-200">{key.label || t("settings:apiKeys.unnamedKey")}</div>
                                         <div className="text-zinc-600 font-mono text-xs mt-0.5">
-                                            {key.key_hint || "****"}
+                                            {key.key_prefix || "****"}
                                         </div>
                                     </TableCell>
                                     <TableCell>

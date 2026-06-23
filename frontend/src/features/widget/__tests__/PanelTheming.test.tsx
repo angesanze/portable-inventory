@@ -233,10 +233,7 @@ describe('Panel theming — CSS custom property classes', () => {
             product_name: 'Test Batch Product',
             grouped_items: {
                 m1: {
-                    product_model_id: 'm1',
-                    name: 'Model A',
-                    sku: 'MOD-A',
-                    tracking_mode: 'BULK',
+                    model: { id: 'm1', name: 'Model A', sku: 'MOD-A', tracking_mode: 'BULK' },
                     total_quantity: 50,
                     items: [],
                 },
@@ -305,13 +302,10 @@ describe('Panel theming — CSS custom property classes', () => {
             product_name: 'Test Batch Product',
             grouped_items: {
                 m1: {
-                    product_model_id: 'm1',
-                    name: 'Model A',
-                    sku: 'MOD-A',
-                    tracking_mode: 'BULK',
+                    model: { id: 'm1', name: 'Model A', sku: 'MOD-A', tracking_mode: 'BULK' },
                     total_quantity: 50,
                     items: [
-                        { batch_id: 'b1', id: 'pb1', batch_identifier: 'LOT-001', quantity: 10 },
+                        { id: 'pb1', batch_identifier: 'LOT-001', quantity: 10 },
                     ],
                 },
             },
@@ -393,10 +387,7 @@ describe('Panel theming — CSS custom property classes', () => {
             product_name: 'Test Batch Product',
             grouped_items: {
                 m1: {
-                    product_model_id: 'm1',
-                    name: 'Model A',
-                    sku: 'MOD-A',
-                    tracking_mode: 'BULK',
+                    model: { id: 'm1', name: 'Model A', sku: 'MOD-A', tracking_mode: 'BULK' },
                     total_quantity: 50,
                     items: [],
                 },

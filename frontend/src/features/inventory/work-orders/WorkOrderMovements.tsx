@@ -53,7 +53,7 @@ export const WorkOrderMovements = ({
                                 <div className="flex justify-between items-start">
                                     <div className="min-w-0 pr-4">
                                         <div className="text-sm text-zinc-300 mb-1">
-                                            {m.product_model_name ||
+                                            {m.product_name ||
                                                 t("workOrders.unknownProduct")}
                                         </div>
                                         <div className="flex items-center gap-2 text-xs text-zinc-500">
@@ -68,9 +68,9 @@ export const WorkOrderMovements = ({
                                                 {m.to_location?.name || "—"}
                                             </span>
                                         </div>
-                                        {m.description && (
+                                        {m.reason && (
                                             <p className="text-xs text-zinc-500 mt-1 truncate">
-                                                {m.description}
+                                                {m.reason}
                                             </p>
                                         )}
                                     </div>

@@ -49,6 +49,7 @@ const mockContents = [
     },
 ];
 
+// Mirrors MovementReadSerializer: flat `product_name` + Movement `reason`.
 const mockMovements = [
     {
         id: "m1",
@@ -56,8 +57,8 @@ const mockMovements = [
         occurred_at: "2026-04-15T14:00:00Z",
         from_location: { name: "Supplier" },
         to_location: { name: "Warehouse" },
-        product_model_name: "Widget Alpha",
-        description: "Restock",
+        product_name: "Widget Alpha",
+        reason: "Restock",
     },
     {
         id: "m2",
@@ -65,8 +66,8 @@ const mockMovements = [
         occurred_at: "2026-04-16T10:00:00Z",
         from_location: { name: "Warehouse" },
         to_location: { name: "Assembly" },
-        product_model_name: "Widget Alpha",
-        description: "Kit fulfillment",
+        product_name: "Widget Alpha",
+        reason: "Kit fulfillment",
     },
 ];
 

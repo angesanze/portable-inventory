@@ -82,14 +82,14 @@ export interface WidgetBatchRow extends ProductBatch {
 }
 
 /** A single batch/serial row inside a grouped batch-manager child. The backend
- *  reuses one row shape for both BULK lots (`batch_id`/`batch_identifier`/
- *  `quantity`) and INDIVIDUAL serials (`id`/`identifier`), so fields are
- *  optional per tracking mode. */
+ *  (`widget_product.py`) emits one row shape for both BULK lots (`id`/
+ *  `batch_identifier`/`quantity`) and INDIVIDUAL serials (`id`/`identifier`):
+ *  `id` is always present, the rest are per-tracking-mode. (There is no
+ *  `batch_id` — the row id is `id`.) */
 export interface BatchManagerItem {
-    id?: string;
-    batch_id?: string;
-    batch_identifier?: string;
+    id: string;
     quantity?: number;
+    batch_identifier?: string;
     identifier?: string;
 }
 
@@ -99,22 +99,17 @@ export interface BatchManagerCandidate {
     identifier?: string;
 }
 
-/** A grouped child entry inside a batch-manager / composition payload. Two
- *  widget surfaces read this with slightly different field sets — the
- *  self-contained `BatchManagerPanel` reads the flat per-model header
- *  (`product_model_id`/`name`/`sku`/`tracking_mode`/`candidates`), while
- *  `BatchComposition` reads the nested `model` wrapper. Both field sets are kept
- *  optional so one type satisfies both readers. */
+/** A grouped child entry inside a batch-manager / composition payload, matching
+ *  the REAL backend shape from `widget_product.py`: the per-model header is
+ *  NESTED under `model` (not flat), with the contents under `items`. */
 export interface BatchManagerModel {
-    model?: { id: string; sku?: string; name?: string; tracking_mode?: string };
-    product_model_id?: string;
-    name?: string;
-    sku?: string;
-    tracking_mode?: string;
+    model: { id: string; sku?: string; name?: string; tracking_mode?: string };
     total_quantity?: number;
-    /** Always emitted by the backend (defaults to `[]`); both panels read it
-     *  unconditionally. */
+    /** Always emitted by the backend (defaults to `[]`). */
     items: BatchManagerItem[];
+    /** Serial-assignment autocomplete candidates. NOTE: the backend does not
+     *  currently emit this — the serial picker falls back to free-text scan when
+     *  absent (a backend enhancement is needed to populate it). */
     candidates?: BatchManagerCandidate[];
 }
 

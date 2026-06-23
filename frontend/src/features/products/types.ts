@@ -209,12 +209,16 @@ export interface PolyKitRef {
     id?: string | null;
 }
 
-/** A movement row as consumed by the poly show page's activity chart/list. */
+/** A movement row as consumed by the poly show page's activity chart/list.
+ *
+ * Mirrors `MovementReadSerializer`: the free-text note is the Movement model's
+ * `reason` column. (There is no `movement_type` field on the payload — the row
+ * direction is derived from the signed `quantity`.) */
 export interface PolyMovementRow {
     id?: string;
     quantity: number | string;
     occurred_at?: string;
-    movement_type?: string;
+    reason?: string;
 }
 
 /** Engine type re-export for convenience within the feature. */

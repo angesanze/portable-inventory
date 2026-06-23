@@ -55,15 +55,20 @@ export interface MovementLocationRef {
     name?: string;
 }
 
-/** A stock movement linked to the work order. */
+/** A stock movement linked to the work order.
+ *
+ * Shape mirrors `MovementReadSerializer` (the list/retrieve serializer): the
+ * product name is flattened as `product_name` (source `product_model.name`) and
+ * the free-text note is the Movement model's `reason` column — there is no
+ * `product_model_name` or `description` field on the payload. */
 export interface WorkOrderMovement {
     id: string;
     quantity?: number | string;
     occurred_at?: string | null;
     from_location?: MovementLocationRef | null;
     to_location?: MovementLocationRef | null;
-    product_model_name?: string;
-    description?: string;
+    product_name?: string;
+    reason?: string;
 }
 
 /** A product model option as returned by the `product-models` list. */

@@ -227,8 +227,8 @@ export const ProductPolyShow = () => {
                                                     <span className={isPositive ? 'text-emerald-400' : 'text-rose-400'}>
                                                         {isPositive ? '+' : ''}{qty}
                                                     </span>
-                                                    {m.movement_type && (
-                                                        <span className="text-zinc-500 ml-2 text-xs">{m.movement_type}</span>
+                                                    {m.reason && (
+                                                        <span className="text-zinc-500 ml-2 text-xs">{m.reason}</span>
                                                     )}
                                                     <span className="text-zinc-500 text-xs block mt-1">{timeAgo}</span>
                                                 </div>

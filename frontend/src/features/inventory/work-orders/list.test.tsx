@@ -4,36 +4,36 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { BrowserRouter } from "react-router-dom";
 import { renderWithI18n as render } from "../../../test-utils/i18n-wrapper";
 
+// Mirrors WorkOrderListSerializer: flat `product_model_name`/`product_model_sku`
+// (no nested `product_model` object), `updated_at`, and NO `contents_summary`
+// (that field is detail-only — the list "Line items" column degrades to "—").
 const mockOrders = [
     {
         id: "uuid-wo-001",
         name: "Spring Restock Kit",
         product_model_name: "Widget A",
+        product_model_sku: "WA-001",
         status: "OPEN",
-        contents_summary: { total_items: 5 },
         created_at: "2026-04-20T10:30:00Z",
         updated_at: "2026-04-21T08:00:00Z",
-        description: "Restock for spring season",
     },
     {
         id: "uuid-wo-002",
         name: "Q1 Cleanup Batch",
         product_model_name: "Widget B",
+        product_model_sku: "WB-002",
         status: "CLOSED",
-        contents_summary: { total_items: 12 },
         created_at: "2026-04-18T14:00:00Z",
         updated_at: "2026-04-19T16:00:00Z",
-        description: "",
     },
     {
         id: "uuid-wo-003",
         name: "Archive Test Order",
-        product_model: { name: "Widget C" },
+        product_model_name: "Widget C",
+        product_model_sku: "WC-003",
         status: "ARCHIVED",
-        contents_summary: null,
         created_at: "2026-03-01T09:00:00Z",
         updated_at: null,
-        description: null,
     },
 ];
 
@@ -140,10 +140,12 @@ describe("WorkOrderList", () => {
         expect(screen.getAllByText("ARCHIVED").length).toBeGreaterThanOrEqual(1);
     });
 
-    it("shows line items count from contents_summary", () => {
+    it("degrades the Line Items column to — (contents_summary is detail-only)", () => {
+        // WorkOrderListSerializer does not emit `contents_summary`; the list
+        // column reads it but falls back to "—" for every row.
         renderList();
-        expect(screen.getByText("5")).toBeInTheDocument();
-        expect(screen.getByText("12")).toBeInTheDocument();
+        const dashes = screen.getAllByText("—");
+        expect(dashes.length).toBeGreaterThanOrEqual(mockOrders.length);
     });
 
     it("renders filter bar with name search and status select", () => {

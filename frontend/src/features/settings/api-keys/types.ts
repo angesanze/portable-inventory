@@ -12,7 +12,9 @@ export type ApiKeyPermissions = Record<string, boolean>;
 export interface ApiKey {
     id: string;
     label: string;
-    key_hint?: string;
+    /** Human-readable key prefix emitted by `ApiKeySerializer` (the plaintext
+     *  key is shown only once at creation). The backend field is `key_prefix`. */
+    key_prefix?: string;
     permissions?: ApiKeyPermissions;
     rate_limit_tier: string;
     expires_at: string | null;
