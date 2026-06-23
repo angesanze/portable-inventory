@@ -1,4 +1,5 @@
 from decimal import Decimal
+from django.db import transaction
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
@@ -33,10 +34,11 @@ class InventoryOrchestrator:
         return physical_product
 
     @staticmethod
+    @transaction.atomic
     def handle_widget_movement(
-        company, 
-        product_model, 
-        location, 
+        company,
+        product_model,
+        location,
         data: dict
     ):
         """
@@ -46,6 +48,11 @@ class InventoryOrchestrator:
         - Virtual location resolution (Inbound/Outbound)
         - Physical Product lifecycle (Create/Activate)
         - LedgerService execution
+
+        Atomic: ``resolve_or_create_item`` may create or reactivate a
+        PhysicalProduct *before* the ledger transfer. Without this wrapper a
+        ledger failure would leave that phantom item / spurious reactivation
+        committed. The ledger's own atomic block nests as a savepoint.
         """
         calc_payload = data.get('calc_payload')
         raw_quantity = data.get('quantity')

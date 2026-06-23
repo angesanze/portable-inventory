@@ -4,6 +4,27 @@ from ..models import Movement, Location, ProductModel, PhysicalProduct
 from ..exceptions import InventoryError
 
 class LedgerService:
+    """Canonical stock-mutation path.
+
+    ``transfer_stock`` is the intended single choke point for stock changes: it
+    runs ProfileBehavior validation, idempotent replay, and weighted-average
+    costing (``CostingService.apply``) inside one atomic block. **Prefer routing
+    every new stock write through it.**
+
+    Known, intentional exceptions that mutate stock *outside* this path today
+    (MOD-01 — they skip costing/idempotency, so touch them with care):
+
+    * ``BatchManagerService`` — mutates ``ProductBatch.quantity`` and writes
+      direct self-loop ``Movement`` rows for kit assembly/disassembly.
+    * ``WorkOrderService.create_with_items`` — seeds ``ProductBatch`` rows for a
+      work order's initial composition.
+    * onboarding / import — create serialized ``Movement`` rows directly when
+      seeding existing stock.
+
+    Add to this list (or, better, fold the write into ``transfer_stock``) rather
+    than introducing a new undocumented bypass.
+    """
+
     @staticmethod
     @transaction.atomic
     def transfer_stock(
@@ -30,7 +51,7 @@ class LedgerService:
         Executes a stock transfer between two locations.
         Delegates validation and execution to the appropriate ProfileBehavior.
         """
-        from ..strategies import TransferContext, get_behavior
+        from ..strategies import TransferContext, get_behavior  # inline import: breaks the services import cycle (strategies imports StockService)
 
         if quantity <= 0:
             raise InventoryError("Transfer quantity must be positive.")
@@ -69,14 +90,14 @@ class LedgerService:
         movement = behavior.execute(context)
 
         if reservation is not None:
-            from .reservations import ReservationService
+            from .reservations import ReservationService  # inline import: breaks the services import cycle (ledger↔reservations↔stock↔costing)
             ReservationService.consume(reservation)
 
         # COSTING-06: maintain weighted-average cost / freeze COGS. This is the
         # single choke point every movement passes through. Runs inside the
         # same atomic block (transfer_stock is @transaction.atomic). Internal
         # physical→physical transfers are a no-op inside apply().
-        from .costing import CostingService
+        from .costing import CostingService  # inline import: breaks the services import cycle (ledger↔reservations↔stock↔costing)
         CostingService.apply(movement)
 
         return movement

@@ -23,11 +23,16 @@ def make_company(suffix="A"):
     user.company = company
     user.role = "Admin"
     user.save()
+    raw_key = secrets.token_hex(32)
     api_key = ApiKey.objects.create(
         company=company,
-        key=secrets.token_hex(32),
+        key=raw_key,
         label="Test Key",
     )
+    # Keys are hashed at rest (SEC-03): save() clears the plaintext column. Re-attach
+    # it to the in-memory instance so tests can keep using ``api_key.key`` as the raw
+    # credential (find_active re-hashes it to match). Purely a test convenience.
+    api_key.key = raw_key
     return company, user, api_key
 
 

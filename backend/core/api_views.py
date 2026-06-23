@@ -136,7 +136,6 @@ class ApiKeyViewSet(viewsets.ModelViewSet):
         another company's key. Auto-creates the key if the company is keyless
         so a manager is never left without one.
         """
-        import secrets
         company = request.user.company
         if not company:
             return Response(
@@ -149,26 +148,32 @@ class ApiKeyViewSet(viewsets.ModelViewSet):
         if api_key is None:
             api_key = ApiKey.objects.create(
                 company=company,
-                key=secrets.token_hex(32),
+                key=ApiKey.generate_raw_key(),
                 label='Default Key',
             )
         return Response({
             'id': str(api_key.id),
-            'key': api_key.key,
+            # Plaintext is not stored (SEC-03); hand back a signed, revocable
+            # widget credential the QR/preview flows use exactly like a key.
+            'key': api_key.make_widget_token(),
             'label': api_key.label,
             'default_location': str(api_key.default_location_id) if api_key.default_location_id else None,
         })
 
     @action(detail=True, methods=['post'])
     def rotate(self, request, pk=None):
-        """Generate new key value while preserving all config. Old key invalidated."""
-        import secrets
+        """Generate new key value while preserving all config. Old key invalidated.
+
+        Returns the new plaintext exactly once — it is hashed at rest (SEC-03)
+        and can never be retrieved again.
+        """
         api_key = self.get_object()
-        api_key.key = secrets.token_hex(32)
-        api_key.save(update_fields=['key'])
+        raw = ApiKey.generate_raw_key()
+        api_key.set_key(raw)
+        api_key.save(update_fields=['key', 'key_hash', 'key_prefix'])
         return Response({
             'id': str(api_key.id),
-            'key': api_key.key,
+            'key': raw,
             'label': api_key.label,
         })
 

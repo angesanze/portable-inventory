@@ -1,7 +1,11 @@
+import logging
+
 from django.db import models
 from django.utils import timezone
 from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
 from core.models import ApiKey
+
+logger = logging.getLogger(__name__)
 
 
 # Map HTTP methods to required permissions
@@ -35,6 +39,7 @@ class ApiKeyAuthMixin:
             PermissionDenied: Key lacks required permission
         """
         api_key_val = request.query_params.get('api_key')
+        api_key_in_query = bool(api_key_val)
 
         if not api_key_val:
             api_key_val = request.META.get('HTTP_X_API_KEY')
@@ -67,7 +72,20 @@ class ApiKeyAuthMixin:
         if isinstance(api_key_val, str):
             api_key_val = api_key_val.strip()
 
-        api_key = ApiKey.objects.filter(key=api_key_val, is_active=True).first()
+        # SEC-04: a *raw* API key in the query string leaks via browser history,
+        # Referer and proxy logs. Signed widget tokens (which always contain a
+        # ':' from Django's signer) are the safe URL credential; a raw key (64
+        # hex chars, no ':') here is deprecated — still accepted for backward
+        # compatibility with legacy embeds, but flagged so it can be migrated to
+        # the X-Api-Key header or the revocable widget token.
+        if api_key_in_query and api_key_val and ':' not in api_key_val:
+            logger.warning(
+                "Deprecated raw API key in ?api_key= query param; use the "
+                "X-Api-Key header or the revocable widget token instead."
+            )
+
+        # Resolves a raw key (by hash) or a signed widget token (by id) — SEC-03.
+        api_key = ApiKey.find_active(api_key_val)
         if not api_key:
             raise AuthenticationFailed("Invalid or inactive api_key.")
 

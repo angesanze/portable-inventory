@@ -258,12 +258,9 @@ class WorkOrderCrossTenantTest(TestCase):
             profile="BATCH_TRACKED",
         )
 
-    def test_items_from_other_company_product(self):
-        """
-        Items referencing product_model_id from another company.
-        Documents current behavior — whether the serializer validates cross-tenant
-        ownership of individual items or allows them through.
-        """
+    def test_items_from_other_company_product_rejected(self):
+        """SEC-01: a batch item referencing another company's product is rejected,
+        and no ProductBatch leaks across the tenant boundary."""
         payload = {
             "name": "Cross-tenant WO",
             "items": [
@@ -272,16 +269,41 @@ class WorkOrderCrossTenantTest(TestCase):
         }
         resp = self.client.post("/api/v1/work-orders/", payload, format="json")
 
-        if resp.status_code == status.HTTP_201_CREATED:
-            # No cross-tenant validation on items — document as potential gap
-            wo = WorkOrder.objects.get(id=resp.data["id"])
-            batch = ProductBatch.objects.filter(work_order=wo).first()
-            self.assertIsNotNone(batch)
-            self.assertEqual(batch.product_model.company, self.company_b)
-            self.assertEqual(wo.company, self.company_a)
-        else:
-            # Validation rejects cross-company items
-            self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        # The whole create is atomic → no work order, no batch survive.
+        self.assertFalse(
+            ProductBatch.objects.filter(product_model=self.product_b).exists()
+        )
+        self.assertFalse(WorkOrder.objects.filter(name="Cross-tenant WO").exists())
+
+    def test_cross_tenant_physical_product_not_reassigned(self):
+        """SEC-01: a serialized item UUID belonging to another company must not be
+        reassigned/moved into the requester's work order."""
+        warehouse_b = Location.objects.create(
+            company=self.company_b, name="B Warehouse", type="WAREHOUSE"
+        )
+        tracker_b = ProductModel.objects.create(
+            company=self.company_b, sku="B-TRACK", name="B Device", profile="SERIALIZED"
+        )
+        pp_b = PhysicalProduct.objects.create(
+            product_model=tracker_b, identifier="B-SN-1", status="ACTIVE",
+            location=warehouse_b,
+        )
+
+        payload = {
+            "name": "Steal PP WO",
+            "items": [
+                {"physical_product_id": str(pp_b.id)},
+            ],
+        }
+        resp = self.client.post("/api/v1/work-orders/", payload, format="json")
+
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        pp_b.refresh_from_db()
+        # The asset stays put — not linked to A's work order, not moved.
+        self.assertIsNone(pp_b.work_order)
+        self.assertEqual(pp_b.location, warehouse_b)
+        self.assertFalse(WorkOrder.objects.filter(name="Steal PP WO").exists())
 
     def test_product_model_from_other_company_rejected_on_work_order(self):
         """WorkOrder.clean() rejects product_model from another company."""

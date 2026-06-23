@@ -32,7 +32,11 @@ class DeveloperApiKeyTests(APITestCase):
         self.assertEqual(ApiKey.objects.count(), 1)
         created_key = ApiKey.objects.get()
         self.assertEqual(created_key.label, 'Integration Key')
-        self.assertTrue(created_key.key)
+        # SEC-03: the plaintext is revealed once in the response; the DB stores
+        # only the hash, never the live credential.
+        self.assertTrue(response.data.get('key'))
+        self.assertTrue(created_key.key_hash)
+        self.assertFalse(created_key.key)
 
     def test_list_api_keys(self):
         """Ensure a developer lists only their own keys"""

@@ -44,7 +44,7 @@ class ReservationService:
         Locks the ProductModel row — the same lock BulkBehavior takes — so
         reservations and transfers serialize against each other.
         """
-        from .stock import StockService
+        from .stock import StockService  # inline import: breaks the services import cycle (ledger↔reservations↔stock↔costing)
 
         quantity = Decimal(str(quantity))
         if quantity <= 0:

@@ -269,7 +269,7 @@ class StocktakeService:
     def _apply_serialized(line, delta, location, adjustment, reason, user):
         """A serialized line is a single unit: delta is -1 (missing) or +1 (found)."""
         product = line.product_model
-        from ..orchestrators import InventoryOrchestrator
+        from ..orchestrators import InventoryOrchestrator  # inline import: breaks the services↔orchestrators import cycle (orchestrators imports services)
 
         if delta < 0:
             # Expected, not found → outbound the specific unit to ADJUSTMENT.

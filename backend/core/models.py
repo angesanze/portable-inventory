@@ -1,4 +1,7 @@
+import hashlib
+import secrets
 import uuid
+from django.core import signing
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
@@ -172,9 +175,28 @@ class ApiKey(models.Model):
         'scan': True,
     }
 
+    # SEC-03: API keys are hashed at rest. ``key`` is a transient write field —
+    # a plaintext assigned here is hashed into ``key_hash`` on save() and then
+    # dropped, so the database never holds a live credential. Lookups match on
+    # ``key_hash``; the plaintext is shown to the owner exactly once (at creation
+    # / rotation). Flows that need a reusable browser credential later (widget /
+    # QR / embeds) use a signed token bound to the key id — see ``find_active``.
+    WIDGET_TOKEN_SALT = 'apikey-widget-credential'
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='api_keys')
-    key = models.CharField(max_length=64, unique=True, db_index=True)
+    key = models.CharField(
+        max_length=64, blank=True, default='',
+        help_text="Transient: a plaintext set here is hashed into key_hash on save and not stored.",
+    )
+    key_hash = models.CharField(
+        max_length=64, unique=True, null=True, blank=True, db_index=True,
+        help_text="SHA-256 of the API key. Lookups match on this; the plaintext is shown once at creation.",
+    )
+    key_prefix = models.CharField(
+        max_length=16, blank=True, default='',
+        help_text="Non-secret leading characters of the key, for display only.",
+    )
     label = models.CharField(max_length=100, default="Default Key")
     allowed_domains = models.TextField(blank=True, help_text="Comma-separated list of allowed domains (e.g., example.com). Leave empty for wildcard access.")
     is_active = models.BooleanField(default=True)
@@ -186,10 +208,75 @@ class ApiKey(models.Model):
     usage_count = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    @staticmethod
+    def hash_key(raw):
+        """SHA-256 of a plaintext key (the value stored/compared in key_hash)."""
+        return hashlib.sha256(raw.strip().encode()).hexdigest()
+
+    @staticmethod
+    def generate_raw_key():
+        """Mint a fresh random plaintext key."""
+        return secrets.token_hex(32)
+
+    def set_key(self, raw):
+        """Adopt a plaintext credential. The hashing + blanking happen in save();
+        the plaintext is stashed for a one-time reveal."""
+        self._full_key = raw
+        self.key = raw
+
+    def make_widget_token(self):
+        """A signed, revocable credential bound to this key's id — safe to hand
+        to a browser / embed in place of the plaintext (which is not stored).
+        Revoked by deactivating the key (find_active checks is_active)."""
+        return signing.dumps(str(self.id), salt=self.WIDGET_TOKEN_SALT)
+
+    @classmethod
+    def _from_widget_token(cls, token):
+        try:
+            key_id = signing.loads(token, salt=cls.WIDGET_TOKEN_SALT)
+        except signing.BadSignature:
+            return None
+        return cls.objects.filter(id=key_id, is_active=True).first()
+
+    @classmethod
+    def find_active(cls, credential):
+        """Resolve an active ApiKey from either a raw key (matched by hash) or a
+        signed widget token (matched by id). Returns None if neither resolves.
+        Central lookup for auth, middleware and throttling so the hashing scheme
+        lives in exactly one place."""
+        if not credential:
+            return None
+        credential = credential.strip()
+        # A signed widget token round-trips through django signing; a raw hex key
+        # fails the signature check and falls through to the hash lookup.
+        obj = cls._from_widget_token(credential)
+        if obj is not None:
+            return obj
+        return cls.objects.filter(key_hash=cls.hash_key(credential), is_active=True).first()
+
     def save(self, *args, **kwargs):
         if not self.permissions:
             self.permissions = self.DEFAULT_PERMISSIONS.copy()
+        # SEC-03: never persist a plaintext key. Derive the hash/prefix from any
+        # plaintext on the instance, blank the column for the write, then restore
+        # the attribute in memory so the just-created/rotated object can still be
+        # read once (a fresh DB load yields '' — plaintext is unrecoverable).
+        raw = self.key or ''
+        if raw:
+            if self.hash_key(raw) != (self.key_hash or ''):
+                self.key_hash = self.hash_key(raw)
+                self.key_prefix = self.key_prefix or raw[:12]
+                if not getattr(self, '_full_key', None):
+                    self._full_key = raw
+            update_fields = kwargs.get('update_fields')
+            if update_fields is not None:
+                kwargs['update_fields'] = list(
+                    set(update_fields) | {'key', 'key_hash', 'key_prefix'}
+                )
+        self.key = ''
         super().save(*args, **kwargs)
+        if raw:
+            self.key = raw
 
     def has_permission(self, perm):
         perms = self.permissions or self.DEFAULT_PERMISSIONS

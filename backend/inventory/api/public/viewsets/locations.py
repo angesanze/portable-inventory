@@ -68,7 +68,7 @@ class LocationWidgetViewSet(ApiKeyAuthMixin, viewsets.ViewSet):
         loc_type = request.data.get('type', 'WAREHOUSE')
         
         if not name:
-            return Response({"error": "Name required"}, status=400)
+            return Response({"detail": "Name required"}, status=400)
             
         location = Location.objects.create(
             company=api_key.company,
@@ -94,7 +94,7 @@ class LocationWidgetViewSet(ApiKeyAuthMixin, viewsets.ViewSet):
         location_id = request.query_params.get('location_id')
         
         if not location_id:
-            return Response({"error": "location_id required"}, status=400)
+            return Response({"detail": "location_id required"}, status=400)
             
         location = get_object_or_404(Location, id=location_id, company=api_key.company)
         contents = StockService.get_location_contents(location)

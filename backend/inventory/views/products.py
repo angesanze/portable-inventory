@@ -10,7 +10,7 @@ from ..serializers import (
     ProductModelSerializer, ProductModelListSerializer,
     PhysicalProductSerializer
 )
-from ..services import LedgerService, StockService, CounterpartyService
+from ..services import LedgerService, StockService, CounterpartyService, ProductService
 from ..engines import EngineFactory
 from .. import constants
 from ..api.base import CompanyScopedViewSet, bulk_delete_response, parse_bulk_delete_ids
@@ -96,7 +96,7 @@ class ProductModelViewSet(CompanyScopedViewSet):
             details = f"Example dependency: {str(first_obj)}"
             
             return Response(
-                {"error": error_message, "details": details}, 
+                {"detail": error_message, "details": details},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -375,16 +375,8 @@ class ProductsPolyViewSet(CompanyScopedViewSet):
 
         base_model = get_object_or_404(ProductModel, pk=base_model_id, company=company)
 
-        # Generate SKU
-        import uuid
-        sku = f"POLY-{uuid.uuid4().hex[:8].upper()}"
-
-        new_instance = ProductModel.objects.create(
-            company=company,
-            name=name,
-            sku=sku,
-            profile=base_model.profile,
-            default_calculator=base_model.default_calculator,
+        new_instance = ProductService.clone_poly_instance(
+            base_model, name=name, company=company
         )
         return Response(
             ProductModelSerializer(new_instance).data,

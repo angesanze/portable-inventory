@@ -47,15 +47,12 @@ class CompanyScopeMiddleware:
             or request.GET.get('api_key')
         )
         if api_key_val:
-            try:
-                api_key = ApiKey.objects.select_related('company').get(
-                    key=api_key_val.strip(), is_active=True
-                )
+            # Resolves a raw key (by hash) or a signed widget token (by id) — SEC-03.
+            api_key = ApiKey.find_active(api_key_val)
+            if api_key is not None:
                 request.company = api_key.company
                 request.is_company_scoped = True
                 from_api_key = True
-            except ApiKey.DoesNotExist:
-                pass
 
         # 2. Fall back to authenticated user
         if not request.company:

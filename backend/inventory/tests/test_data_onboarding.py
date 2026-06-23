@@ -208,6 +208,32 @@ class ImportFlowTest(TestCase):
         self.assertIsNotNone(batch)
         self.assertEqual(float(batch.quantity), 12.0)
 
+    def test_commit_normalizes_non_iso_expiry_to_iso(self):
+        # validate_rows accepts DD/MM/YYYY, but the stored batch date must be ISO
+        # so downstream expiry parsing/monitoring (which only groks ISO) works.
+        f = _csv_bytes(HEADER, [
+            "BAT-EXP,Perishable,BATCH_TRACKED,,,5,Main Warehouse,,,LOT-EXP,01/02/2026,",
+        ])
+        rows = importer.parse(f)
+        report = importer.commit(self.company, rows, self.user)
+        self.assertEqual(report["created"], 1)
+        self.assertEqual(report["errors"], 0)
+        product = ProductModel.objects.get(company=self.company, sku="BAT-EXP")
+        batch = ProductBatch.objects.get(product_model=product, batch_identifier="LOT-EXP")
+        # 01/02/2026 (DD/MM/YYYY — first non-ISO format tried) → ISO 2026-02-01.
+        self.assertEqual(batch.data.get("expiry_date"), "2026-02-01")
+
+    def test_commit_keeps_iso_expiry_iso(self):
+        # An already-ISO expiry must pass through unchanged.
+        f = _csv_bytes(HEADER, [
+            "BAT-ISO,Perishable,BATCH_TRACKED,,,5,Main Warehouse,,,LOT-ISO,2026-12-31,",
+        ])
+        rows = importer.parse(f)
+        importer.commit(self.company, rows, self.user)
+        product = ProductModel.objects.get(company=self.company, sku="BAT-ISO")
+        batch = ProductBatch.objects.get(product_model=product, batch_identifier="LOT-ISO")
+        self.assertEqual(batch.data.get("expiry_date"), "2026-12-31")
+
     def test_commit_creates_serials(self):
         f = _csv_bytes(HEADER, [
             "SER1,Serial Product,SERIALIZED,,,,Main Warehouse,,,,,S1;S2;S3",

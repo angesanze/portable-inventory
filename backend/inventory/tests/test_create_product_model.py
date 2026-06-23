@@ -2,6 +2,7 @@
 from django.test import TestCase
 from core.models import Company, User
 from inventory.models import ProductModel, CalculatorTemplate, Location, ProductBatch, Movement, PhysicalProduct
+from inventory.services import ProductService
 from rest_framework.test import APIClient
 from rest_framework import status
 
@@ -296,3 +297,68 @@ class ProductModelCreateTest(TestCase):
         product = ProductModel.objects.get(id=response.data['id'])
         self.assertEqual(ProductBatch.objects.filter(product_model=product).count(), 0)
         self.assertEqual(Movement.objects.filter(product_model=product).count(), 0)
+
+
+class PolyInstanceCreateTest(TestCase):
+    """Cloning a base ProductModel via the products-poly create endpoint.
+
+    Covers the view → ProductService.clone_poly_instance path: a fresh POLY-
+    SKU is generated and profile/default_calculator are copied from the base
+    model onto a new company-scoped row.
+    """
+
+    def setUp(self):
+        self.company = Company.objects.create(name="PolyCo", license_code="POLY01")
+        self.user = User.objects.create_user(
+            username="polyadmin", password="password", company=self.company
+        )
+        self.preset = CalculatorTemplate.objects.create(
+            company=self.company,
+            name="Poly Preset",
+            engine_type="tracker",
+            engine_config={"status_transitions": {"ACTIVE": ["BROKEN"]}},
+        )
+        self.base = ProductModel.objects.create(
+            company=self.company,
+            sku="BASE-001",
+            name="Base Model",
+            profile="SERIALIZED",
+            default_calculator=self.preset,
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
+    def test_create_poly_instance_clones_base_model(self):
+        payload = {"name": "Cloned Instance", "product_model": str(self.base.id)}
+        response = self.client.post('/api/v1/products-poly/', payload, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        new_id = response.data['id']
+        self.assertNotEqual(new_id, str(self.base.id))
+
+        new = ProductModel.objects.get(id=new_id)
+        self.assertEqual(new.name, "Cloned Instance")
+        self.assertEqual(new.company_id, self.company.id)
+        self.assertEqual(new.profile, self.base.profile)
+        self.assertEqual(new.default_calculator_id, self.preset.id)
+        self.assertTrue(new.sku.startswith("POLY-"))
+
+    def test_create_poly_instance_requires_name_and_base(self):
+        response = self.client.post(
+            '/api/v1/products-poly/', {"name": "No Base"}, format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_clone_poly_instance_service_generates_unique_skus(self):
+        """ProductService.clone_poly_instance copies fields and yields unique POLY- SKUs."""
+        a = ProductService.clone_poly_instance(
+            self.base, name="A", company=self.company
+        )
+        b = ProductService.clone_poly_instance(
+            self.base, name="B", company=self.company
+        )
+        self.assertEqual(a.profile, self.base.profile)
+        self.assertEqual(a.default_calculator_id, self.preset.id)
+        self.assertTrue(a.sku.startswith("POLY-"))
+        self.assertTrue(b.sku.startswith("POLY-"))
+        self.assertNotEqual(a.sku, b.sku)

@@ -342,8 +342,8 @@ class WidgetProductService:
                 "batch_identifier": b.batch_identifier,
                 "quantity": float(b.quantity),
                 "location": b.location.name,
-                "expiration_date": b.data.get('expiration_date'),
-                **b.data  # Flatten extra data
+                "expiry_date": b.data.get('expiry_date') if b.data else None,
+                **(b.data or {})  # Flatten extra data
             } for b in batches]
 
         elif product.engine_type == 'tracker':

@@ -40,7 +40,7 @@ class WidgetAPIThrottle(SimpleRateThrottle):
             request.data.get('api_key') if isinstance(request.data, dict) else None
         )
         if api_key_val:
-            key_obj = ApiKey.objects.filter(key=api_key_val, is_active=True).first()
+            key_obj = ApiKey.find_active(api_key_val)
             if key_obj:
                 self.rate = TIER_RATES.get(key_obj.rate_limit_tier, TIER_RATES['free'])
                 self.num_requests, self.duration = self.parse_rate(self.rate)
@@ -67,7 +67,7 @@ class WidgetAPIBurstThrottle(SimpleRateThrottle):
             request.data.get('api_key') if isinstance(request.data, dict) else None
         )
         if api_key_val:
-            key_obj = ApiKey.objects.filter(key=api_key_val, is_active=True).first()
+            key_obj = ApiKey.find_active(api_key_val)
             if key_obj:
                 self.rate = TIER_BURST_RATES.get(key_obj.rate_limit_tier, TIER_BURST_RATES['free'])
                 self.num_requests, self.duration = self.parse_rate(self.rate)

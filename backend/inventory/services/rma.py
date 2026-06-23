@@ -98,7 +98,7 @@ class RmaService:
         Supplier returns never pass through quarantine — they ship directly via
         ``resolve_line`` semantics and are received as a no-op here.
         """
-        from ..orchestrators import InventoryOrchestrator
+        from ..orchestrators import InventoryOrchestrator  # inline import: breaks the services↔orchestrators import cycle (orchestrators imports services)
 
         rma = ReturnOrder.objects.select_for_update().get(pk=rma.pk)
         if rma.kind != constants.RMA_KIND_CUSTOMER_RETURN:

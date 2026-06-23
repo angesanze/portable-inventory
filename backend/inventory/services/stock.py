@@ -121,7 +121,7 @@ class StockService:
         """
         if location is not None and not location.is_sellable:
             return Decimal('0')
-        from .reservations import ReservationService
+        from .reservations import ReservationService  # inline import: breaks the services import cycle (ledger↔reservations↔stock↔costing)
         physical = StockService.get_stock_for_location(product_model, location)
         return physical - ReservationService.active_reserved_qty(product_model, location)
 

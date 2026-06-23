@@ -302,6 +302,20 @@ class PhysicalProductSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Location not found.")
         return value
 
+    def validate_product_model(self, value):
+        """SEC-05: a serialized item may only point at a product owned by the
+        caller's company — otherwise it could be attached to another tenant's
+        product model (cross-tenant mass-assignment)."""
+        if value is None:
+            return value
+        request = self.context.get('request')
+        company = getattr(getattr(request, 'user', None), 'company', None)
+        if company is None:
+            raise serializers.ValidationError("Authentication required.")
+        if value.company_id != company.id:
+            raise serializers.ValidationError("Product model not found.")
+        return value
+
     @extend_schema_field(OpenApiTypes.OBJECT)
     def get_product_model_details(self, obj):
         return {

@@ -51,7 +51,12 @@ class TestSecurityAudit:
             data = data['results']
         
         key_entry = next(k for k in data if k['id'] == str(api_key.id))
-        assert key_entry['key'] == "1234567890abcdef1234567890abcdef"
+        # SEC-03: the stored plaintext is never echoed back in a list response.
+        assert key_entry['key'] != "1234567890abcdef1234567890abcdef"
+        # A non-secret prefix is exposed for display…
+        assert key_entry['key_prefix'] == "1234567890ab"
+        # …and the credential returned is a usable, revocable token bound to the key.
+        assert ApiKey.find_active(key_entry['key']).id == api_key.id
         assert key_entry['label'] == "Secret Key"
         
     def test_cross_company_isolation(self):

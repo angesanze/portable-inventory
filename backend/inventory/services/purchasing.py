@@ -107,7 +107,7 @@ class PurchasingService:
         Returns the list of created Movements. Atomic: any failure rolls the
         whole receipt back.
         """
-        from ..orchestrators import InventoryOrchestrator
+        from ..orchestrators import InventoryOrchestrator  # inline import: breaks the services↔orchestrators import cycle (orchestrators imports services)
 
         po = PurchaseOrder.objects.select_for_update().get(pk=po.pk)
         if po.status not in RECEIVABLE_STATUSES:

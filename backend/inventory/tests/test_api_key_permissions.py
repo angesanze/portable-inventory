@@ -151,9 +151,12 @@ class TestUsageTracking:
 
     def setup_method(self):
         self.company, _, _ = _make_company("USAGE")
+        # Keep the plaintext in a local — keys are hashed at rest (SEC-03) and
+        # refresh_from_db() below would otherwise blank the in-memory ``key``.
+        self.raw_key = secrets.token_hex(32)
         self.api_key = ApiKey.objects.create(
             company=self.company,
-            key=secrets.token_hex(32),
+            key=self.raw_key,
             label="Usage Track Key",
             usage_count=0,
             last_used_at=None,
@@ -163,11 +166,11 @@ class TestUsageTracking:
     def test_usage_count_increments(self):
         assert self.api_key.usage_count == 0
 
-        self.client.get(f'/api/v1/widget/?api_key={self.api_key.key}')
+        self.client.get(f'/api/v1/widget/?api_key={self.raw_key}')
         self.api_key.refresh_from_db()
         assert self.api_key.usage_count == 1
 
-        self.client.get(f'/api/v1/widget/?api_key={self.api_key.key}')
+        self.client.get(f'/api/v1/widget/?api_key={self.raw_key}')
         self.api_key.refresh_from_db()
         assert self.api_key.usage_count == 2
 
@@ -175,7 +178,7 @@ class TestUsageTracking:
         assert self.api_key.last_used_at is None
 
         before = timezone.now()
-        self.client.get(f'/api/v1/widget/?api_key={self.api_key.key}')
+        self.client.get(f'/api/v1/widget/?api_key={self.raw_key}')
         after = timezone.now()
 
         self.api_key.refresh_from_db()

@@ -120,9 +120,17 @@ class BatchManagerService:
             elif data.get('product_model_id') and delta != 0:
                 wh = Location.objects.filter(company=work_order.company, type='WAREHOUSE').first()
                 loc = wh if wh else Location.objects.filter(company=work_order.company).first()
-                batch_identifier = f"BATCH-{work_order.id.hex[:6].upper()}-{data.get('product_model_id')[:4]}"
 
-                product_model = ProductModel.objects.get(id=data.get('product_model_id'))
+                # Scope the product lookup to the work order's company so a
+                # tenant can't seed a batch of another tenant's product (and a
+                # bad/cross-tenant id yields a clean 404 rather than a 500).
+                product_model = ProductModel.objects.filter(
+                    id=data.get('product_model_id'), company=work_order.company
+                ).first()
+                if not product_model:
+                    raise ItemNotFoundError(detail="Product model not found")
+
+                batch_identifier = ProductBatch.make_identifier(work_order, product_model)
 
                 batch = ProductBatch.objects.filter(
                     product_model_id=data.get('product_model_id'),
@@ -198,7 +206,7 @@ class BatchManagerService:
                                 work_order=work_order,
                                 quantity=qty_needed,
                                 location=loc,
-                                batch_identifier=f"AUTO-{work_order.id.hex[:4]}-{comp.child.sku[:4]}",
+                                batch_identifier=ProductBatch.make_identifier(work_order, comp.child),
                                 data={"source": "Widget Kit Production"}
                             )
                             _record_movement(

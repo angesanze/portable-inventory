@@ -23,6 +23,7 @@ Columns (header row required):
 """
 
 import csv
+import datetime
 import io
 import json
 from decimal import Decimal, InvalidOperation
@@ -43,6 +44,11 @@ CANONICAL_COLUMNS = [
     'sku', 'name', 'profile', 'barcode', 'engine_config', 'initial_stock',
     'location', 'supplier', 'unit_cost', 'batch_identifier', 'expiry_date', 'serials',
 ]
+
+# Accepted expiry_date input formats, tried in this order. Both validate_rows
+# (shape check) and _normalize_expiry (ISO normalization) iterate this so the
+# stored value is always ISO no matter which form the upload used.
+_EXPIRY_FORMATS = ('%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y')
 
 _VALID_PROFILES = {code for code, _ in INVENTORY_PROFILES}
 
@@ -150,6 +156,28 @@ def _parse_serials(value):
     if not value:
         return []
     return [s.strip() for s in str(value).split(';') if s.strip()]
+
+
+def _normalize_expiry(value):
+    """Normalize an accepted expiry string to an ISO date string (or None).
+
+    validate_rows accepts ISO plus DD/MM/YYYY and MM/DD/YYYY, but downstream
+    consumers (StockService._parse_expiry, DateOffsetMonitor) only understand
+    ISO. Store ISO so a row like ``01/02/2026`` doesn't become an unparseable
+    batch date. Tries the same formats in the same order as validate_rows.
+    """
+    value = (value or '').strip()
+    if not value:
+        return None
+    for fmt in _EXPIRY_FORMATS:
+        try:
+            return datetime.datetime.strptime(value, fmt).date().isoformat()
+        except ValueError:
+            continue
+    # Unrecognized shape: validate_rows already flags this as an ERROR row, so a
+    # committed row should never reach here. Pass the raw value through rather
+    # than crash, matching the original (pre-fix) behavior.
+    return value
 
 
 def validate_rows(company, rows):
@@ -261,9 +289,8 @@ def validate_rows(company, rows):
         # expiry_date shape (lenient: only flag obvious garbage).
         expiry = (row.get('expiry_date') or '').strip()
         if expiry:
-            import datetime
             ok = False
-            for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y'):
+            for fmt in _EXPIRY_FORMATS:
                 try:
                     datetime.datetime.strptime(expiry, fmt)
                     ok = True
@@ -404,7 +431,9 @@ def _commit_row(company, row, user):
     serials = _parse_serials(row.get('serials'))
     initial_stock = _to_decimal(row.get('initial_stock'))
     batch_identifier = (row.get('batch_identifier') or '').strip()
-    expiry = (row.get('expiry_date') or '').strip()
+    # Normalize to ISO so downstream expiry parsing/monitoring works regardless
+    # of the (validated) input format. None stays None.
+    expiry = _normalize_expiry(row.get('expiry_date'))
 
     initial_batch = None
     initial_serials = None

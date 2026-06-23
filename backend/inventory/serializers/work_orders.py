@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 from drf_spectacular.types import OpenApiTypes
-from ..models import WorkOrder, ProductBatch, Location, ProductComponent, PhysicalProduct
+from ..models import WorkOrder, ProductBatch, PhysicalProduct
 
 class WorkOrderListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for WorkOrder listing."""
@@ -21,7 +21,9 @@ class WorkOrderSerializer(serializers.ModelSerializer):
             'product_model', 'created_at', 'updated_at',
             'items', 'product_model_details', 'contents_summary',
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at', 'company']
+        # SEC-05: status is lifecycle-managed (fulfill action / services), never
+        # mass-assigned via create/PATCH — that would skip the lifecycle.
+        read_only_fields = ['id', 'created_at', 'updated_at', 'company', 'status']
 
     items = serializers.ListField(child=serializers.DictField(), write_only=True, required=False)
     product_model_details = serializers.SerializerMethodField()
@@ -38,51 +40,14 @@ class WorkOrderSerializer(serializers.ModelSerializer):
         return None
 
     def create(self, validated_data):
-        """Creates work order and auto-populates items from kit components if needed."""
+        """Creates work order and auto-populates items from kit components if needed.
+
+        Delegates the inventory mutation to ``WorkOrderService`` (MOD-02), which
+        scopes every item lookup to the work order's company (SEC-01).
+        """
+        from ..services.work_order import WorkOrderService
         items_data = validated_data.pop('items', [])
-        work_order = WorkOrder.objects.create(**validated_data)
-        
-        # Helper to find a default location (Warehouse)
-        warehouse = Location.objects.filter(company=work_order.company, type='WAREHOUSE').first()
-        
-        # If no explicit items provided but a product_model (Kit) is set, auto-populate components
-        if not items_data and work_order.product_model:
-            components = ProductComponent.objects.filter(parent=work_order.product_model)
-            for comp in components:
-                items_data.append({
-                    'product_model_id': comp.child.id,
-                    'quantity': comp.quantity
-                })
-
-        for item in items_data:
-            product_model_id = item.get('product_model_id')
-            quantity = item.get('quantity')
-            physical_product_id = item.get('physical_product_id')
-            
-            # Sanitize empty string to None
-            if physical_product_id == "":
-                physical_product_id = None
-            
-            if physical_product_id:
-                # Handle Serialized Item assignment
-                PhysicalProduct.objects.filter(id=physical_product_id).update(
-                    work_order=work_order,
-                    location=warehouse # Can be None, calling update with location=None sets it to Null (valid for PP)
-                )
-            elif product_model_id and quantity:
-                # Handle Bulk/Batch items
-                if not warehouse:
-                     raise serializers.ValidationError({"non_field_errors": ["No default 'WAREHOUSE' location found for this company. Please create one to manage batches."]})
-
-                ProductBatch.objects.create(
-                    product_model_id=product_model_id,
-                    work_order=work_order,
-                    quantity=quantity,
-                    batch_identifier=f"BATCH-{work_order.id.hex[:6].upper()}-{str(product_model_id)[:4]}",
-                    location=warehouse, 
-                    data={"source": "WorkOrder Composition Auto-Population"} if not items_data else {"source": "WorkOrder Initial Config"}
-                )
-        return work_order
+        return WorkOrderService.create_with_items(validated_data, items_data)
 
     contents_summary = serializers.SerializerMethodField()
 

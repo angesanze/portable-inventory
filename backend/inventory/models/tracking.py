@@ -21,6 +21,18 @@ class ProductBatch(models.Model):
             GinIndex(fields=['data'], name='batch_data_gin'),
         ]
 
+    @staticmethod
+    def make_identifier(work_order, product_model):
+        """Canonical auto-batch identifier for a (work order, product) pair.
+
+        Single source of truth so the widget "add to existing batch" lookup and
+        the creation paths (WorkOrderService, BatchManagerService) always agree
+        — divergent formats would mint duplicate batches instead of incrementing
+        an existing one.
+        """
+        pm_id = getattr(product_model, 'id', product_model)
+        return f"BATCH-{work_order.id.hex[:6].upper()}-{str(pm_id)[:4]}"
+
     def clean(self):
         super().clean()
         company_id = self.product_model.company_id

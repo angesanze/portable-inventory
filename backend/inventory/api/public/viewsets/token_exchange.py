@@ -20,7 +20,8 @@ QR_TOKEN_MAX_AGE = 600  # seconds — long enough for a scan+load, short enough 
 
 
 def make_qr_token(api_key: ApiKey) -> str:
-    return signing.dumps(str(api_key.key), salt=QR_TOKEN_SALT)
+    # Sign the key id, never the plaintext (keys are hashed at rest — SEC-03).
+    return signing.dumps(str(api_key.id), salt=QR_TOKEN_SALT)
 
 
 class _TokenExchangeRequestSerializer(serializers.Serializer):
@@ -65,16 +66,19 @@ class WidgetTokenExchangeView(APIView):
             return Response({"detail": "token is required"}, status=400)
 
         try:
-            key = signing.loads(token, salt=QR_TOKEN_SALT, max_age=QR_TOKEN_MAX_AGE)
+            key_id = signing.loads(token, salt=QR_TOKEN_SALT, max_age=QR_TOKEN_MAX_AGE)
         except signing.SignatureExpired:
             return Response({"detail": "Token expired. Scan the QR code again."}, status=410)
         except signing.BadSignature:
             return Response({"detail": "Invalid token."}, status=400)
 
-        api_key = ApiKey.objects.filter(key=key, is_active=True).first()
+        api_key = ApiKey.objects.filter(id=key_id, is_active=True).first()
         if api_key is None:
             return Response({"detail": "API key revoked or missing."}, status=410)
         if api_key.expires_at and api_key.expires_at <= timezone.now():
             return Response({"detail": "API key expired."}, status=410)
 
-        return Response({"api_key": api_key.key})
+        # Hand back a signed, revocable widget credential bound to the key id —
+        # never the plaintext (which is not stored). The widget uses it exactly
+        # like a key (find_active resolves it). SEC-03.
+        return Response({"api_key": api_key.make_widget_token()})

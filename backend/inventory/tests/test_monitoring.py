@@ -22,11 +22,13 @@ class MonitoringTest(TestCase):
             name="Screw",
             profile='SIMPLE_COUNT',
         )
+        # Perishable → tracking_mode BATCH, the only mode that owns ProductBatch
+        # rows the DateOffsetMonitor can inspect.
         self.pm_pharma = ProductModel.objects.create(
             company=self.company,
             sku="MED-01",
             name="Medicine",
-            profile='SIMPLE_COUNT',
+            profile='PERISHABLE',
         )
 
         # Rules linked to product_model
@@ -38,11 +40,12 @@ class MonitoringTest(TestCase):
             severity="WARNING"
         )
 
+        # No explicit date_field → exercises the canonical `expiry_date` default.
         self.rule_expiry = MonitoringRule.objects.create(
             product_model=self.pm_pharma,
             name="Expiring Soon",
             trigger_type="DATE_OFFSET",
-            condition_config={"date_field": "expiration_date", "days_offset": 7},
+            condition_config={"days_offset": 7},
             severity="CRITICAL"
         )
 
@@ -69,13 +72,13 @@ class MonitoringTest(TestCase):
         """Tests that the expiry monitor triggers an event when a batch is near expiration."""
         tomorrow = (timezone.now() + timezone.timedelta(days=1)).date()
 
-        # Create a Batch with near-expiry date
+        # Create a Batch with near-expiry date (canonical `expiry_date` key)
         ProductBatch.objects.create(
             product_model=self.pm_pharma,
             location=self.warehouse,
             quantity=10,
             batch_identifier="BATCH-EXP-01",
-            data={"expiration_date": tomorrow.isoformat()}
+            data={"expiry_date": tomorrow.isoformat()}
         )
 
         RuleEvaluator.evaluate_product(self.pm_pharma)
@@ -83,6 +86,22 @@ class MonitoringTest(TestCase):
         events = EventLog.objects.filter(product=self.pm_pharma, rule=self.rule_expiry)
         self.assertTrue(events.exists(), "EventLog should have been created for expiring batch")
         self.assertIn("approaches expiry", events.first().message)
+
+    def test_expiry_monitor_ignores_far_future(self):
+        """A batch expiring well beyond the offset window must not raise an event."""
+        far = (timezone.now() + timezone.timedelta(days=365)).date()
+        ProductBatch.objects.create(
+            product_model=self.pm_pharma,
+            location=self.warehouse,
+            quantity=10,
+            batch_identifier="BATCH-FRESH-01",
+            data={"expiry_date": far.isoformat()}
+        )
+
+        RuleEvaluator.evaluate_product(self.pm_pharma)
+
+        events = EventLog.objects.filter(product=self.pm_pharma, rule=self.rule_expiry)
+        self.assertFalse(events.exists(), "No EventLog should be created for a far-future batch")
 
     def test_no_event_if_healthy(self):
         """Tests that no event is created if stock levels are healthy."""

@@ -159,14 +159,20 @@ class WorkOrderViewSet(CompanyScopedViewSet):
                 work_order, user=request.user
             )
         except InventoryError as e:
-            return Response({"error": str(e.detail)}, status=e.status_code)
+            return Response({"detail": str(e.detail)}, status=e.status_code)
         return Response(result)
 
-class ProductBatchViewSet(ApiKeyAuthMixin, viewsets.ModelViewSet):
+class ProductBatchViewSet(ApiKeyAuthMixin, viewsets.ReadOnlyModelViewSet):
     """
-    ViewSet for batch-level inventory (ProductBatch).
+    Read-only ViewSet for batch-level inventory (ProductBatch).
     Supports both JWT and API-Key based authentication for external/widget access.
     Auth delegated to ApiKeyAuthMixin which enforces expiry, domain, and permission checks.
+
+    SEC-02: this is intentionally read-only. ``_validate_api_key`` only runs in
+    ``get_queryset`` (the read path), so a writable ModelViewSet would expose an
+    unauthenticated ``create`` that also bypasses the ``LedgerService`` choke
+    point. All batch writes must go through the ledger (widget transaction,
+    purchasing receive, onboarding, etc.), never a direct REST write here.
     """
     serializer_class = ProductBatchSerializer
     permission_classes = [permissions.AllowAny]

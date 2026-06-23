@@ -301,7 +301,20 @@ class TrackerStatusBehavior:
         # "select_for_update cannot be used outside of a transaction".
         with transaction.atomic():
             try:
-                item = PhysicalProduct.objects.select_for_update().get(id=pp_id)
+                # Scope the lookup to the engine's (company-scoped) product model.
+                # Without this, a caller authorized for product A could pass the
+                # physical_product_id of another tenant's serialized item B and
+                # flip its status (the `.update()` below bypasses clean()). Both
+                # entry paths funnel here: the identifier path already resolves
+                # against `product_model=product`, so this keeps the direct
+                # `physical_product_id` path consistently scoped.
+                # `engine.product` is the ProductModel in production (built by
+                # EngineFactory) but may be an adapter wrapping it via `.model`
+                # (same unwrap idiom as engines/batch.py).
+                engine_product = getattr(engine.product, 'model', engine.product)
+                item = PhysicalProduct.objects.select_for_update().get(
+                    id=pp_id, product_model=engine_product
+                )
             except PhysicalProduct.DoesNotExist:
                 raise ItemNotFoundError(detail="Physical product not found")
 

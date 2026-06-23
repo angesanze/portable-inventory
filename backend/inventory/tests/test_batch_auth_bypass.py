@@ -76,3 +76,34 @@ class ProductBatchAuthBypassTest(TestCase):
         results = response.data["results"] if isinstance(response.data, dict) else response.data
         batch_ids = [str(b["id"]) for b in results]
         self.assertNotIn(str(self.batch.id), batch_ids)
+
+    def test_create_rejected_unauthenticated(self):
+        """SEC-02: the batches endpoint is read-only — a direct (anonymous) write
+        that would bypass the LedgerService must not create stock."""
+        before = ProductBatch.objects.count()
+        response = self.client.post("/api/v1/batches/", {
+            "product_model": str(self.product_a.id),
+            "location": str(self.loc_a.id),
+            "batch_identifier": "HACK-001",
+            "quantity": 999,
+        }, format="json")
+        self.assertIn(response.status_code, [
+            status.HTTP_401_UNAUTHORIZED,
+            status.HTTP_403_FORBIDDEN,
+            status.HTTP_405_METHOD_NOT_ALLOWED,
+        ])
+        self.assertEqual(ProductBatch.objects.count(), before)
+
+    def test_create_rejected_even_with_valid_key(self):
+        """SEC-02: even an authenticated key cannot write giacenza here — batch
+        creation must route through the ledger, not a raw REST write."""
+        before = ProductBatch.objects.count()
+        response = self.client.post(
+            f"/api/v1/batches/?api_key={self.api_key_a.key}", {
+                "product_model": str(self.product_a.id),
+                "location": str(self.loc_a.id),
+                "batch_identifier": "HACK-002",
+                "quantity": 999,
+            }, format="json")
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        self.assertEqual(ProductBatch.objects.count(), before)

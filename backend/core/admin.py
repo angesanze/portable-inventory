@@ -248,10 +248,12 @@ class ApiKeyAdmin(admin.ModelAdmin):
         'usage_count', 'last_used_at', 'created_at',
     )
     list_filter = ('is_active', 'rate_limit_tier', 'company')
-    search_fields = ('label', 'company__name', 'key')
+    # Keys are hashed at rest (SEC-03) — the plaintext is unsearchable/undisplayable;
+    # only the non-secret prefix is shown.
+    search_fields = ('label', 'company__name', 'key_prefix')
     autocomplete_fields = ('company',)
     list_select_related = ('company',)
-    readonly_fields = ('key', 'usage_count', 'last_used_at', 'created_at')
+    readonly_fields = ('key_prefix', 'key_hash', 'usage_count', 'last_used_at', 'created_at')
     date_hierarchy = 'created_at'
     ordering = ('-created_at',)
     actions = ('revoke_keys', 'activate_keys')

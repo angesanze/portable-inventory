@@ -36,7 +36,9 @@ class TestDefaultKeyEndpoint:
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data['id'] == str(api_key.id)
-        assert response.data['key'] == api_key.key
+        # SEC-03: returns a usable widget credential (signed token), not the
+        # stored plaintext — it must resolve back to this key.
+        assert ApiKey.find_active(response.data['key']).id == api_key.id
         assert response.data['label'] == 'Default Key'
 
     def test_manager_list_still_forbidden(self):
@@ -88,5 +90,5 @@ class TestDefaultKeyEndpoint:
         assert ApiKey.objects.filter(company=company).count() == 1
         created = ApiKey.objects.get(company=company)
         assert response.data['id'] == str(created.id)
-        assert response.data['key'] == created.key
+        assert ApiKey.find_active(response.data['key']).id == created.id
         assert created.label == 'Default Key'

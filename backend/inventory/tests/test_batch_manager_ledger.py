@@ -140,6 +140,71 @@ class TestGenericBatchCreationMovements(BatchManagerLedgerTestBase):
         self.assertEqual(m.batch_id, batch.id)
 
 
+class TestCanonicalBatchIdentifier(BatchManagerLedgerTestBase):
+    """Fix #2/#3: one canonical batch identifier shared by every creation path,
+    so the widget add-to-batch lookup hits the existing batch and increments
+    instead of minting a duplicate."""
+
+    def test_make_identifier_matches_work_order_service(self):
+        # WorkOrderService.create_with_items mints a batch via make_identifier;
+        # assert that identifier equals what the helper produces for the same
+        # (work order, product) pair — i.e. both routes agree.
+        from inventory.services.work_order import WorkOrderService
+
+        wo = WorkOrderService.create_with_items(
+            {"company": self.company, "name": "WO-CANON"},
+            [{"product_model_id": self.product.id, "quantity": Decimal("4")}],
+        )
+        batch = ProductBatch.objects.get(work_order=wo, product_model=self.product)
+        self.assertEqual(
+            batch.batch_identifier,
+            ProductBatch.make_identifier(wo, self.product),
+        )
+
+    def test_make_identifier_accepts_id_or_instance(self):
+        # The helper is fed a bare id (work_order.py) in one site and a model
+        # instance (batch_manager.py) in another — both must yield the same key.
+        self.assertEqual(
+            ProductBatch.make_identifier(self.work_order, self.product),
+            ProductBatch.make_identifier(self.work_order, self.product.id),
+        )
+
+    def test_repeated_generic_add_increments_single_batch(self):
+        # Two add-to-batch calls for the same WO+product must converge on ONE
+        # batch (the bug was divergent identifiers creating duplicates).
+        data = {"product_model_id": str(self.product.id), "delta": 3}
+        WidgetService._handle_batch_manager_transaction(self.work_order, dict(data))
+        WidgetService._handle_batch_manager_transaction(self.work_order, dict(data))
+
+        batches = ProductBatch.objects.filter(
+            work_order=self.work_order, product_model=self.product
+        )
+        self.assertEqual(batches.count(), 1)
+        self.assertEqual(batches.first().quantity, Decimal("6"))
+        self.assertEqual(
+            batches.first().batch_identifier,
+            ProductBatch.make_identifier(self.work_order, self.product),
+        )
+
+    def test_cross_tenant_product_model_raises_not_found(self):
+        # Fix #3: an out-of-company product_model id yields a clean 404, not a
+        # bare DoesNotExist → 500.
+        from inventory.exceptions import ItemNotFoundError
+
+        other_co = Company.objects.create(name="Other Co", license_code="OTHER1")
+        foreign = ProductModel.objects.create(
+            company=other_co, sku="FOREIGN", name="Foreign"
+        )
+        with self.assertRaises(ItemNotFoundError):
+            WidgetService._handle_batch_manager_transaction(
+                self.work_order,
+                {"product_model_id": str(foreign.id), "delta": 5},
+            )
+        self.assertFalse(
+            ProductBatch.objects.filter(product_model=foreign).exists()
+        )
+
+
 class TestKitProductionMovements(BatchManagerLedgerTestBase):
     def setUp(self):
         super().setUp()
