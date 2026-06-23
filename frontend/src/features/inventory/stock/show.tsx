@@ -18,6 +18,11 @@ import {
 } from "../../../components/ui/Table";
 import { FormErrorBanner } from "../../../components/ui/ErrorState";
 import { API_URL } from "../../../config";
+import type {
+    PhysicalProductDetail,
+    StockLevelDetail,
+    StockMovementRow,
+} from "./types";
 
 type HistoryRow = {
     id: string;
@@ -55,32 +60,34 @@ export const PhysicalProductShow = () => {
     const { id } = useParams();
     const navigate = useNavigate();
 
-    const { data, isLoading, error } = useOne({
+    const { data, isLoading, error } = useOne<PhysicalProductDetail>({
         resource: "physical-products",
         id: id as string,
         queryOptions: { enabled: !!id },
     });
 
-    const { data: historyData, isLoading: historyLoading } = useCustom({
+    const { data: historyData, isLoading: historyLoading } = useCustom<{
+        results?: HistoryRow[];
+    }>({
         url: `${API_URL}/api/v1/physical-products/${id}/history/`,
         method: "get",
         queryOptions: { enabled: !!id },
     });
 
-    const itemForLevel = data?.data as any;
+    const itemForLevel = data?.data;
     const modelIdForLevel =
         typeof itemForLevel?.product_model === "string"
             ? itemForLevel.product_model
             : itemForLevel?.product_model?.id;
-    const { data: levelData } = useCustom({
+    const { data: levelData } = useCustom<StockLevelDetail>({
         url: `${API_URL}/api/v1/stock/${modelIdForLevel}/level/`,
         method: "get",
         queryOptions: { enabled: !!modelIdForLevel },
     });
     const statusCounts: Record<string, number> | undefined =
-        (levelData?.data as any)?.status_counts;
+        levelData?.data?.status_counts;
 
-    const { data: movementsData, isLoading: movementsLoading } = useList({
+    const { data: movementsData, isLoading: movementsLoading } = useList<StockMovementRow>({
         resource: "movements",
         filters: id
             ? [{ field: "physical_product", operator: "eq", value: id }]
@@ -88,14 +95,14 @@ export const PhysicalProductShow = () => {
         sorters: [{ field: "occurred_at", order: "desc" }],
         pagination: { pageSize: 20 },
         queryOptions: { enabled: !!id },
-    }) as any;
+    });
 
-    const movementRows: any[] = Array.isArray(movementsData?.data)
+    const movementRows: StockMovementRow[] = Array.isArray(movementsData?.data)
         ? movementsData.data
         : [];
 
-    const item = data?.data as any;
-    const historyRows: HistoryRow[] = (historyData?.data as any)?.results ?? [];
+    const item = data?.data;
+    const historyRows: HistoryRow[] = historyData?.data?.results ?? [];
     const statusHistory = historyRows
         .filter((r) => r.reason?.startsWith("Status:"))
         .map((r) => ({ row: r, parsed: parseStatusReason(r.reason) }))
@@ -135,9 +142,8 @@ export const PhysicalProductShow = () => {
     const locationName =
         item?.location_name ||
         (typeof item?.location === "object" ? item.location?.name : "");
-    const attributes: Record<string, unknown> | undefined =
-        (item?.data as Record<string, unknown>) ||
-        (item?.attributes as Record<string, unknown>);
+    const attributes: Record<string, unknown> | null | undefined =
+        item?.data || item?.attributes;
     const widgetHref = modelId ? `/widget?product_id=${modelId}` : null;
 
     return (

@@ -31,7 +31,7 @@ const MATRIX: MatrixRow[] = [
 ];
 
 function buildProduct(profile: InventoryProfile, hasPreset: boolean): Product {
-    const calc_config: any = {
+    const calc_config: NonNullable<Product['calc_config']> = {
         engine: 'counter',
         ui_config: { input_type: 'number' },
     };
@@ -57,15 +57,15 @@ function renderForRow(row: MatrixRow) {
     return render(
         <OperationPanel
             companyName="Acme"
-            activeSubLocation={{ id: 'loc-1', name: 'Main' }}
+            activeSubLocation={{ id: 'loc-1', name: 'Main', type: 'PHYSICAL' }}
             locationLocked
             onBackToLocation={vi.fn()}
             products={[product]}
             selectedProduct="p-1"
             productLocked
             onProductChange={vi.fn()}
-            handleMove={vi.fn() as any}
-            handleStatusChange={vi.fn() as any}
+            handleMove={vi.fn(async () => {})}
+            handleStatusChange={vi.fn(async () => {})}
             actionLoading={false}
             message={null}
             quantity="0"
@@ -85,8 +85,8 @@ function renderForRow(row: MatrixRow) {
             batchManagerData={batchManagerData}
             expandedModelId={null}
             setExpandedModelId={vi.fn()}
-            loadComponentBatches={vi.fn() as any}
-            loadAvailableItems={vi.fn() as any}
+            loadComponentBatches={vi.fn(async () => {})}
+            loadAvailableItems={vi.fn(async () => {})}
             selectedLocation="loc-1"
             setMessage={vi.fn()}
         />

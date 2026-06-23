@@ -52,7 +52,7 @@ const mockLocations = [
 
 vi.mock("@refinedev/core", () => ({
     useOne: () => ({ data: { data: mockOrder }, isLoading: false, refetch: mockRefetch }),
-    useList: ({ resource }: any) => ({
+    useList: ({ resource }: { resource: string }) => ({
         data: {
             data: resource === "locations" ? mockLocations : [{ id: "sup-1", name: "Acme" }],
         },

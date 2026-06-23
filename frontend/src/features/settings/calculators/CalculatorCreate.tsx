@@ -13,16 +13,18 @@ import {
     Loader,
     Ruler,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { EngineConfigForm } from "./EngineConfigForm";
 import { FormulaPreview } from "./FormulaPreview";
 import { FormErrorBanner } from "../../../components/ui/ErrorState";
 import { PROFILE_METADATA } from "../../../types/api";
+import type { EngineConfig } from "./types";
 
 interface EngineTypeCard {
     value: string;
     /** Suffix of the `settings:trackingPresets.engineTypes.*` translation key. */
     labelKey: string;
-    icon: React.FC<{ className?: string; size?: number }>;
+    icon: LucideIcon;
     profiles: string[];
 }
 
@@ -76,7 +78,7 @@ export const CalculatorCreate = () => {
     const { t } = useTranslation(["settings", "common"]);
     const navigate = useNavigate();
     const [engineType, setEngineType] = useState("counter");
-    const [engineConfig, setEngineConfig] = useState<Record<string, any>>({});
+    const [engineConfig, setEngineConfig] = useState<EngineConfig>({});
 
     const { onFinish, mutationResult } = useForm({
         action: "create",

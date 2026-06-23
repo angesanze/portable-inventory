@@ -1,4 +1,5 @@
 import { useForm, useList } from "@refinedev/core";
+import type { CreateResponse, UpdateResponse } from "@refinedev/core";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -7,6 +8,7 @@ import { FormSection } from "../../../components/ui/FormSection";
 import { Input } from "../../../components/ui/Input";
 import { Select } from "../../../components/ui/Select";
 import { FormErrorBanner } from "../../../components/ui/ErrorState";
+import type { LocationRow } from "./types";
 
 export const LocationCreate = () => {
     const { t } = useTranslation(["inventory", "common"]);
@@ -45,7 +47,9 @@ export const LocationCreate = () => {
         action: "create",
         resource: "locations",
         redirect: false,
-        onMutationSuccess: (data: any) => {
+        onMutationSuccess: (
+            data: CreateResponse<{ id: string }> | UpdateResponse<{ id: string }>,
+        ) => {
             const back = decodeURIComponent(returnTo || "/locations");
             navigate(
                 returnTo
@@ -55,12 +59,12 @@ export const LocationCreate = () => {
         },
     });
 
-    const { data: locationsData } = useList({
+    const { data: locationsData } = useList<LocationRow>({
         resource: "locations",
         pagination: { mode: "off" },
     });
 
-    const parentOptions = (locationsData?.data || []).map((loc: any) => ({
+    const parentOptions = (locationsData?.data || []).map((loc) => ({
         label: loc.name,
         value: loc.id,
     }));

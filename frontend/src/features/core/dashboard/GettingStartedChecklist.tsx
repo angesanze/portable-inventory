@@ -23,17 +23,17 @@ export const GettingStartedChecklist = () => {
     const { data: productsData, isLoading: isLoadingProducts } = useList({
         resource: "product-models",
         pagination: { pageSize: 1 },
-    }) as any;
+    });
 
     const { data: locationsData, isLoading: isLoadingLocations } = useList({
         resource: "locations",
         pagination: { pageSize: 1 },
-    }) as any;
+    });
 
     const { data: movementsData, isLoading: isLoadingMovements } = useList({
         resource: "movements",
         pagination: { pageSize: 1 },
-    }) as any;
+    });
 
     // The QR/widget setup step targets the developer-only Widget Generator and
     // needs the key count. Managers (`manage_api_keys=false`) 403 on
@@ -45,7 +45,7 @@ export const GettingStartedChecklist = () => {
         resource: "api-keys",
         pagination: { pageSize: 1 },
         queryOptions: { enabled: canManageKeys },
-    }) as any;
+    });
 
     const isLoading =
         isLoadingProducts ||

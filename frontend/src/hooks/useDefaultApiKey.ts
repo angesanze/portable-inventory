@@ -34,7 +34,11 @@ export const useDefaultApiKey = (enabled = true): UseDefaultApiKeyResult => {
     const [isError, setIsError] = useState(false);
 
     useEffect(() => {
+        // Imperative data-fetch effect: it synchronizes React state with an
+        // external system (the API). The synchronous setState calls reset the
+        // loading/error flags before the request and on the disabled branch.
         if (!enabled) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setApiKey(null);
             setIsLoading(false);
             setIsError(false);

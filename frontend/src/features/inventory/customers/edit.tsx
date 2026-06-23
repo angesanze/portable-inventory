@@ -34,6 +34,8 @@ export const CustomerEdit = () => {
 
     useEffect(() => {
         if (record) {
+            // Hydrate form fields from the fetched record (async fetch → setState).
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setName(record.name || "");
             setVatNumber(record.vat_number || "");
             setEmail(record.email || "");

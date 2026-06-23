@@ -24,7 +24,7 @@ const mockForm = {
 
 vi.mock("@refinedev/core", () => ({
     useForm: () => mockForm,
-    useList: (props: any) => {
+    useList: (props: { resource?: string }) => {
         if (props?.resource === "locations") {
             return {
                 data: {
@@ -124,8 +124,11 @@ describe("ProductModelCreate Form", () => {
         fireEvent.click(screen.getByText("Measure dimensions (length, area, volume)"));
 
         await waitFor(() => {
-            expect(screen.getByText("Advanced Configuration")).toBeInTheDocument();
-            expect(screen.getByPlaceholderText("e.g. length * width * height")).toBeInTheDocument();
+            // DIMENSIONAL profile reveals the dimension engine config section,
+            // whose title is "Dimensional Configuration" and which exposes the
+            // formula field (placeholder "e.g. length * width").
+            expect(screen.getByText("Dimensional Configuration")).toBeInTheDocument();
+            expect(screen.getByPlaceholderText("e.g. length * width")).toBeInTheDocument();
         });
     });
 

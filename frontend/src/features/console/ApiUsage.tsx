@@ -20,12 +20,31 @@ import { Skeleton } from "../../components/ui/Skeleton";
 import { StatCard } from "../../components/dashboard/StatCard";
 import { usePlatformApiUsage } from "./hooks";
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+/**
+ * Minimal shape of a recharts tooltip series entry that this component reads.
+ * `payload.fill` is the slice colour recharts attaches for pie/bar series.
+ */
+interface TooltipPayloadEntry {
+    name?: string | number;
+    value?: string | number;
+    color?: string;
+    dataKey?: string | number;
+    payload?: { fill?: string };
+}
+
+/** Props recharts injects into a custom `content` element (cloned with extras). */
+interface CustomTooltipProps {
+    active?: boolean;
+    payload?: TooltipPayloadEntry[];
+    label?: string | number;
+}
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     if (!active || !payload?.length) return null;
     return (
         <div className="bg-zinc-800 border border-white/[0.08] rounded-lg shadow-xl px-3 py-2 text-xs">
             {label != null && <p className="text-zinc-300 mb-1 font-medium">{label}</p>}
-            {payload.map((entry: any) => (
+            {payload.map((entry) => (
                 <p key={entry.dataKey ?? entry.name} style={{ color: entry.color ?? entry.payload?.fill }}>
                     {entry.name}: {entry.value}
                 </p>

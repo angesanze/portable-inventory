@@ -2,13 +2,13 @@ import { useForm } from "@refinedev/core";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ReturnForm } from "./ReturnForm";
 import {
-    ReturnForm,
     buildReturnPayload,
     emptyLine,
     type ReturnKind,
     type ReturnLineDraft,
-} from "./ReturnForm";
+} from "./returnForm";
 
 export const ReturnOrderCreate = () => {
     const { t } = useTranslation(["returns", "common"]);

@@ -20,35 +20,57 @@ type AttentionItem = {
     link: string;
 };
 
+/** Product-model row fields read for the low-stock alerts. */
+interface ProductRow {
+    id: string;
+    name?: string;
+    stock_status?: { status?: string; quantity?: number; threshold?: number };
+}
+
+/** Batch row fields read for the expiring-batch alerts. */
+interface BatchRow {
+    id: string;
+    batch_identifier?: string;
+    work_order?: string | null;
+    product_model?: string;
+    data?: { expiry_date?: string };
+}
+
+/** Work-order row fields read for the open-work-order alerts. */
+interface WorkOrderRow {
+    id: string;
+    name?: string;
+}
+
 export const AttentionItems = () => {
     const navigate = useNavigate();
     const { t } = useTranslation("dashboard");
 
     // Low stock: fetch product models and filter for LOW status
-    const { data: productsData, isLoading: isLoadingProducts } = useList({
+    const { data: productsData, isLoading: isLoadingProducts } = useList<ProductRow>({
         resource: "product-models",
         pagination: { mode: "off" as const },
-    }) as any;
+    });
 
     // Expiring batches: fetch batches, filter client-side for expiry within 30 days
-    const { data: batchesData, isLoading: isLoadingBatches } = useList({
+    const { data: batchesData, isLoading: isLoadingBatches } = useList<BatchRow>({
         resource: "batches",
         pagination: { mode: "off" as const },
-    }) as any;
+    });
 
     // Open work orders
-    const { data: workOrdersData, isLoading: isLoadingWorkOrders } = useList({
+    const { data: workOrdersData, isLoading: isLoadingWorkOrders } = useList<WorkOrderRow>({
         resource: "work-orders",
         filters: [{ field: "status", operator: "eq", value: "OPEN" }],
         sorters: [{ field: "created_at", order: "desc" }],
         pagination: { current: 1, pageSize: 10 },
-    }) as any;
+    });
 
     // Movements count (for contextual suggestions in empty state)
     const { data: movementsData, isLoading: isLoadingMovements } = useList({
         resource: "movements",
         pagination: { pageSize: 1 },
-    }) as any;
+    });
 
     const isLoading = isLoadingProducts || isLoadingBatches || isLoadingWorkOrders || isLoadingMovements;
 

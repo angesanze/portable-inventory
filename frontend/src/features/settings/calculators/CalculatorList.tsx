@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useList, useDelete, useCustomMutation } from "@refinedev/core";
 import { useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Plus, Trash2, Edit2, MoreVertical, Zap, Hash, ArrowLeftRight, Layers, Fingerprint, Ruler, Clock, Package, Download } from "lucide-react";
+import { Plus, Trash2, Edit2, MoreVertical, Zap, Hash, ArrowLeftRight, Layers, Ruler, Download } from "lucide-react";
 import { PageHeader } from "../../../components/ui/PageHeader";
 import {
     Table,
@@ -29,14 +29,16 @@ import { API_URL } from "../../../config";
 import { exportToExcel } from "../../../utils/exportToExcel";
 import { fetchAllPages } from "../../../utils/fetchAllPages";
 import { CALCULATOR_EXPORT_COLUMNS, CALCULATOR_EXPORT_FILENAME } from "./exportColumns";
+import type { CalculatorExportRow } from "./exportColumns";
+import type { CalculatorTemplate, PresetProduct } from "./types";
 
 const PresetUsageCount = ({ presetId }: { presetId: string }) => {
     const { t } = useTranslation(["settings", "common"]);
-    const { data, isLoading } = useList({
+    const { data, isLoading } = useList<PresetProduct>({
         resource: "product-models",
         filters: [{ field: "default_calculator", operator: "eq", value: presetId }],
         pagination: { pageSize: 1 },
-    }) as any;
+    });
 
     if (isLoading) {
         return <span className="text-zinc-600 text-sm">…</span>;
@@ -79,9 +81,9 @@ const ENGINE_LABEL_KEYS: Record<string, string> = {
 export const CalculatorList = () => {
     const { t } = useTranslation(["settings", "common"]);
     const navigate = useNavigate();
-    const { data: listData, isLoading, isError, refetch } = useList({
+    const { data: listData, isLoading, isError, refetch } = useList<CalculatorTemplate>({
         resource: "calculator-templates",
-    }) as any;
+    });
     const { mutate: deleteTemplate } = useDelete();
     const { mutateAsync: bulkDelete } = useCustomMutation();
     const { confirm, dialogProps } = useConfirmDialog();
@@ -95,7 +97,7 @@ export const CalculatorList = () => {
     const exportAll = async () => {
         setExporting(true);
         try {
-            const all = await fetchAllPages<any>(`${API_URL}/api/v1/calculator-templates/`);
+            const all = await fetchAllPages<CalculatorExportRow>(`${API_URL}/api/v1/calculator-templates/`);
             exportToExcel(all, CALCULATOR_EXPORT_COLUMNS, `${CALCULATOR_EXPORT_FILENAME}.xlsx`);
         } finally {
             setExporting(false);
@@ -106,8 +108,8 @@ export const CalculatorList = () => {
     const selectedItems = useMemo(
         () =>
             templates
-                .filter((tpl: any) => selection.selectedIds.has(tpl.id))
-                .map((tpl: any) => ({ id: String(tpl.id), label: tpl.name as string })),
+                .filter((tpl) => selection.selectedIds.has(tpl.id))
+                .map((tpl) => ({ id: String(tpl.id), label: tpl.name })),
         [templates, selection.selectedIds],
     );
 
@@ -196,7 +198,7 @@ export const CalculatorList = () => {
                                 icon: Download,
                                 onClick: () =>
                                     exportToExcel(
-                                        templates.filter((tpl: any) =>
+                                        templates.filter((tpl) =>
                                             selection.selectedIds.has(tpl.id),
                                         ),
                                         CALCULATOR_EXPORT_COLUMNS,
@@ -228,7 +230,7 @@ export const CalculatorList = () => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {templates.map((tmpl: any) => {
+                        {templates.map((tmpl) => {
                             const variant = ENGINE_VARIANTS[tmpl.engine_type] ?? ("slate" as BadgeVariant);
                             const labelKey = ENGINE_LABEL_KEYS[tmpl.engine_type];
                             const engLabel = labelKey

@@ -22,6 +22,14 @@ import { FormErrorBanner } from "../../../components/ui/ErrorState";
 import { API_URL } from "../../../config";
 import { exportToExcel } from "../../../utils/exportToExcel";
 import { VARIANCE_EXPORT_COLUMNS, VARIANCE_EXPORT_FILENAME } from "./exportColumns";
+import type {
+    CountSessionRecord,
+    CountSessionLine,
+    VarianceReport,
+    VarianceLine,
+    UncountedLine,
+    ApplyResponse,
+} from "./types";
 
 const STATUS_VARIANTS: Record<string, BadgeVariant> = {
     OPEN: "neutral",
@@ -33,7 +41,7 @@ const STATUS_VARIANTS: Record<string, BadgeVariant> = {
 
 const COUNTABLE = ["OPEN", "COUNTING", "REVIEW"];
 
-const lineLabel = (line: any): string =>
+const lineLabel = (line: CountSessionLine): string =>
     line.identifier || line.batch_identifier || line.product_sku;
 
 export const StocktakeView = () => {
@@ -43,14 +51,14 @@ export const StocktakeView = () => {
     const { toast } = useToast();
     const { confirm, dialogProps } = useConfirmDialog();
 
-    const { data, isLoading, refetch } = useOne({
+    const { data, isLoading, refetch } = useOne<CountSessionRecord>({
         resource: "count-sessions",
         id: id ?? "",
         queryOptions: { enabled: !!id },
     });
-    const session = data?.data as any;
-    const status: string = session?.status;
-    const lines: any[] = session?.lines ?? [];
+    const session = data?.data;
+    const status: string = session?.status ?? "";
+    const lines: CountSessionLine[] = session?.lines ?? [];
     const isApplied = status === "APPLIED";
     const isCountable = COUNTABLE.includes(status);
 
@@ -64,19 +72,21 @@ export const StocktakeView = () => {
     const rowRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
     // Variance report (also drives the review tab + warning banner).
-    const { data: varData, refetch: refetchVar } = useCustom({
+    const { data: varData, refetch: refetchVar } = useCustom<VarianceReport>({
         url: `${API_URL}/api/v1/count-sessions/${id}/variance/`,
         method: "get",
         queryOptions: { enabled: !!id && !!session },
     });
-    const variance = varData?.data as any;
-    const variances: any[] = variance?.variances ?? [];
-    const uncountedLines: any[] = variance?.uncounted ?? [];
+    const variance = varData?.data;
+    const variances: VarianceLine[] = variance?.variances ?? [];
+    const uncountedLines: UncountedLine[] = variance?.uncounted ?? [];
     const movementsAfter: boolean = !!variance?.movements_after_snapshot;
 
     // Seed the count inputs from persisted counted_qty once loaded.
     useEffect(() => {
         if (!lines.length) return;
+        // Seed once from fetched lines; no-op if counts already entered.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setCounts((prev) => {
             if (Object.keys(prev).length) return prev;
             const seed: Record<string, string> = {};
@@ -94,7 +104,7 @@ export const StocktakeView = () => {
         [lines, counts],
     );
 
-    const { mutateAsync: postAction, isLoading: isActing } = useCustomMutation();
+    const { mutateAsync: postAction, isLoading: isActing } = useCustomMutation<ApplyResponse>();
 
     const handleScan = (e: React.FormEvent) => {
         e.preventDefault();
@@ -154,7 +164,7 @@ export const StocktakeView = () => {
         )
             return;
         try {
-            const res: any = await postAction({
+            const res = await postAction({
                 url: `${API_URL}/api/v1/count-sessions/${id}/apply/`,
                 method: "post",
                 values: { uncounted },

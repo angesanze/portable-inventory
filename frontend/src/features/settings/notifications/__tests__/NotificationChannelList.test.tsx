@@ -50,15 +50,21 @@ const mockDeliveries = [
     },
 ];
 
-let mockChannelList: any;
-let mockDeliveryList: any;
+type ListResult = {
+    data: { data: Record<string, unknown>[]; total?: number };
+    isLoading?: boolean;
+    isError?: boolean;
+    refetch?: () => void;
+};
+let mockChannelList: ListResult;
+let mockDeliveryList: ListResult;
 const mockCreateMutate = vi.fn();
 const mockUpdateMutate = vi.fn();
 const mockDeleteMutate = vi.fn();
 const mockRefetch = vi.fn();
 
 vi.mock("@refinedev/core", () => ({
-    useList: (opts: any) =>
+    useList: (opts: { resource?: string }) =>
         opts?.resource === "notification-deliveries" ? mockDeliveryList : mockChannelList,
     useCreate: () => ({ mutate: mockCreateMutate, isLoading: false }),
     useUpdate: () => ({ mutate: mockUpdateMutate, isLoading: false }),

@@ -17,6 +17,10 @@ export const ScannerWidget = () => {
     const rootRef = useRef<HTMLDivElement>(null);
     useTheme(rootRef);
 
+    // BP-01: read deep-link params from the current URL (mirrors Widget.tsx).
+    // Previously used below but never declared → TS2304 broke `tsc -b`/the build.
+    const searchParams = new URL(window.location.href).searchParams;
+
     const { apiKey, resolvingKey } = useWidgetApiKey();
 
     const {
@@ -156,7 +160,7 @@ export const ScannerWidget = () => {
                         const sr = scannerFlow.scanResult;
                         const isDim = sr.engineType === "dimension";
                         const isTB = sr.engineType === "time_based";
-                        const calcConfig = (sr as any).calc_config;
+                        const calcConfig = sr.calc_config;
                         const uiConf = calcConfig?.ui_config;
                         return (
                             <QuantityInput
@@ -165,7 +169,7 @@ export const ScannerWidget = () => {
                                 onConfirm={(qty, note, metadata) => scannerFlow.goToConfirm(qty, note, metadata)}
                                 onBack={scannerFlow.goBack}
                                 unitLabel={unitLabel}
-                                dimensionFields={isDim ? uiConf?.fields?.map((f: any) => ({ name: f.name, label: f.label, unit: f.unit })) : undefined}
+                                dimensionFields={isDim ? uiConf?.fields?.map((f) => ({ name: f.name as string, label: f.label, unit: f.unit })) : undefined}
                                 dimensionFormula={isDim ? uiConf?.formula : undefined}
                                 dimensionComputedUnit={isDim ? uiConf?.computed_unit : undefined}
                                 showExpiryDate={isTB ? (uiConf?.expiry_tracking !== false) : undefined}

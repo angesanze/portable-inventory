@@ -79,7 +79,7 @@ const PROFILE_OPTIONS: SelectOption[] = Object.entries(PROFILE_METADATA).map(
     }),
 );
 
-export function profileBadgeVariant(profile: InventoryProfile): BadgeVariant {
+function profileBadgeVariant(profile: InventoryProfile): BadgeVariant {
     switch (profile) {
         case "SERIALIZED": return "amber";
         case "BATCH_TRACKED":
@@ -120,6 +120,8 @@ export const ProfileWizard: React.FC<ProfileWizardProps> = ({ value, onChange })
 
     // Sync category when value changes externally
     useEffect(() => {
+        // Prop-sync: derive local category from the controlled `value` prop.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         if (value) setCategory(categoryForProfile(value));
     }, [value]);
 

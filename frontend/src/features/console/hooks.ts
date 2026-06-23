@@ -59,6 +59,9 @@ export const usePlatformStats = (): UsePlatformStatsResult => {
 
     useEffect(() => {
         let cancelled = false;
+        // Imperative fetch effect (no react-query): resets the loading/error
+        // flags before synchronizing React state with the external API.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsLoading(true);
         setIsError(false);
 
@@ -174,6 +177,9 @@ export const useCompanies = (query: CompanyQuery): UseCompaniesResult => {
 
     useEffect(() => {
         let cancelled = false;
+        // Imperative fetch effect (no react-query): resets the loading/error
+        // flags before synchronizing React state with the external API.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsLoading(true);
         setIsError(false);
 
@@ -273,6 +279,9 @@ export const useCompanyDetail = (id: string | undefined): UseCompanyDetailResult
     useEffect(() => {
         if (!id) return;
         let cancelled = false;
+        // Imperative fetch effect (no react-query): resets the loading/error
+        // flags before synchronizing React state with the external API.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsLoading(true);
         setIsError(false);
 
@@ -436,6 +445,9 @@ export const usePlatformInsights = (): UsePlatformInsightsResult => {
 
     useEffect(() => {
         let cancelled = false;
+        // Imperative fetch effect (no react-query): resets the loading/error
+        // flags before synchronizing React state with the external API.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsLoading(true);
         setIsError(false);
 
@@ -510,6 +522,9 @@ export const usePlatformApiUsage = (): UsePlatformApiUsageResult => {
 
     useEffect(() => {
         let cancelled = false;
+        // Imperative fetch effect (no react-query): resets the loading/error
+        // flags before synchronizing React state with the external API.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsLoading(true);
         setIsError(false);
 
@@ -597,6 +612,9 @@ export const usePlatformAudit = (query: AuditQuery): UsePlatformAuditResult => {
 
     useEffect(() => {
         let cancelled = false;
+        // Imperative fetch effect (no react-query): resets the loading/error
+        // flags before synchronizing React state with the external API.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsLoading(true);
         setIsError(false);
 

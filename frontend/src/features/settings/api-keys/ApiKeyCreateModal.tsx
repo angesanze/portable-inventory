@@ -6,6 +6,7 @@ import { Select } from "../../../components/ui/Select";
 import { Badge } from "../../../components/ui/Badge";
 import { Modal } from "../../../components/ui/Modal";
 import { useToast } from "../../../components/ui/Toast";
+import type { ApiKeyLocation } from "./types";
 
 interface ApiKeyCreateModalProps {
     isOpen: boolean;
@@ -54,13 +55,13 @@ export const ApiKeyCreateModal = ({ isOpen, onClose, onSuccess }: ApiKeyCreateMo
 
     const { mutateAsync: createKey, isLoading } = useCreate();
 
-    const { data: locations } = useList({
+    const { data: locations } = useList<ApiKeyLocation>({
         resource: "locations",
         pagination: { mode: "off" },
         queryOptions: { enabled: isOpen }
     });
 
-    const locationOptions = (locations?.data || []).map((l: any) => ({
+    const locationOptions = (locations?.data || []).map((l) => ({
         label: l.name,
         value: l.id
     }));

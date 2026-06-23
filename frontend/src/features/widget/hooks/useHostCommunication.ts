@@ -50,7 +50,12 @@ function sendToHost(type: PostMessageType, payload: Record<string, unknown>): vo
  */
 export function useHostCommunication(options: HostCommunicationOptions) {
   const handlersRef = useRef(options.handlers)
-  handlersRef.current = options.handlers
+  // Keep the latest handlers in a ref without writing during render. The ref is
+  // only read asynchronously (on incoming postMessage), so updating it in an
+  // effect after each render is sufficient and avoids the refs-in-render lint.
+  useEffect(() => {
+    handlersRef.current = options.handlers
+  })
 
   // Send WIDGET_READY on mount
   useEffect(() => {

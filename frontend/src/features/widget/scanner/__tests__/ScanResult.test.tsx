@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
-import { ScanResult, getOperationsForProfile } from "../ScanResult";
+import { ScanResult } from "../ScanResult";
+import { getOperationsForProfile } from "../ScanResult.operations";
 import type { QRScanResult } from "../QRScanner";
 
 const baseScanResult: QRScanResult = {

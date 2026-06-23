@@ -5,16 +5,23 @@ import { API_URL } from "../../../config";
 
 interface FormulaPreviewProps {
     engineType: string;
-    engineConfig: Record<string, any>;
+    engineConfig: Record<string, unknown>;
 }
 
 interface ValidationResult {
     valid: boolean;
     errors: string[];
     preview?: {
-        sample_input: Record<string, any>;
+        sample_input: Record<string, unknown>;
         sample_output: string;
     };
+}
+
+/** Narrow shape of the axios validation error this component inspects. */
+interface ValidationError {
+    name?: string;
+    code?: string;
+    response?: { data?: { errors?: string[] } };
 }
 
 export const FormulaPreview = ({ engineType, engineConfig }: FormulaPreviewProps) => {
@@ -23,7 +30,7 @@ export const FormulaPreview = ({ engineType, engineConfig }: FormulaPreviewProps
     const debounceRef = useRef<ReturnType<typeof setTimeout>>();
     const abortRef = useRef<AbortController>();
 
-    const validate = useCallback(async (type: string, config: Record<string, any>) => {
+    const validate = useCallback(async (type: string, config: Record<string, unknown>) => {
         abortRef.current?.abort();
         const controller = new AbortController();
         abortRef.current = controller;
@@ -37,11 +44,12 @@ export const FormulaPreview = ({ engineType, engineConfig }: FormulaPreviewProps
                 { signal: controller.signal },
             );
             setResult(data);
-        } catch (err: any) {
-            if (err?.name === "CanceledError" || err?.code === "ERR_CANCELED") return;
+        } catch (err: unknown) {
+            const e = err as ValidationError;
+            if (e?.name === "CanceledError" || e?.code === "ERR_CANCELED") return;
             setResult({
                 valid: false,
-                errors: [err?.response?.data?.errors?.[0] || "Validation request failed"],
+                errors: [e?.response?.data?.errors?.[0] || "Validation request failed"],
             });
         } finally {
             setLoading(false);

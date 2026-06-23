@@ -10,20 +10,21 @@ import { Textarea } from "../../../components/ui/Input";
 import { useToast } from "../../../components/ui/Toast";
 import { FormErrorBanner } from "../../../components/ui/ErrorState";
 import { API_URL } from "../../../config";
+import type { StocktakeLocationRow, CreateSessionResponse } from "./types";
 
 export const StocktakeCreate = () => {
     const { t } = useTranslation(["stocktake", "common"]);
     const navigate = useNavigate();
     const { toast } = useToast();
 
-    const { data: locationsData } = useList({
+    const { data: locationsData } = useList<StocktakeLocationRow>({
         resource: "locations",
         pagination: { mode: "off" },
     });
     const realLocations = (locationsData?.data || []).filter(
-        (l: any) => l.type === "WAREHOUSE" || l.type === "STORE",
+        (l) => l.type === "WAREHOUSE" || l.type === "STORE",
     );
-    const locationOptions = realLocations.map((l: any) => ({
+    const locationOptions = realLocations.map((l) => ({
         value: l.id,
         label: l.name,
         description: l.type,
@@ -35,11 +36,13 @@ export const StocktakeCreate = () => {
 
     useEffect(() => {
         if (realLocations.length === 1 && !locationId) {
+            // Auto-select the sole location once the fetched list resolves.
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setLocationId(String(realLocations[0].id));
         }
     }, [realLocations.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const { mutateAsync: postAction, isLoading } = useCustomMutation();
+    const { mutateAsync: postAction, isLoading } = useCustomMutation<CreateSessionResponse>();
 
     const handleOpen = async () => {
         setError(null);
@@ -48,7 +51,7 @@ export const StocktakeCreate = () => {
             return;
         }
         try {
-            const res: any = await postAction({
+            const res = await postAction({
                 url: `${API_URL}/api/v1/count-sessions/`,
                 method: "post",
                 values: { location_id: locationId, notes },

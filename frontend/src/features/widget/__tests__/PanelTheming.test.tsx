@@ -6,6 +6,7 @@ import { TrackerPanel } from '../components/engines/TrackerPanel';
 import { DimensionPanel } from '../components/engines/DimensionPanel';
 import { TimeBasedPanel } from '../components/engines/TimeBasedPanel';
 import { BatchManagerPanel } from '../components/engines/BatchManagerPanel';
+import type { BatchManagerData } from '../types';
 
 describe('Panel theming — CSS custom property classes', () => {
     describe('CounterPanel', () => {
@@ -240,7 +241,7 @@ describe('Panel theming — CSS custom property classes', () => {
                     items: [],
                 },
             },
-        } as any;
+        } as BatchManagerData;
 
         it('uses pi-surface-dark class on root container', () => {
             const { container } = render(
@@ -275,7 +276,7 @@ describe('Panel theming — CSS custom property classes', () => {
         });
 
         it('uses --pi-success CSS var for success messages', () => {
-            const { container } = render(
+            render(
                 <BatchManagerPanel
                     data={mockData} submitting={false}
                     message={{ type: 'success', text: 'Stock updated!' }}
@@ -314,7 +315,7 @@ describe('Panel theming — CSS custom property classes', () => {
                     ],
                 },
             },
-        } as any;
+        } as BatchManagerData;
 
         it('withdraws via an inline input instead of window.prompt', () => {
             const promptSpy = vi.spyOn(window, 'prompt');
@@ -400,7 +401,7 @@ describe('Panel theming — CSS custom property classes', () => {
                     items: [],
                 },
             },
-        } as any;
+        } as BatchManagerData;
 
         themes.forEach(([themeName, primary]) => {
             describe(themeName, () => {

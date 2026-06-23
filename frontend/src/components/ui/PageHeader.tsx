@@ -4,6 +4,8 @@ import { Badge } from './Badge';
 interface PageHeaderProps {
     title: string;
     subtitle?: string;
+    /** Alias for {@link subtitle}; rendered identically when subtitle is absent. */
+    description?: string;
     count?: number;
     actions?: React.ReactNode;
     className?: string;
@@ -12,10 +14,12 @@ interface PageHeaderProps {
 export const PageHeader: React.FC<PageHeaderProps> = ({
     title,
     subtitle,
+    description,
     count,
     actions,
     className = '',
 }) => {
+    const subtitleText = subtitle ?? description;
     return (
         <div className={`flex justify-between items-center mb-6 ${className}`}>
             <div>
@@ -25,8 +29,8 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                         <Badge variant="neutral">{count.toLocaleString()}</Badge>
                     )}
                 </div>
-                {subtitle && (
-                    <p className="text-sm text-zinc-400 mt-1">{subtitle}</p>
+                {subtitleText && (
+                    <p className="text-sm text-zinc-400 mt-1">{subtitleText}</p>
                 )}
             </div>
             {actions && (

@@ -1,4 +1,5 @@
 import { useShow, useList } from "@refinedev/core";
+import type { PolyMovementRow, PolyStockBatch, PolyShowProduct } from "../types";
 import { useParams } from "react-router-dom";
 import {
     Settings,
@@ -36,7 +37,7 @@ export const ProductPolyShow = () => {
     const { id } = useParams();
     const [activeTab, setActiveTab] = useState<'overview' | 'manage' | 'batches' | 'settings'>('overview');
 
-    const { queryResult } = useShow({
+    const { queryResult } = useShow<PolyShowProduct>({
         resource: "products-poly",
         id: id,
         meta: {
@@ -47,14 +48,14 @@ export const ProductPolyShow = () => {
     const { data, isLoading } = queryResult;
     const product = data?.data;
 
-    const { data: movementsData, isLoading: isLoadingMovements } = useList({
+    const { data: movementsData, isLoading: isLoadingMovements } = useList<PolyMovementRow>({
         resource: "movements",
         filters: [{ field: "product_model", operator: "eq", value: id }],
         sorters: [{ field: "occurred_at", order: "desc" }],
         pagination: { current: 1, pageSize: 50 },
     });
 
-    const movements = Array.isArray(movementsData?.data) ? movementsData.data : [];
+    const movements: PolyMovementRow[] = Array.isArray(movementsData?.data) ? movementsData.data : [];
 
     const chartData = useMemo(() => {
         if (!movements.length) return [];
@@ -71,7 +72,7 @@ export const ProductPolyShow = () => {
             });
         }
 
-        movements.forEach((m: any) => {
+        movements.forEach((m) => {
             if (!m.occurred_at) return;
             const mDate = m.occurred_at.split('T')[0];
             const dayEntry = days.find(d => d.dateString === mDate);
@@ -121,7 +122,7 @@ export const ProductPolyShow = () => {
                             {(() => {
                                 if (isBucket || isTracker) {
                                     return Array.isArray(product.stock_value)
-                                        ? product.stock_value.reduce((acc: any, b: any) => acc + (b.quantity || b.qty || 0), 0)
+                                        ? product.stock_value.reduce((acc: number, b: PolyStockBatch) => acc + (b.quantity || b.qty || 0), 0)
                                         : 0;
                                 }
                                 // Handle Counter/Converter (Scalar)
@@ -214,7 +215,7 @@ export const ProductPolyShow = () => {
                                     <div className="text-zinc-500 text-sm">{t("products:poly.noMovementsYet")}</div>
                                 ) : (
                                     <div className="space-y-3 max-h-[320px] overflow-y-auto">
-                                        {movements.slice(0, 10).map((m: any, i: number) => {
+                                        {movements.slice(0, 10).map((m: PolyMovementRow, i: number) => {
                                             const qty = Number(m.quantity);
                                             const isPositive = qty > 0;
                                             const occurredAt = m.occurred_at ? new Date(m.occurred_at) : null;

@@ -37,7 +37,9 @@ const mockOrders = [
     },
 ];
 
-const mockListData = { current: { data: mockOrders } as any };
+const mockListData: { current: { data: typeof mockOrders } } = {
+    current: { data: mockOrders },
+};
 const mockBulkDeleteAsync = vi.fn().mockResolvedValue({});
 const mockRefetch = vi.fn();
 

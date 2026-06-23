@@ -45,12 +45,12 @@ export const NotificationChannelList = () => {
         isLoading,
         isError,
         refetch,
-    } = useList({ resource: "notification-channels" }) as any;
+    } = useList<NotificationChannel>({ resource: "notification-channels" });
 
-    const { data: deliveryData, refetch: refetchDeliveries } = useList({
+    const { data: deliveryData, refetch: refetchDeliveries } = useList<NotificationDelivery>({
         resource: "notification-deliveries",
         pagination: { current: 1, pageSize: 20 },
-    }) as any;
+    });
 
     const { mutate: updateChannel, isLoading: isUpdating } = useUpdate();
     const { mutate: deleteChannel } = useDelete();

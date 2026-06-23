@@ -224,8 +224,8 @@ export function useScannerConfirmation(options: UseScannerConfirmationOptions) {
                     error: errorMsg,
                 }));
             }
-        } catch (err: any) {
-            const errorMsg = err.message || "Network error";
+        } catch (err) {
+            const errorMsg = (err instanceof Error ? err.message : undefined) || "Network error";
             sendErrorEvent?.(errorMsg);
             setState((prev) => ({
                 ...prev,

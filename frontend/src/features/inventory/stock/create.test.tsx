@@ -39,9 +39,12 @@ vi.mock("@refinedev/core", () => ({
 }));
 
 vi.mock("../../../components/ui/Select", () => ({
-    Select: (props: any) => (
+    Select: (props: {
+        name?: string;
+        options?: { value: string; label: string }[];
+    }) => (
         <select data-testid={`select-${props.name}`} name={props.name}>
-            {(props.options || []).map((o: any) => (
+            {(props.options || []).map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
             ))}
         </select>

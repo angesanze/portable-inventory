@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronLeft, Factory, Layers, ArrowDownToLine, ArrowUpFromLine, PackageCheck } from 'lucide-react';
-import type { Product, PhysicalItem } from '../types';
+import type { Product, PhysicalItem, Location, BatchManagerData, BatchManagerModel } from '../types';
 import { PROFILE_METADATA } from '../../../types/api';
 import { ProductSelector } from './ProductSelector';
 import { QuantityControls } from './QuantityControls';
@@ -12,7 +12,7 @@ import { TimeBasedForm } from './TimeBasedForm';
 
 interface OperationPanelProps {
     companyName: string;
-    activeSubLocation: any;
+    activeSubLocation: Location | undefined;
     locationLocked: boolean;
     onBackToLocation: () => void;
     products: Product[];
@@ -38,15 +38,15 @@ interface OperationPanelProps {
 
     // Profile-driven data
     availableItems: PhysicalItem[];
-    batchData: any;
-    setBatchData: (d: any) => void;
+    batchData: Record<string, string>;
+    setBatchData: (d: Record<string, string>) => void;
     expiryDate: string;
     setExpiryDate: (d: string) => void;
     batchRef: string;
     setBatchRef: (r: string) => void;
 
     // Batch manager config
-    batchManagerData: any;
+    batchManagerData: BatchManagerData | null;
     expandedModelId: string | null;
     setExpandedModelId: (id: string | null) => void;
     loadComponentBatches: (modelId: string) => Promise<void>;
@@ -220,9 +220,9 @@ export const OperationPanel: React.FC<OperationPanelProps> = (props) => {
 
         // Batch-tracked: batch contents with component grouping
         if (profile === 'BATCH_TRACKED') {
-            const grouped: any = {};
+            const grouped: Record<string, BatchManagerModel> = {};
             if (activeProduct?.components) {
-                activeProduct.components.forEach((comp: any) => {
+                activeProduct.components.forEach(comp => {
                     grouped[comp.child_id] = {
                         model: {
                             id: comp.child_id,

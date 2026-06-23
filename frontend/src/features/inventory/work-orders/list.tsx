@@ -31,7 +31,8 @@ import { useTableSelection } from "../../../hooks/useTableSelection";
 import { API_URL } from "../../../config";
 import { exportToExcel } from "../../../utils/exportToExcel";
 import { fetchAllPages } from "../../../utils/fetchAllPages";
-import { WORK_ORDER_EXPORT_COLUMNS, WORK_ORDER_EXPORT_FILENAME } from "./exportColumns";
+import { WORK_ORDER_EXPORT_COLUMNS, WORK_ORDER_EXPORT_FILENAME, type WorkOrderExportRow } from "./exportColumns";
+import type { WorkOrderListRow, WorkOrderContentRow } from "./listTypes";
 
 function statusVariant(status: string) {
     switch (status) {
@@ -64,8 +65,8 @@ const ExpandedRow = ({ recordId }: { recordId: string }) => {
         method: "get",
     });
 
-    const rawData = contentsData?.data as any;
-    const contents = Array.isArray(rawData)
+    const rawData = contentsData?.data;
+    const contents: WorkOrderContentRow[] = Array.isArray(rawData)
         ? rawData
         : Array.isArray(rawData?.results)
           ? rawData.results
@@ -101,7 +102,7 @@ const ExpandedRow = ({ recordId }: { recordId: string }) => {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {contents.map((item: any, idx: number) => (
+                    {contents.map((item, idx) => (
                         <TableRow key={idx}>
                             <TableCell className="font-medium text-zinc-200">
                                 {item.product_name}
@@ -152,11 +153,11 @@ export const WorkOrderList = () => {
         return result;
     }, [filters]);
 
-    const { data: listData, isLoading, isError, refetch } = useList({
+    const { data: listData, isLoading, isError, refetch } = useList<WorkOrderListRow>({
         resource: "work-orders",
         filters: crudFilters,
         sorters: [{ field: "created_at", order: "desc" }],
-    }) as any;
+    });
 
     const navigate = useNavigate();
     const { mutate: deleteOrder } = useDelete();
@@ -175,7 +176,7 @@ export const WorkOrderList = () => {
             const params: Record<string, string> = {};
             if (filters.name) params.search = filters.name;
             if (filters.status) params.status = filters.status;
-            const all = await fetchAllPages<any>(`${API_URL}/api/v1/work-orders/`, params);
+            const all = await fetchAllPages<WorkOrderExportRow>(`${API_URL}/api/v1/work-orders/`, params);
             exportToExcel(all, WORK_ORDER_EXPORT_COLUMNS, `${WORK_ORDER_EXPORT_FILENAME}.xlsx`);
         } finally {
             setExporting(false);
@@ -186,8 +187,8 @@ export const WorkOrderList = () => {
     const selectedItems = useMemo(
         () =>
             orders
-                .filter((o: any) => selection.selectedIds.has(o.id))
-                .map((o: any) => ({ id: String(o.id), label: o.name as string })),
+                .filter((o) => selection.selectedIds.has(o.id))
+                .map((o) => ({ id: String(o.id), label: o.name })),
         [orders, selection.selectedIds],
     );
 
@@ -299,7 +300,7 @@ export const WorkOrderList = () => {
                                 icon: Download,
                                 onClick: () =>
                                     exportToExcel(
-                                        orders.filter((o: any) =>
+                                        orders.filter((o) =>
                                             selection.selectedIds.has(o.id),
                                         ),
                                         WORK_ORDER_EXPORT_COLUMNS,
@@ -332,7 +333,7 @@ export const WorkOrderList = () => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {orders.map((order: any) => (
+                        {orders.map((order) => (
                             <React.Fragment key={order.id}>
                                 <TableRow
                                     className={`cursor-pointer ${expandedRowId === order.id ? "bg-white/[0.03]" : ""}`}

@@ -7,19 +7,20 @@ import { ConfirmDialog, useConfirmDialog } from "../../../components/ui/ConfirmD
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { ErrorState } from "../../../components/ui/ErrorState";
 import { SkeletonRow } from "../../../components/ui/Skeleton";
+import type { PolyProductRow, PolyStockBatch, PolyKitRef } from "../types";
 
 export const ProductPolyList = () => {
     const { t } = useTranslation(["products", "common"]);
-    const { data: productsData, isLoading, isError, refetch } = useList({
+    const { data: productsData, isLoading, isError, refetch } = useList<PolyProductRow>({
         resource: "products-poly",
-    }) as any;
+    });
 
     const navigate = useNavigate();
     const { mutate: deleteProduct } = useDelete();
     const { confirm, dialogProps } = useConfirmDialog();
 
     const listData = productsData?.data;
-    const products = Array.isArray(listData) ? listData : [];
+    const products: PolyProductRow[] = Array.isArray(listData) ? listData : [];
 
     if (isError) {
         return (
@@ -89,7 +90,7 @@ export const ProductPolyList = () => {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                        {products.map((product: any) => (
+                        {products.map((product) => (
                             <tr key={product.id} className="hover:bg-white/5 transition-colors">
                                 <td className="px-6 py-4 text-white font-medium">{product.name}</td>
                                 <td className="px-6 py-4">
@@ -105,12 +106,12 @@ export const ProductPolyList = () => {
                                             if (stock.length === 0) return <span className="text-zinc-500 italic">-</span>;
 
                                             // Extract unique Kits
-                                            const kits = Array.from(new Set(stock.map((b: any) => ({ name: b.work_order, id: b.work_order_id })))).filter(k => k.name);
+                                            const kits: PolyKitRef[] = Array.from(new Set(stock.map((b: PolyStockBatch) => ({ name: b.work_order, id: b.work_order_id })))).filter(k => k.name);
 
                                             if (kits.length > 0) {
                                                 return (
                                                     <div className="flex flex-wrap gap-2">
-                                                        {kits.map((kit: any, i) => (
+                                                        {kits.map((kit: PolyKitRef, i) => (
                                                             <a key={i} href={`/work-orders/show/${kit.id}`} className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 text-xs font-bold border border-amber-500/30 hover:bg-amber-500/30 transition-colors">
                                                                 📦 {kit.name}
                                                             </a>

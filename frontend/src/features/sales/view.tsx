@@ -18,6 +18,13 @@ import { Badge, type BadgeVariant } from "../../components/ui/Badge";
 import { useToast } from "../../components/ui/Toast";
 import { FormErrorBanner } from "../../components/ui/ErrorState";
 import { API_URL } from "../../config";
+import type {
+    SalesOrderRecord,
+    SalesLocationRow,
+    PickList,
+    PickListLine,
+    ShipmentEntry,
+} from "./types";
 
 const STATUS_VARIANTS: Record<string, BadgeVariant> = {
     DRAFT: "neutral",
@@ -45,21 +52,21 @@ export const SalesOrderView = () => {
     const { id } = useParams();
     const { toast } = useToast();
 
-    const { data, isLoading, refetch } = useOne({
+    const { data, isLoading, refetch } = useOne<SalesOrderRecord>({
         resource: "sales-orders",
         id: id ?? "",
         queryOptions: { enabled: !!id },
     });
-    const so = data?.data as any;
+    const so = data?.data;
 
-    const { data: locationsData } = useList({
+    const { data: locationsData } = useList<SalesLocationRow>({
         resource: "locations",
         pagination: { mode: "off" },
     });
     const realLocations = (locationsData?.data || []).filter(
-        (l: any) => l.type === "WAREHOUSE" || l.type === "STORE",
+        (l) => l.type === "WAREHOUSE" || l.type === "STORE",
     );
-    const locationOptions = realLocations.map((l: any) => ({
+    const locationOptions = realLocations.map((l) => ({
         value: l.id,
         label: l.name,
         description: l.type,
@@ -76,22 +83,22 @@ export const SalesOrderView = () => {
         }
     }, [realLocations.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const status: string = so?.status;
+    const status = so?.status ?? "";
     const isDraft = status === "DRAFT";
     const isShippable = SHIPPABLE.includes(status);
 
     // Pick list is fetched only once the order is reservable (CONFIRMED+).
-    const { data: pickData, refetch: refetchPick } = useCustom({
+    const { data: pickData, refetch: refetchPick } = useCustom<PickList>({
         url: `${API_URL}/api/v1/sales-orders/${id}/pick_list/`,
         method: "get",
         queryOptions: { enabled: !!id && !!so && !isDraft && status !== "CANCELLED" },
     });
-    const pick = pickData?.data as any;
-    const pickLines: any[] = pick?.lines ?? [];
+    const pick = pickData?.data;
+    const pickLines: PickListLine[] = pick?.lines ?? [];
 
     const { mutateAsync: postAction, isLoading: isActing } = useCustomMutation();
 
-    const lines: any[] = so?.lines ?? [];
+    const lines = so?.lines ?? [];
 
     const getShip = (lineId: string): ShipDraft =>
         ships[lineId] ?? { quantity: "", batchId: "", serials: "" };
@@ -99,7 +106,7 @@ export const SalesOrderView = () => {
         setShips((prev) => ({ ...prev, [lineId]: { ...getShip(lineId), ...patch } }));
 
     const pickByLine = useMemo(() => {
-        const map: Record<string, any> = {};
+        const map: Record<string, PickListLine> = {};
         for (const p of pickLines) map[p.line_id] = p;
         return map;
     }, [pickLines]);
@@ -140,7 +147,7 @@ export const SalesOrderView = () => {
         setActionError(null);
         if (activeShipments.length === 0) return;
         const shipments = activeShipments.map(({ line, draft }) => {
-            const entry: any = { line_id: line.id, quantity: draft.quantity };
+            const entry: ShipmentEntry = { line_id: line.id, quantity: draft.quantity };
             if (line.product_profile === "SERIALIZED") {
                 const s = parseSerials(draft.serials);
                 if (s.length) entry.serials = s;
@@ -350,12 +357,12 @@ export const SalesOrderView = () => {
                                         const isBatch =
                                             line.product_profile === "BATCH_TRACKED" ||
                                             line.product_profile === "PERISHABLE";
-                                        const batchOptions = (pl?.batches ?? []).map((b: any) => ({
+                                        const batchOptions = (pl?.batches ?? []).map((b) => ({
                                             value: b.id,
                                             label: b.batch_identifier,
                                             description: b.expiry_date
                                                 ? `${b.location ?? ""} · ${b.expiry_date}`
-                                                : b.location,
+                                                : (b.location ?? undefined),
                                         }));
                                         return (
                                             <div
@@ -465,15 +472,15 @@ export const SalesOrderView = () => {
                                         {t("view.pending")} {Number(pl.quantity_pending)}
                                     </div>
                                 </div>
-                                {pl.serials?.length > 0 && (
+                                {(pl.serials?.length ?? 0) > 0 && (
                                     <div className="text-xs text-zinc-300">
                                         {t("view.serials")}:{" "}
-                                        {pl.serials.map((s: any) => s.identifier).join(", ")}
+                                        {pl.serials?.map((s) => s.identifier).join(", ")}
                                     </div>
                                 )}
-                                {pl.batches?.length > 0 && (
+                                {(pl.batches?.length ?? 0) > 0 && (
                                     <ul className="text-xs text-zinc-300 list-disc pl-4">
-                                        {pl.batches.map((b: any) => (
+                                        {pl.batches?.map((b) => (
                                             <li key={b.id}>
                                                 {b.batch_identifier} — {Number(b.quantity)}
                                                 {b.expiry_date ? ` · ${b.expiry_date}` : ""}

@@ -7,6 +7,7 @@ import { FormSection } from "../../../components/ui/FormSection";
 import { Input } from "../../../components/ui/Input";
 import { Select } from "../../../components/ui/Select";
 import { FormErrorBanner } from "../../../components/ui/ErrorState";
+import type { LocationRow } from "./types";
 
 export const LocationEdit = () => {
     const { t } = useTranslation(["inventory", "common"]);
@@ -54,20 +55,22 @@ export const LocationEdit = () => {
 
     useEffect(() => {
         if (record) {
+            // Hydrate form fields from the fetched record (async fetch → setState).
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setName(record.name || "");
             setLocationType(record.type || "WAREHOUSE");
             setParentId(record.parent_id || null);
         }
     }, [record]);
 
-    const { data: locationsData } = useList({
+    const { data: locationsData } = useList<LocationRow>({
         resource: "locations",
         pagination: { mode: "off" },
     });
 
     const parentOptions = (locationsData?.data || [])
-        .filter((loc: any) => loc.id !== id)
-        .map((loc: any) => ({
+        .filter((loc) => loc.id !== id)
+        .map((loc) => ({
             label: loc.name,
             value: loc.id,
         }));

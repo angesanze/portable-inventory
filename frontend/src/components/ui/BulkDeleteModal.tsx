@@ -38,6 +38,9 @@ export const BulkDeleteModal = ({
 
     useEffect(() => {
         if (open) {
+            // Reset the modal's transient state each time it (re)opens so a
+            // prior submit error / toggle never leaks into the next deletion.
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setPreserveCascade(cascadeDefault === true);
             setSubmitting(false);
             setError(null);
@@ -55,8 +58,8 @@ export const BulkDeleteModal = ({
         setError(null);
         try {
             await onConfirm(preserveCascade);
-        } catch (e: any) {
-            setError(e?.message ?? t("bulkDeleteFailed"));
+        } catch (e: unknown) {
+            setError((e as { message?: string } | undefined)?.message ?? t("bulkDeleteFailed"));
             setSubmitting(false);
         }
     };

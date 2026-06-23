@@ -25,7 +25,7 @@ export const ProductPolyEdit = () => {
         const rawData = Object.fromEntries(formData.entries());
 
         // Clean data: filter out empty strings
-        const data: Record<string, any> = {};
+        const data: Record<string, FormDataEntryValue> = {};
         for (const [key, value] of Object.entries(rawData)) {
             if (value !== '') {
                 data[key] = value;

@@ -9,7 +9,7 @@ vi.mock("react-router-dom", () => ({
 
 const mockUseGetIdentity = vi.fn();
 vi.mock("@refinedev/core", () => ({
-    useGetIdentity: (...args: any[]) => mockUseGetIdentity(...args),
+    useGetIdentity: (...args: unknown[]) => mockUseGetIdentity(...args),
 }));
 
 import { QuickActions } from "../QuickActions";

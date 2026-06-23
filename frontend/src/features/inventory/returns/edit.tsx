@@ -2,25 +2,26 @@ import { useForm, useOne } from "@refinedev/core";
 import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ReturnForm } from "./ReturnForm";
 import {
-    ReturnForm,
     buildReturnPayload,
     emptyLine,
     type ReturnKind,
     type ReturnLineDraft,
-} from "./ReturnForm";
+} from "./returnForm";
+import type { ReturnOrderRecord } from "./types";
 
 export const ReturnOrderEdit = () => {
     const { t } = useTranslation(["returns", "common"]);
     const navigate = useNavigate();
     const { id } = useParams();
 
-    const { data } = useOne({
+    const { data } = useOne<ReturnOrderRecord>({
         resource: "return-orders",
         id: id ?? "",
         queryOptions: { enabled: !!id },
     });
-    const order = data?.data as any;
+    const order = data?.data;
 
     const [kind, setKind] = useState<ReturnKind>("CUSTOMER_RETURN");
     const [customerId, setCustomerId] = useState("");
@@ -33,6 +34,8 @@ export const ReturnOrderEdit = () => {
 
     useEffect(() => {
         if (!order) return;
+        // Hydrate form state from the fetched order (async fetch → setState).
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setKind(order.kind);
         setCustomerId(order.customer ?? "");
         setSupplierId(order.supplier ?? "");
@@ -41,7 +44,8 @@ export const ReturnOrderEdit = () => {
         setPurchaseOrderId(order.purchase_order ?? "");
         setNotes(order.notes ?? "");
         setLines(
-            (order.lines ?? []).map((l: any) => ({
+            (order.lines ?? []).map((l) => ({
+                _key: emptyLine()._key,
                 product_model_id:
                     typeof l.product_model === "string"
                         ? l.product_model

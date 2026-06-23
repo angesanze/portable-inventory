@@ -9,7 +9,9 @@ import type { BoardResponse, Bucket } from "../types";
 // recharts has no layout box in jsdom; stub the pieces ProductCard +
 // ProductDrawer use.
 vi.mock("recharts", () => {
-    const passthrough = ({ children }: any) => <div>{children}</div>;
+    const passthrough = ({ children }: { children?: React.ReactNode }) => (
+        <div>{children}</div>
+    );
     return {
         ResponsiveContainer: passthrough,
         LineChart: passthrough,
@@ -141,7 +143,7 @@ describe("RestockBoard", () => {
 
     it("hides the pencil when manage_own_inventory is false", () => {
         identityMock.mockReturnValue({
-            data: { capabilities: { manage_own_inventory: false } },
+            data: { capabilities: { manage_own_inventory: false, manage_thresholds: false } },
             isLoading: false,
         });
         renderBoard();
@@ -190,7 +192,7 @@ describe("RestockBoard", () => {
 
     it("hides the bulk-thresholds button when manage_thresholds is false", () => {
         identityMock.mockReturnValue({
-            data: { capabilities: { manage_own_inventory: false } },
+            data: { capabilities: { manage_own_inventory: false, manage_thresholds: false } },
             isLoading: false,
         });
         renderBoard();

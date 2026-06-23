@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Html5Qrcode, Html5QrcodeScannerState, Html5QrcodeSupportedFormats } from "html5-qrcode";
-import { Camera, CameraOff, Flashlight, FlashlightOff, Keyboard, X, Loader2 } from "lucide-react";
+import { Camera, Flashlight, FlashlightOff, Keyboard, Loader2 } from "lucide-react";
 import { API_URL } from "../../../config";
+import type { UiConfig } from "../types";
 
 export interface QRScanResult {
     code: string;
@@ -15,9 +16,12 @@ export interface QRScanResult {
     engineType?: string;
     trackingMode?: string;
     /** @deprecated Use profile instead */
-    strategy?: any;
+    strategy?: unknown;
     quantity?: number;
     locationName?: string;
+    /** Optional calculator config echoed by the resolver, read by ScannerWidget
+     *  to derive dimension/time-based input hints. */
+    calc_config?: { ui_config?: UiConfig } | null;
 }
 
 export type ScannerError =
@@ -68,7 +72,8 @@ export const QRScanner: React.FC<QRScannerProps> = ({ apiKey, onScanComplete, on
             // Single resolution endpoint: matches a manufacturer EAN/UPC barcode
             // exactly, then falls back to a proprietary DynamicQRCode.code.
             const res = await fetch(
-                `${apiUrl}/widget/resolve_barcode/?api_key=${apiKey}&code=${encodeURIComponent(code)}`,
+                `${apiUrl}/widget/resolve_barcode/?code=${encodeURIComponent(code)}`,
+                { headers: { "X-Api-Key": apiKey } },
             );
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
@@ -116,7 +121,7 @@ export const QRScanner: React.FC<QRScannerProps> = ({ apiKey, onScanComplete, on
                 locationName: location?.name,
                 identifier: data.identifier,
             };
-        } catch (err) {
+        } catch {
             setError({ type: "network_error", message: errorMessage("network_error") });
             onError?.("network_error", errorMessage("network_error"));
             return null;
@@ -208,8 +213,15 @@ export const QRScanner: React.FC<QRScannerProps> = ({ apiKey, onScanComplete, on
             } catch {
                 // Torch not supported
             }
-        } catch (err: any) {
-            const msg = err?.message || String(err);
+        } catch (err) {
+            // Preserve the prior `err?.message || String(err)` behaviour: html5-qrcode
+            // throws Error/DOMException objects whose `.message` carries the
+            // NotAllowedError/NotFoundError markers matched below.
+            const errMessage =
+                typeof err === 'object' && err !== null && 'message' in err
+                    ? (err as { message?: unknown }).message
+                    : undefined;
+            const msg = (typeof errMessage === 'string' ? errMessage : '') || String(err);
             if (msg.includes("NotAllowedError") || msg.includes("Permission")) {
                 setError({ type: "camera_denied", message: errorMessage("camera_denied") });
                 onError?.("camera_denied", errorMessage("camera_denied"));

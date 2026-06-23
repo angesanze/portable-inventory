@@ -1,6 +1,15 @@
 import { useState, useEffect } from "react";
 import { Plus, Trash2, ArrowRight } from "lucide-react";
 import { Select, type SelectOption } from "../../../components/ui/Select";
+import type {
+    EngineConfig,
+    CounterEngineConfig,
+    ConverterEngineConfig,
+    BucketEngineConfig,
+    TrackerEngineConfig,
+    DimensionEngineConfig,
+    TimeBasedEngineConfig,
+} from "./types";
 
 const allocationStrategyOptions: SelectOption[] = [
     { value: "MANUAL", label: "Manual" },
@@ -21,8 +30,8 @@ const timeUnitOptions: SelectOption[] = [
 
 interface EngineConfigFormProps {
     engineType: string;
-    value: Record<string, any>;
-    onChange: (config: Record<string, any>) => void;
+    value: EngineConfig;
+    onChange: (config: EngineConfig) => void;
 }
 
 const inputClass =
@@ -50,9 +59,13 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: 
     );
 }
 
-/* ─── Per-engine forms ─── */
+/* ─── Per-engine forms ───
+ * Each form narrows the stored config to its own field subset via `value`, but
+ * emits the permissive `EngineConfig` currency via `onChange` (the parent
+ * re-stores and re-narrows on the next render).
+ */
 
-function CounterConfig({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+function CounterConfig({ value, onChange }: { value: CounterEngineConfig; onChange: (v: EngineConfig) => void }) {
     return (
         <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -89,7 +102,7 @@ function CounterConfig({ value, onChange }: { value: any; onChange: (v: any) => 
     );
 }
 
-function ConverterConfig({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+function ConverterConfig({ value, onChange }: { value: ConverterEngineConfig; onChange: (v: EngineConfig) => void }) {
     return (
         <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -142,7 +155,7 @@ function ConverterConfig({ value, onChange }: { value: any; onChange: (v: any) =
     );
 }
 
-function BucketConfig({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+function BucketConfig({ value, onChange }: { value: BucketEngineConfig; onChange: (v: EngineConfig) => void }) {
     return (
         <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -170,19 +183,19 @@ function BucketConfig({ value, onChange }: { value: any; onChange: (v: any) => v
     );
 }
 
-function TrackerConfig({ value, onChange }: { value: any; onChange: (v: any) => void }) {
-    const transitions = value.status_transitions ?? {};
+function TrackerConfig({ value, onChange }: { value: TrackerEngineConfig; onChange: (v: EngineConfig) => void }) {
+    const transitions: Record<string, string[]> = value.status_transitions ?? {};
     const transitionEntries = Object.entries(transitions) as [string, string[]][];
 
     const addTransition = () => {
-        const updated = { ...transitions, "": [] };
+        const updated: Record<string, string[]> = { ...transitions, "": [] };
         onChange({ ...value, status_transitions: updated });
     };
 
     const updateTransitionKey = (oldKey: string, newKey: string) => {
         const entries = Object.entries(transitions);
         const updated = Object.fromEntries(
-            entries.map(([k, v]) => (k === oldKey ? [newKey, v] : [k, v]))
+            entries.map(([k, v]): [string, string[]] => (k === oldKey ? [newKey, v] : [k, v]))
         );
         onChange({ ...value, status_transitions: updated });
     };
@@ -198,7 +211,8 @@ function TrackerConfig({ value, onChange }: { value: any; onChange: (v: any) => 
     };
 
     const removeTransition = (key: string) => {
-        const { [key]: _, ...rest } = transitions;
+        const rest = { ...transitions };
+        delete rest[key];
         onChange({ ...value, status_transitions: rest });
     };
 
@@ -251,7 +265,7 @@ function TrackerConfig({ value, onChange }: { value: any; onChange: (v: any) => 
     );
 }
 
-function DimensionConfig({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+function DimensionConfig({ value, onChange }: { value: DimensionEngineConfig; onChange: (v: EngineConfig) => void }) {
     const dimensions: string[] = value.dimensions ?? [];
 
     const addDimension = () => onChange({ ...value, dimensions: [...dimensions, ""] });
@@ -343,7 +357,7 @@ function DimensionConfig({ value, onChange }: { value: any; onChange: (v: any) =
     );
 }
 
-function TimeBasedConfig({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+function TimeBasedConfig({ value, onChange }: { value: TimeBasedEngineConfig; onChange: (v: EngineConfig) => void }) {
     return (
         <div className="space-y-4">
             <div>
@@ -376,15 +390,18 @@ function TimeBasedConfig({ value, onChange }: { value: any; onChange: (v: any) =
 /* ─── Main component ─── */
 
 export const EngineConfigForm = ({ engineType, value, onChange }: EngineConfigFormProps) => {
-    const [config, setConfig] = useState<Record<string, any>>(value || {});
+    const [config, setConfig] = useState<EngineConfig>(value || {});
 
     useEffect(() => {
+        // Prop-sync: mirror the controlled `value` prop into local state when the
+        // parent replaces it (e.g. engine-type switch resets the config).
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setConfig(value || {});
     }, [value]);
 
-    const handleChange = (newConfig: Record<string, any>) => {
+    const handleChange = (newConfig: EngineConfig) => {
         // Strip undefined values
-        const cleaned: Record<string, any> = {};
+        const cleaned: EngineConfig = {};
         for (const [k, v] of Object.entries(newConfig)) {
             if (v !== undefined && v !== "") cleaned[k] = v;
         }
@@ -392,21 +409,22 @@ export const EngineConfigForm = ({ engineType, value, onChange }: EngineConfigFo
         onChange(cleaned);
     };
 
-    const formProps = { value: config, onChange: handleChange };
-
+    // The stored config is a permissive `EngineConfig`; each per-engine form
+    // narrows it to the field subset it actually edits. The shape is validated
+    // server-side, so the cast to the engine-specific view is safe here.
     switch (engineType) {
         case "counter":
-            return <CounterConfig {...formProps} />;
+            return <CounterConfig value={config as CounterEngineConfig} onChange={handleChange} />;
         case "converter":
-            return <ConverterConfig {...formProps} />;
+            return <ConverterConfig value={config as ConverterEngineConfig} onChange={handleChange} />;
         case "bucket":
-            return <BucketConfig {...formProps} />;
+            return <BucketConfig value={config as BucketEngineConfig} onChange={handleChange} />;
         case "tracker":
-            return <TrackerConfig {...formProps} />;
+            return <TrackerConfig value={config as TrackerEngineConfig} onChange={handleChange} />;
         case "dimension":
-            return <DimensionConfig {...formProps} />;
+            return <DimensionConfig value={config as DimensionEngineConfig} onChange={handleChange} />;
         case "time_based":
-            return <TimeBasedConfig {...formProps} />;
+            return <TimeBasedConfig value={config as TimeBasedEngineConfig} onChange={handleChange} />;
         default:
             return (
                 <p className="text-sm text-zinc-500 italic">

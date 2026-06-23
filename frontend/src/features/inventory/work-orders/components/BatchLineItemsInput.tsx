@@ -1,17 +1,26 @@
+import type { Dispatch, SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
-import { Select } from "../../../../components/ui/Select";
+import { Select, type SelectOption } from "../../../../components/ui/Select";
 import { Input } from "../../../../components/ui/Input";
 import { Button } from "../../../../components/ui/Button";
 import { Trash2, Plus } from "lucide-react";
 import { SerialPicker } from "./SerialPicker";
+import type { WorkOrderLineItem, WorkOrderProductModel } from "../listTypes";
 
-export const BatchLineItemsInput = ({ items, setItems, modelOptions, productModelsRaw }: any) => {
+interface BatchLineItemsInputProps {
+    items: WorkOrderLineItem[];
+    setItems: Dispatch<SetStateAction<WorkOrderLineItem[]>>;
+    modelOptions: SelectOption[];
+    productModelsRaw: WorkOrderProductModel[];
+}
+
+export const BatchLineItemsInput = ({ items, setItems, modelOptions, productModelsRaw }: BatchLineItemsInputProps) => {
     const { t } = useTranslation(["inventory", "common"]);
     const addItem = () => {
         setItems([...items, { product_model_id: "", quantity: 1, temp_serials: [], key: Date.now() }]);
     };
 
-    const updateItem = (index: number, field: string, value: any) => {
+    const updateItem = (index: number, field: keyof WorkOrderLineItem, value: WorkOrderLineItem[keyof WorkOrderLineItem]) => {
         const newItems = [...items];
         newItems[index] = { ...newItems[index], [field]: value };
         setItems(newItems);
@@ -26,18 +35,18 @@ export const BatchLineItemsInput = ({ items, setItems, modelOptions, productMode
 
     const removeSerialFromItem = (index: number, serialUniqueIndex: number) => {
         const newItems = [...items];
-        newItems[index].temp_serials = newItems[index].temp_serials.filter((_: any, i: number) => i !== serialUniqueIndex);
+        newItems[index].temp_serials = newItems[index].temp_serials.filter((_, i) => i !== serialUniqueIndex);
         setItems(newItems);
     };
 
     const removeItem = (index: number) => {
-        setItems(items.filter((_: any, i: number) => i !== index));
+        setItems(items.filter((_, i) => i !== index));
     };
 
     return (
         <div className="space-y-3">
-            {items.map((item: any, idx: number) => {
-                const model = productModelsRaw.find((p: any) => p.id === item.product_model_id);
+            {items.map((item, idx) => {
+                const model = productModelsRaw.find((p) => p.id === item.product_model_id);
                 const isIndividual = model?.profile === "SERIALIZED" || model?.tracking_mode === "INDIVIDUAL";
                 const isLocked = item.locked;
                 const currentSerials = item.temp_serials || [];

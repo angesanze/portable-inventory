@@ -19,6 +19,37 @@ export interface RegisterResponse {
     api_key: { id: string; key: string; label: string };
 }
 
+/**
+ * Shape of a DRF validation error body as surfaced through an axios error.
+ * Field keys map to a list of messages; `detail` is the generic fallback.
+ */
+interface ApiErrorData {
+    detail?: string;
+    [field: string]: string | string[] | undefined;
+}
+
+interface ApiError {
+    message?: string;
+    response?: { data?: ApiErrorData };
+}
+
+/** First message for a DRF field error, if the catch value looks like an axios error. */
+function fieldError(err: unknown, field: string): string | undefined {
+    const value = (err as ApiError | undefined)?.response?.data?.[field];
+    return Array.isArray(value) ? value[0] : undefined;
+}
+
+/** Just the DRF `response.data.detail` string, if present. */
+function detailErrorRaw(err: unknown): string | undefined {
+    return (err as ApiError | undefined)?.response?.data?.detail;
+}
+
+/** Generic `detail` / message fallback from an axios-shaped error. */
+function detailError(err: unknown): string | undefined {
+    const e = err as ApiError | undefined;
+    return detailErrorRaw(err) || e?.message;
+}
+
 export type WizardStep = 1 | 2 | 3;
 
 export interface WizardState {
@@ -70,13 +101,12 @@ export function useOnboarding() {
             };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
             return data;
-        } catch (err: any) {
+        } catch (err: unknown) {
             const msg =
-                err.response?.data?.admin_email?.[0] ||
-                err.response?.data?.company_name?.[0] ||
-                err.response?.data?.vat?.[0] ||
-                err.response?.data?.detail ||
-                err.message ||
+                fieldError(err, "admin_email") ||
+                fieldError(err, "company_name") ||
+                fieldError(err, "vat") ||
+                detailError(err) ||
                 "Registration failed";
             setRegisterError(msg);
             return null;
@@ -130,8 +160,8 @@ export function useOnboarding() {
         setWizardError(null);
         try {
             await axios.patch(`${API_URL}/api/v1/company/settings/`, settings, { headers: apiHeaders() });
-        } catch (err: any) {
-            setWizardError(err.response?.data?.detail || "Failed to update company settings");
+        } catch (err: unknown) {
+            setWizardError(detailErrorRaw(err) || "Failed to update company settings");
             throw err;
         } finally {
             setWizardLoading(false);
@@ -143,8 +173,8 @@ export function useOnboarding() {
         setWizardError(null);
         try {
             await axios.post(`${API_URL}/api/v1/locations/`, { name, type }, { headers: apiHeaders() });
-        } catch (err: any) {
-            setWizardError(err.response?.data?.detail || err.response?.data?.name?.[0] || "Failed to create location");
+        } catch (err: unknown) {
+            setWizardError(detailErrorRaw(err) || fieldError(err, "name") || "Failed to create location");
             throw err;
         } finally {
             setWizardLoading(false);
@@ -160,8 +190,8 @@ export function useOnboarding() {
                 name,
                 profile,
             }, { headers: apiHeaders() });
-        } catch (err: any) {
-            setWizardError(err.response?.data?.detail || err.response?.data?.sku?.[0] || "Failed to create product");
+        } catch (err: unknown) {
+            setWizardError(detailErrorRaw(err) || fieldError(err, "sku") || "Failed to create product");
             throw err;
         } finally {
             setWizardLoading(false);

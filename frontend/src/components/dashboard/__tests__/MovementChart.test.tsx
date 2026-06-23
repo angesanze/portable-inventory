@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderWithI18n, i18n } from "../../../test-utils/i18n-wrapper";
@@ -15,15 +16,14 @@ vi.mock("@refinedev/core", () => ({
 
 // Mock recharts to avoid SVG rendering issues in JSDOM
 vi.mock("recharts", () => {
-    const React = require("react");
     return {
-        ResponsiveContainer: ({ children }: any) => (
+        ResponsiveContainer: ({ children }: { children?: ReactNode }) => (
             <div data-testid="responsive-container">{children}</div>
         ),
-        LineChart: ({ children }: any) => (
+        LineChart: ({ children }: { children?: ReactNode }) => (
             <div data-testid="line-chart">{children}</div>
         ),
-        Line: ({ dataKey }: any) => <div data-testid={`line-${dataKey}`} />,
+        Line: ({ dataKey }: { dataKey?: string }) => <div data-testid={`line-${dataKey}`} />,
         XAxis: () => <div />,
         YAxis: () => <div />,
         Tooltip: () => <div />,

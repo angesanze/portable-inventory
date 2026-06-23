@@ -179,6 +179,10 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
     // Reset state when opening
     useEffect(() => {
         if (open) {
+            // Re-seed the palette each time it opens (clear query, reload the
+            // recents list from storage, reset the highlight) — driven by the
+            // external `open` prop, not by render-derived values.
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setQuery("");
             setHighlightIndex(0);
             setRecents(loadRecents());
@@ -189,6 +193,9 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
 
     // Clamp highlight when results change
     useEffect(() => {
+        // Keep the highlighted index within the (changing) result count so an
+        // out-of-range selection can never persist after filtering.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setHighlightIndex((prev) => Math.min(prev, Math.max(0, totalVisible - 1)));
     }, [totalVisible]);
 

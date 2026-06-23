@@ -42,6 +42,14 @@ const successResult = {
     company: { id: "1", name: "Acme Corp", license_code: "ABC123", industry_type: "other", vat: "00743110157" },
 };
 
+// The Industry field is a custom dropdown (button role="combobox"), not a
+// native <select>, so it is driven by clicking the trigger and then the
+// option label rather than firing a change event on the element.
+const selectIndustry = (label: string) => {
+    fireEvent.click(screen.getByLabelText("Industry"));
+    fireEvent.click(screen.getByText(label));
+};
+
 const fillForm = () => {
     fireEvent.change(screen.getByLabelText("Company Name"), {
         target: { value: "Acme Corp" },
@@ -55,9 +63,7 @@ const fillForm = () => {
     fireEvent.change(screen.getByLabelText("VAT (Partita IVA)"), {
         target: { value: "00743110157" },
     });
-    fireEvent.change(screen.getByLabelText("Industry"), {
-        target: { value: "manufacturing" },
-    });
+    selectIndustry("Manufacturing");
 };
 
 describe("RegisterPage", () => {
@@ -164,6 +170,8 @@ describe("RegisterPage", () => {
 
     it("defaults industry to other", () => {
         renderRegister();
-        expect(screen.getByLabelText("Industry")).toHaveValue("other");
+        // Custom dropdown: the trigger button shows the selected option's label,
+        // which defaults to "Other".
+        expect(screen.getByLabelText("Industry")).toHaveTextContent("Other");
     });
 });

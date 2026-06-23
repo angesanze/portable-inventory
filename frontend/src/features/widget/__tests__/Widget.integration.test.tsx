@@ -57,9 +57,9 @@ const fetchMock = vi.fn();
 vi.stubGlobal("fetch", fetchMock);
 
 function setupFetchMock(opts?: {
-    products?: any[];
-    locations?: any[];
-    moveResult?: any;
+    products?: Record<string, unknown>[];
+    locations?: Record<string, unknown>[];
+    moveResult?: Record<string, unknown>;
 }) {
     const products = opts?.products ?? mockProducts;
     const locations = opts?.locations ?? mockLocations;
@@ -87,7 +87,7 @@ function setupFetchMock(opts?: {
         // Product detail
         if (url.match(/\/widget\/[a-f0-9-]+\//)) {
             const product = products.find((p) =>
-                url.includes(p.id),
+                url.includes(String(p.id)),
             );
             return Promise.resolve({
                 ok: true,
@@ -198,7 +198,7 @@ describe("Widget Integration Flow", () => {
         fireEvent.click(screen.getByText("Check In"));
 
         await waitFor(() => {
-            const moveCalls = fetchMock.mock.calls.filter((c: any) =>
+            const moveCalls = (fetchMock.mock.calls as [string, RequestInit?][]).filter((c) =>
                 c[0].includes("/widget/move"),
             );
             expect(moveCalls.length).toBeGreaterThan(0);
@@ -223,7 +223,7 @@ describe("Widget Integration Flow", () => {
 
         // After successful move, should show success indicator or updated stock
         await waitFor(() => {
-            const calls = fetchMock.mock.calls.filter((c: any) =>
+            const calls = (fetchMock.mock.calls as [string, RequestInit?][]).filter((c) =>
                 c[0].includes("/widget/move"),
             );
             expect(calls.length).toBeGreaterThan(0);
@@ -297,7 +297,7 @@ describe("Widget Integration Flow", () => {
         );
 
         await waitFor(() => {
-            const itemCalls = fetchMock.mock.calls.filter((c: any) =>
+            const itemCalls = (fetchMock.mock.calls as [string, RequestInit?][]).filter((c) =>
                 c[0].includes("/widget/items/"),
             );
             expect(itemCalls.length).toBeGreaterThan(0);
@@ -332,7 +332,7 @@ describe("Widget Integration Flow", () => {
         );
 
         await waitFor(() => {
-            const batchCalls = fetchMock.mock.calls.filter((c: any) =>
+            const batchCalls = (fetchMock.mock.calls as [string, RequestInit?][]).filter((c) =>
                 c[0].includes("/widget/batches/"),
             );
             expect(batchCalls.length).toBeGreaterThan(0);
@@ -366,7 +366,7 @@ describe("Widget Integration Flow", () => {
         );
 
         await waitFor(() => {
-            const batchCalls = fetchMock.mock.calls.filter((c: any) =>
+            const batchCalls = (fetchMock.mock.calls as [string, RequestInit?][]).filter((c) =>
                 c[0].includes("/widget/batches/"),
             );
             expect(batchCalls.length).toBeGreaterThan(0);
@@ -400,7 +400,7 @@ describe("Widget Integration Flow", () => {
         );
 
         await waitFor(() => {
-            const detailCalls = fetchMock.mock.calls.filter((c: any) =>
+            const detailCalls = (fetchMock.mock.calls as [string, RequestInit?][]).filter((c) =>
                 /\/widget\/prod-asm\//.test(c[0]),
             );
             expect(detailCalls.length).toBeGreaterThan(0);

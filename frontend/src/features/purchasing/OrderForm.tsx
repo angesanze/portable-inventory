@@ -7,39 +7,8 @@ import { Input } from "../../components/ui/Input";
 import { Select } from "../../components/ui/Select";
 import { Button } from "../../components/ui/Button";
 import { FormErrorBanner } from "../../components/ui/ErrorState";
-
-export interface LineDraft {
-    product_model_id: string;
-    quantity_ordered: string;
-    unit_cost: string;
-}
-
-export const emptyLine = (): LineDraft => ({
-    product_model_id: "",
-    quantity_ordered: "1",
-    unit_cost: "",
-});
-
-/** Build the API payload from the form state (shared by create/edit). */
-export function buildOrderPayload(args: {
-    supplierId: string;
-    expectedAt: string;
-    notes: string;
-    lines: LineDraft[];
-}) {
-    return {
-        supplier_id: args.supplierId,
-        expected_at: args.expectedAt || null,
-        notes: args.notes,
-        lines: args.lines
-            .filter((l) => l.product_model_id)
-            .map((l) => ({
-                product_model_id: l.product_model_id,
-                quantity_ordered: l.quantity_ordered,
-                unit_cost: l.unit_cost === "" ? null : l.unit_cost,
-            })),
-    };
-}
+import type { PurchaseSupplierRow, PurchaseProductRow } from "./types";
+import { emptyLine, type LineDraft } from "./orderForm";
 
 interface OrderFormProps {
     title: string;
@@ -75,22 +44,22 @@ export const OrderForm = ({
 }: OrderFormProps) => {
     const { t } = useTranslation(["purchasing", "common"]);
 
-    const { data: suppliersData } = useList({
+    const { data: suppliersData } = useList<PurchaseSupplierRow>({
         resource: "suppliers",
         pagination: { mode: "off" },
         filters: [{ field: "is_active", operator: "eq", value: true }],
     });
-    const { data: productsData } = useList({
+    const { data: productsData } = useList<PurchaseProductRow>({
         resource: "product-models",
         pagination: { mode: "off" },
     });
 
-    const supplierOptions = (suppliersData?.data || []).map((s: any) => ({
+    const supplierOptions = (suppliersData?.data || []).map((s) => ({
         value: s.id,
         label: s.name,
         description: s.vat_number || undefined,
     }));
-    const productOptions = (productsData?.data || []).map((p: any) => ({
+    const productOptions = (productsData?.data || []).map((p) => ({
         value: p.id,
         label: p.name,
         description: p.sku,
@@ -100,7 +69,7 @@ export const OrderForm = ({
     // cost input as a hint (COSTING-06). Sourced from the list serializer's
     // stock_summary so no extra request is needed.
     const avgCostById: Record<string, number> = {};
-    (productsData?.data || []).forEach((p: any) => {
+    (productsData?.data || []).forEach((p) => {
         const avg = p.stock_summary?.avg_unit_cost;
         if (avg && Number(avg) > 0) avgCostById[p.id] = Number(avg);
     });
@@ -166,7 +135,7 @@ export const OrderForm = ({
                 )}
                 {lines.map((line, index) => (
                     <div
-                        key={index}
+                        key={line._key}
                         className="flex flex-col sm:flex-row gap-3 sm:items-end border border-white/[0.06] rounded-lg p-3"
                         data-testid={`order-line-${index}`}
                     >

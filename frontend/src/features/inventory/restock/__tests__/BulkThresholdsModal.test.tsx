@@ -34,18 +34,18 @@ const productModels = [
     },
 ];
 
-const postMock = vi.fn((..._args: unknown[]) =>
+const postMock = vi.fn<(url: string, body?: unknown) => Promise<unknown>>(() =>
     Promise.resolve({ data: { updated: ["pm-1", "pm-3"] } }),
 );
-const getMock = vi.fn((..._args: unknown[]) =>
+const getMock = vi.fn<(url: string, config?: unknown) => Promise<unknown>>(() =>
     Promise.resolve({
         data: { results: productModels, next: null, count: productModels.length },
     }),
 );
 vi.mock("../../../../providers/axios-client", () => ({
     axiosInstance: {
-        post: (...args: unknown[]) => postMock(...args),
-        get: (...args: unknown[]) => getMock(...args),
+        post: (...args: [string, unknown?]) => postMock(...args),
+        get: (...args: [string, unknown?]) => getMock(...args),
     },
 }));
 

@@ -52,13 +52,21 @@ describe("WidgetPreview", () => {
         vi.restoreAllMocks();
     });
 
-    it("fetches products from the public widget endpoint with the default key", async () => {
+    it("fetches products from the public widget endpoint with the key in the X-Api-Key header (not the URL)", async () => {
         renderPreview();
         await waitFor(() => {
             expect(global.fetch).toHaveBeenCalledWith(
-                expect.stringContaining("/api/v1/widget/?api_key=test-key-123"),
+                expect.not.stringContaining("api_key="),
+                expect.objectContaining({
+                    headers: expect.objectContaining({ "X-Api-Key": "test-key-123" }),
+                }),
             );
         });
+        // The widget endpoint is still the one being hit, just without the credential in the URL.
+        expect(global.fetch).toHaveBeenCalledWith(
+            expect.stringContaining("/api/v1/widget/"),
+            expect.anything(),
+        );
     });
 
     it("renders a product selector populated from the fetched products", async () => {

@@ -1,4 +1,5 @@
 import { useForm } from "@refinedev/core";
+import type { CreateResponse, UpdateResponse } from "@refinedev/core";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -22,7 +23,9 @@ export const SupplierCreate = () => {
         action: "create",
         resource: "suppliers",
         redirect: false,
-        onMutationSuccess: (data: any) => {
+        onMutationSuccess: (
+            data: CreateResponse<{ id: string }> | UpdateResponse<{ id: string }>,
+        ) => {
             const back = decodeURIComponent(returnTo || "/suppliers");
             navigate(
                 returnTo

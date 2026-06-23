@@ -1,6 +1,14 @@
 import { AlertTriangle, Info, XCircle } from "lucide-react";
 import { useList } from "@refinedev/core";
 
+/** Event-log row fields rendered by the active-alerts panel. */
+interface EventLogRow {
+    id: string | number;
+    severity?: string;
+    message?: string;
+    created_at?: string;
+}
+
 export const MonitoringPanel = ({ productId }: { productId: string }) => {
     // Fetch events for this product (assuming we have an events resource)
     // For now we simulate or assume the related data is fetched via product expand, 
@@ -9,7 +17,7 @@ export const MonitoringPanel = ({ productId }: { productId: string }) => {
     // NOTE: We need to register 'event-logs' in App.tsx resource list for this to work, 
     // or use specific API call. For now, let's assume we pass events as props or mock.
 
-    const { data } = useList({
+    const { data } = useList<EventLogRow>({
         resource: "event-logs",
         filters: [
             { field: "product", operator: "eq", value: productId },
@@ -18,11 +26,11 @@ export const MonitoringPanel = ({ productId }: { productId: string }) => {
         liveMode: "auto"
     });
     const listData = data?.data;
-    const events = Array.isArray(listData) ? listData : [];
+    const events: EventLogRow[] = Array.isArray(listData) ? listData : [];
 
     if (events.length === 0) return null;
 
-    const getIcon = (severity: string) => {
+    const getIcon = (severity: string | undefined) => {
         switch (severity) {
             case 'CRITICAL': return <XCircle className="text-red-500" />;
             case 'WARNING': return <AlertTriangle className="text-orange-500" />;
@@ -41,7 +49,7 @@ export const MonitoringPanel = ({ productId }: { productId: string }) => {
                 </span>
             </div>
             <div className="divide-y divide-white/5">
-                {events.map((evt: any) => (
+                {events.map((evt) => (
                     <div key={evt.id} className="p-4 flex items-start gap-4 hover:bg-white/5 transition-colors">
                         <div className="mt-1">{getIcon(evt.severity)}</div>
                         <div>

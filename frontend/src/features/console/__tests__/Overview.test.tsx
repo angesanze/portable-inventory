@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { screen } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
@@ -8,10 +9,9 @@ import type { UsePlatformStatsResult } from "../hooks";
 // same way the dashboard test does — we only care that the surrounding card +
 // KPIs render, not the SVG geometry.
 vi.mock("recharts", () => {
-    const React = require("react");
     return {
-        ResponsiveContainer: ({ children }: any) => <div>{children}</div>,
-        AreaChart: ({ children }: any) => <div>{children}</div>,
+        ResponsiveContainer: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+        AreaChart: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
         Area: () => <div />,
         XAxis: () => <div />,
         YAxis: () => <div />,

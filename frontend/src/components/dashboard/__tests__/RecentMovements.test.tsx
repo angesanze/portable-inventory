@@ -9,7 +9,7 @@ vi.mock("react-router-dom", () => ({
 
 const mockUseList = vi.fn();
 vi.mock("@refinedev/core", () => ({
-    useList: (...args: any[]) => mockUseList(...args),
+    useList: (...args: unknown[]) => mockUseList(...args),
 }));
 
 import { RecentMovements, RecentMovementsView } from "../RecentMovements";

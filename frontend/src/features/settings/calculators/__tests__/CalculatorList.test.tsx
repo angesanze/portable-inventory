@@ -45,11 +45,12 @@ vi.mock("../../../../utils/fetchAllPages", () => ({
     fetchAllPages: fetchAllPagesSpy,
 }));
 
-let mockTemplateListData: { data: any; isLoading: boolean; isError: boolean; refetch: any };
-let mockProductUsageData: { data: any; isLoading: boolean };
+type ListData = { data: Record<string, unknown>[]; total?: number };
+let mockTemplateListData: { data: ListData; isLoading: boolean; isError: boolean; refetch: () => void };
+let mockProductUsageData: { data: ListData; isLoading: boolean };
 
 vi.mock("@refinedev/core", () => ({
-    useList: (opts: any) => {
+    useList: (opts: { resource?: string }) => {
         if (opts?.resource === "product-models") {
             return mockProductUsageData;
         }

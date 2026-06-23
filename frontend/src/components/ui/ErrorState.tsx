@@ -35,31 +35,50 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
 
 /* ─── FormErrorBanner ─── Inline error for form pages ─────────── */
 
+/**
+ * A refine/axios mutation error body (`response.data`): either a DRF field-error
+ * map, a bare message list, or a string; field keys hold message lists.
+ */
+type ErrorResponseData =
+    | string
+    | unknown[]
+    | { detail?: unknown; engine_config?: unknown[]; [field: string]: unknown };
+
 interface FormErrorBannerProps {
     title?: string;
-    error?: any;
+    /** Refine/axios error (`HttpError`), a plain Error, or any thrown value. */
+    error?: unknown;
     fallbackMessage?: string;
     className?: string;
+}
+
+/** Read `response.data` off an axios-shaped error without assuming its shape. */
+function getResponseData(error: unknown): ErrorResponseData | undefined {
+    const response = (error as { response?: { data?: ErrorResponseData } } | undefined)?.response;
+    return response?.data;
 }
 
 /**
  * Extracts a human-readable message from a refine/axios mutation error.
  */
-function extractErrorMessage(error: any, fallback: string): React.ReactNode {
-    const data = error?.response?.data;
-    if (!data) return error?.message || fallback;
+function extractErrorMessage(error: unknown, fallback: string): React.ReactNode {
+    const data = getResponseData(error);
+    const message = (error as { message?: string } | undefined)?.message;
+    if (!data) return message || fallback;
+
+    if (typeof data === "string") return data;
 
     // Common patterns: data.detail, data[0], data.engine_config[0]
+    if (Array.isArray(data)) return data[0] ? String(data[0]) : fallback;
     if (typeof data.detail === "string") return data.detail;
-    if (Array.isArray(data) && data[0]) return data[0];
-    if (data.engine_config?.[0]) return data.engine_config[0];
+    if (data.engine_config?.[0]) return String(data.engine_config[0]);
 
     // Field-level errors: join first error from each field
     const fieldErrors = Object.entries(data)
-        .filter(([, v]) => Array.isArray(v) && (v as string[]).length > 0)
+        .filter(([, v]) => Array.isArray(v) && v.length > 0)
         .map(([key, v]) => (
             <div key={key} className="text-xs mt-1">
-                <span className="font-medium capitalize">{key.replace(/_/g, " ")}</span>: {(v as string[])[0]}
+                <span className="font-medium capitalize">{key.replace(/_/g, " ")}</span>: {String((v as unknown[])[0])}
             </div>
         ));
 

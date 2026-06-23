@@ -77,6 +77,9 @@ export const RestockBoard = () => {
                 (c) => c.id === focusId,
             );
             if (match) {
+                // One-shot: open the drawer for the ?focus= card once the board
+                // loads, guarded by focusHandledRef (URL → state sync).
+                // eslint-disable-next-line react-hooks/set-state-in-effect
                 setInitialTab(undefined);
                 setSelectedCard(match);
                 focusHandledRef.current = focusId;

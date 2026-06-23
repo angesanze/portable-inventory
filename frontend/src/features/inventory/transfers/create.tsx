@@ -2,7 +2,8 @@ import { useForm } from "@refinedev/core";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { TransferForm, buildTransferPayload, emptyLine, type LineDraft } from "./TransferForm";
+import { TransferForm } from "./TransferForm";
+import { buildTransferPayload, emptyLine, type LineDraft } from "./transferForm";
 
 export const TransferOrderCreate = () => {
     const { t } = useTranslation(["transfers", "common"]);

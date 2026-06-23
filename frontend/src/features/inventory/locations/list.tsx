@@ -29,7 +29,12 @@ import { useTableSelection } from "../../../hooks/useTableSelection";
 import { API_URL } from "../../../config";
 import { exportToExcel } from "../../../utils/exportToExcel";
 import { fetchAllPages } from "../../../utils/fetchAllPages";
-import { LOCATION_EXPORT_COLUMNS, LOCATION_EXPORT_FILENAME } from "./exportColumns";
+import {
+    LOCATION_EXPORT_COLUMNS,
+    LOCATION_EXPORT_FILENAME,
+    type LocationExportRow,
+} from "./exportColumns";
+import type { LocationRow } from "./types";
 
 function typeVariant(type: string): BadgeVariant {
     switch (type) {
@@ -82,11 +87,11 @@ export const LocationList = () => {
         return result;
     }, [filters]);
 
-    const { data: listData, isLoading, isError, refetch } = useList({
+    const { data: listData, isLoading, isError, refetch } = useList<LocationRow>({
         resource: "locations",
         filters: crudFilters,
         sorters: [{ field: "name", order: "asc" }],
-    }) as any;
+    });
 
     const navigate = useNavigate();
     const { mutate: deleteLocation } = useDelete();
@@ -94,7 +99,7 @@ export const LocationList = () => {
     const { confirm, dialogProps } = useConfirmDialog();
     const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
-    const locations = Array.isArray(listData?.data) ? listData.data : [];
+    const locations: LocationRow[] = Array.isArray(listData?.data) ? listData.data : [];
 
     const [exporting, setExporting] = useState(false);
     // Export must cover the full filtered dataset, not the visible page —
@@ -105,7 +110,7 @@ export const LocationList = () => {
             const params: Record<string, string> = {};
             if (filters.name) params.search = filters.name;
             if (filters.type) params.type = filters.type;
-            const all = await fetchAllPages<any>(`${API_URL}/api/v1/locations/`, params);
+            const all = await fetchAllPages<LocationExportRow>(`${API_URL}/api/v1/locations/`, params);
             exportToExcel(all, LOCATION_EXPORT_COLUMNS, `${LOCATION_EXPORT_FILENAME}.xlsx`);
         } finally {
             setExporting(false);
@@ -116,8 +121,8 @@ export const LocationList = () => {
     const selectedItems = useMemo(
         () =>
             locations
-                .filter((l: any) => selection.selectedIds.has(l.id))
-                .map((l: any) => ({ id: String(l.id), label: l.name as string })),
+                .filter((l) => selection.selectedIds.has(l.id))
+                .map((l) => ({ id: String(l.id), label: l.name })),
         [locations, selection.selectedIds],
     );
 
@@ -222,7 +227,7 @@ export const LocationList = () => {
                                 icon: Download,
                                 onClick: () =>
                                     exportToExcel(
-                                        locations.filter((l: any) =>
+                                        locations.filter((l) =>
                                             selection.selectedIds.has(l.id),
                                         ),
                                         LOCATION_EXPORT_COLUMNS,
@@ -252,7 +257,7 @@ export const LocationList = () => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {locations.map((loc: any) => (
+                        {locations.map((loc) => (
                             <TableRow
                                 key={loc.id}
                                 className="cursor-pointer"

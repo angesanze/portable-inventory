@@ -1,5 +1,6 @@
 
 import { useForm, useList } from "@refinedev/core";
+import type { BaseRecord, HttpError } from "@refinedev/core";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -14,6 +15,12 @@ import { PROFILE_METADATA, type CalculatorTemplate, type InventoryProfile } from
 import { ProfileWizard } from "../components/ProfileWizard";
 import { EngineConfigForm } from "../../settings/calculators/EngineConfigForm";
 import { safeEvalFormula } from "../../widget/calculator/utils";
+import type {
+    LocationOptionRow,
+    SupplierOptionRow,
+    CreatedModelResult,
+    ProductModelCreateValues,
+} from "../types";
 
 export const ProductModelCreate = () => {
     const navigate = useNavigate();
@@ -40,11 +47,17 @@ export const ProductModelCreate = () => {
     const [serialsLocationId, setSerialsLocationId] = useState("");
     const [dimensionValues, setDimensionValues] = useState<Record<string, string>>({});
 
-    const { onFinish, mutationResult } = useForm({
+    const { onFinish, mutationResult } = useForm<
+        BaseRecord,
+        HttpError,
+        ProductModelCreateValues,
+        BaseRecord,
+        CreatedModelResult["data"]
+    >({
         action: "create",
         resource: "product-models",
         redirect: false,
-        onMutationSuccess: (data: any) => {
+        onMutationSuccess: (data) => {
             const meta = profile ? PROFILE_METADATA[profile] : null;
             if (meta?.supportsBatches) {
                 navigate(`/products/edit/${data.data.id}`);
@@ -59,32 +72,32 @@ export const ProductModelCreate = () => {
         },
     });
 
-    const { data: locationsData } = useList({
+    const { data: locationsData } = useList<LocationOptionRow>({
         resource: "locations",
         pagination: { mode: "off" },
     });
 
     const locationOptions: SelectOption[] = (locationsData?.data || [])
-        .filter((l: any) => l.type !== "VIRTUAL" && l.type !== "LOSS")
-        .map((l: any) => ({
+        .filter((l) => l.type !== "VIRTUAL" && l.type !== "LOSS")
+        .map((l) => ({
             value: l.id,
             label: l.name,
             description: l.type,
         }));
 
-    const { data: suppliersData } = useList({
+    const { data: suppliersData } = useList<SupplierOptionRow>({
         resource: "suppliers",
         pagination: { mode: "off" },
         filters: [{ field: "is_active", operator: "eq", value: true }],
     });
 
-    const supplierOptions: SelectOption[] = (suppliersData?.data || []).map((s: any) => ({
+    const supplierOptions: SelectOption[] = (suppliersData?.data || []).map((s) => ({
         value: s.id,
         label: s.name,
         description: s.vat_number || undefined,
     }));
 
-    const { data: templatesData } = useList({
+    const { data: templatesData } = useList<CalculatorTemplate>({
         resource: "calculator-templates",
         pagination: { mode: "off" },
     });
@@ -145,11 +158,11 @@ export const ProductModelCreate = () => {
             return;
         }
 
-        const submitConfig: Record<string, any> = { ...engineConfig };
+        const submitConfig: Record<string, unknown> = { ...engineConfig };
         const tpl = presetId ? allTemplates.find((t) => t.id === presetId) : null;
         const mergedEngineConfig = { ...(tpl?.engine_config ?? {}), ...submitConfig };
 
-        const payload: any = {
+        const payload: ProductModelCreateValues = {
             sku: sku.trim(),
             name: name.trim(),
             barcode: barcode.trim() || undefined,

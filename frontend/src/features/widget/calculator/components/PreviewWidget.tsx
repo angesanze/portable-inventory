@@ -1,20 +1,21 @@
 import { useState } from "react";
 import { PROFILE_METADATA } from "../../../../types/api";
 import type { InventoryProfile } from "../../../../types/api";
+import type { CalculatorConfig, UiConfig } from "../../types";
 
 // Calculator playground stub — only renders Counter/Bucket previews.
 // For full widget behavior the user should use `/settings/widget-preview`
 // (which iframes the real `TransactionWidget`/`PolymorphicWidget`).
 // Inputs other than 'number' / 'bucket_form' fall through to the bucket branch
 // or render nothing; see Phase 07 mount-point matrix in WIDGET-AUDIT-07.md.
-export const PreviewWidget = ({ config }: { config: any }) => {
+export const PreviewWidget = ({ config }: { config: CalculatorConfig }) => {
 
     // Simple state simulation for preview
     const [qty, setQty] = useState("");
     const [bucketData, setBucketData] = useState<Record<string, string>>({});
 
     // Derive UI Config from profile (preferred) or legacy engine.type
-    let ui_config: any = { input_type: 'number' };
+    let ui_config: UiConfig = { input_type: 'number' };
 
     const profile = config?.profile as InventoryProfile | undefined;
     const meta = profile ? PROFILE_METADATA[profile] : undefined;
@@ -116,8 +117,12 @@ export const PreviewWidget = ({ config }: { config: any }) => {
                 {ui_config.input_type === 'bucket_form' && (
                     <div className="space-y-4">
                         <div className="grid gap-3">
-                            {ui_config.fields?.map((field: any) => (
-                                <div key={field.key}>
+                            {ui_config.fields?.map((field) => {
+                                // Bucket fields are keyed by `key`; assert so it can index the
+                                // bucketData record (runtime value unchanged).
+                                const fieldKey = field.key as string;
+                                return (
+                                <div key={fieldKey}>
                                     <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: '#a1a1aa' }}>
                                         {field.label}
                                     </label>
@@ -129,11 +134,12 @@ export const PreviewWidget = ({ config }: { config: any }) => {
                                             color: '#f4f4f5',
                                         }}
                                         placeholder={field.label}
-                                        value={bucketData[field.key] || ""}
-                                        onChange={e => setBucketData({ ...bucketData, [field.key]: e.target.value })}
+                                        value={bucketData[fieldKey] || ""}
+                                        onChange={e => setBucketData({ ...bucketData, [fieldKey]: e.target.value })}
                                     />
                                 </div>
-                            ))}
+                                );
+                            })}
                             <div>
                                 <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: '#a1a1aa' }}>Quantity</label>
                                 <input

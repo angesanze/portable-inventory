@@ -75,7 +75,7 @@ export const TableRow: React.FC<TableRowProps> = ({
 
 interface TableCellBaseProps {
     className?: string;
-    children: React.ReactNode;
+    children?: React.ReactNode;
 }
 
 type TableHeadProps = TableCellBaseProps & React.ThHTMLAttributes<HTMLTableCellElement>;

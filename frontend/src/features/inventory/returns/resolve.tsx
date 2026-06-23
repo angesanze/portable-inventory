@@ -11,6 +11,13 @@ import { Button } from "../../../components/ui/Button";
 import { useToast } from "../../../components/ui/Toast";
 import { FormErrorBanner } from "../../../components/ui/ErrorState";
 import { API_URL } from "../../../config";
+import type {
+    ResolveOrderRecord,
+    ResolveLine,
+    ResolveLocationRow,
+    PartyOptionRow,
+    ResolutionEntry,
+} from "./types";
 
 const STATUS_VARIANTS: Record<string, BadgeVariant> = {
     OPEN: "neutral",
@@ -33,30 +40,30 @@ export const ReturnOrderResolve = () => {
     const { id } = useParams();
     const { toast } = useToast();
 
-    const { data, isLoading, refetch } = useOne({
+    const { data, isLoading, refetch } = useOne<ResolveOrderRecord>({
         resource: "return-orders",
         id: id ?? "",
         queryOptions: { enabled: !!id },
     });
-    const order = data?.data as any;
+    const order = data?.data;
 
-    const { data: locationsData } = useList({
+    const { data: locationsData } = useList<ResolveLocationRow>({
         resource: "locations",
         pagination: { mode: "off" },
     });
-    const { data: suppliersData } = useList({
+    const { data: suppliersData } = useList<PartyOptionRow>({
         resource: "suppliers",
         pagination: { mode: "off" },
     });
     const warehouseOptions = (locationsData?.data || [])
-        .filter((l: any) => l.is_sellable && (l.type === "WAREHOUSE" || l.type === "STORE"))
-        .map((l: any) => ({ value: l.id, label: l.name, description: l.type }));
-    const supplierOptions = (suppliersData?.data || []).map((s: any) => ({
+        .filter((l) => l.is_sellable && (l.type === "WAREHOUSE" || l.type === "STORE"))
+        .map((l) => ({ value: l.id, label: l.name, description: l.type }));
+    const supplierOptions = (suppliersData?.data || []).map((s) => ({
         value: s.id,
         label: s.name,
     }));
 
-    const lines: any[] = order?.lines ?? [];
+    const lines: ResolveLine[] = order?.lines ?? [];
     const pendingLines = lines.filter((l) => l.resolution === "PENDING");
     const isReceived = order && order.status === "RECEIVED";
 
@@ -87,7 +94,7 @@ export const ReturnOrderResolve = () => {
         setSubmitError(null);
         const payload = {
             resolutions: activeResolutions.map(({ line, draft }) => {
-                const entry: any = { line_id: line.id, resolution: draft.resolution };
+                const entry: ResolutionEntry = { line_id: line.id, resolution: draft.resolution };
                 if (draft.resolution === "RESTOCK" && draft.locationId) {
                     entry.location_id = draft.locationId;
                 }
@@ -156,11 +163,11 @@ export const ReturnOrderResolve = () => {
                 <div className="flex items-center gap-3 text-sm">
                     <span className="font-mono text-zinc-200">{order.number}</span>
                     <Badge variant={isCustomer ? "cyan" : "amber"}>
-                        {t(`kind.${order.kind}`, order.kind)}
+                        {t(`kind.${order.kind}`, String(order.kind))}
                     </Badge>
                     <span className="text-zinc-400">{party}</span>
                     <Badge variant={STATUS_VARIANTS[order.status] ?? "neutral"}>
-                        {t(`status.${order.status}`, order.status)}
+                        {t(`status.${order.status}`, String(order.status))}
                     </Badge>
                 </div>
                 {order.status === "OPEN" && isCustomer && (

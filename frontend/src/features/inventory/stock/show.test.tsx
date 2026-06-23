@@ -26,8 +26,8 @@ const mockItem = {
     updated_at: "2026-05-20T08:30:00Z",
 };
 
-let mockHistory: any[] = [];
-let mockMovements: any[] = [];
+let mockHistory: unknown[] = [];
+let mockMovements: unknown[] = [];
 
 vi.mock("@refinedev/core", () => ({
     useOne: () => ({

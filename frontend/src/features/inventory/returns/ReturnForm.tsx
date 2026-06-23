@@ -7,47 +7,16 @@ import { Input } from "../../../components/ui/Input";
 import { Select } from "../../../components/ui/Select";
 import { Button } from "../../../components/ui/Button";
 import { FormErrorBanner } from "../../../components/ui/ErrorState";
-
-export type ReturnKind = "CUSTOMER_RETURN" | "SUPPLIER_RETURN";
-
-export interface ReturnLineDraft {
-    product_model_id: string;
-    quantity: string;
-}
-
-export const emptyLine = (): ReturnLineDraft => ({
-    product_model_id: "",
-    quantity: "1",
-});
-
-/** Build the API payload from the form state. */
-export function buildReturnPayload(args: {
-    kind: ReturnKind;
-    customerId: string;
-    supplierId: string;
-    reasonCode: string;
-    salesOrderId: string;
-    purchaseOrderId: string;
-    notes: string;
-    lines: ReturnLineDraft[];
-}) {
-    const isCustomer = args.kind === "CUSTOMER_RETURN";
-    return {
-        kind: args.kind,
-        reason_code: args.reasonCode || "OTHER",
-        notes: args.notes,
-        customer_id: isCustomer ? args.customerId || null : null,
-        supplier_id: !isCustomer ? args.supplierId || null : null,
-        sales_order_id: isCustomer ? args.salesOrderId || null : null,
-        purchase_order_id: !isCustomer ? args.purchaseOrderId || null : null,
-        lines: args.lines
-            .filter((l) => l.product_model_id && parseFloat(l.quantity) > 0)
-            .map((l) => ({
-                product_model_id: l.product_model_id,
-                quantity: l.quantity,
-            })),
-    };
-}
+import type {
+    ProductOptionRow,
+    PartyOptionRow,
+    OrderOptionRow,
+} from "./types";
+import {
+    emptyLine,
+    type ReturnKind,
+    type ReturnLineDraft,
+} from "./returnForm";
 
 interface ReturnFormProps {
     title: string;
@@ -101,48 +70,48 @@ export const ReturnForm = ({
     const { t } = useTranslation(["returns", "common"]);
     const isCustomer = kind === "CUSTOMER_RETURN";
 
-    const { data: customersData } = useList({
+    const { data: customersData } = useList<PartyOptionRow>({
         resource: "customers",
         pagination: { mode: "off" },
     });
-    const { data: suppliersData } = useList({
+    const { data: suppliersData } = useList<PartyOptionRow>({
         resource: "suppliers",
         pagination: { mode: "off" },
     });
-    const { data: productsData } = useList({
+    const { data: productsData } = useList<ProductOptionRow>({
         resource: "product-models",
         pagination: { mode: "off" },
     });
-    const { data: salesData } = useList({
+    const { data: salesData } = useList<OrderOptionRow>({
         resource: "sales-orders",
         pagination: { mode: "off" },
         queryOptions: { enabled: isCustomer },
     });
-    const { data: purchaseData } = useList({
+    const { data: purchaseData } = useList<OrderOptionRow>({
         resource: "purchase-orders",
         pagination: { mode: "off" },
         queryOptions: { enabled: !isCustomer },
     });
 
-    const productOptions = (productsData?.data || []).map((p: any) => ({
+    const productOptions = (productsData?.data || []).map((p) => ({
         value: p.id,
         label: p.name,
         description: p.sku,
     }));
-    const customerOptions = (customersData?.data || []).map((c: any) => ({
+    const customerOptions = (customersData?.data || []).map((c) => ({
         value: c.id,
         label: c.name,
     }));
-    const supplierOptions = (suppliersData?.data || []).map((s: any) => ({
+    const supplierOptions = (suppliersData?.data || []).map((s) => ({
         value: s.id,
         label: s.name,
     }));
-    const salesOptions = (salesData?.data || []).map((o: any) => ({
+    const salesOptions = (salesData?.data || []).map((o) => ({
         value: o.id,
         label: o.number,
         description: o.customer_name,
     }));
-    const purchaseOptions = (purchaseData?.data || []).map((o: any) => ({
+    const purchaseOptions = (purchaseData?.data || []).map((o) => ({
         value: o.id,
         label: o.number,
         description: o.supplier_name,
@@ -259,7 +228,7 @@ export const ReturnForm = ({
                 )}
                 {lines.map((line, index) => (
                     <div
-                        key={index}
+                        key={line._key}
                         className="flex flex-col sm:flex-row gap-3 sm:items-end border border-white/[0.06] rounded-lg p-3"
                         data-testid={`return-line-${index}`}
                     >

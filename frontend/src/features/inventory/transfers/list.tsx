@@ -32,6 +32,7 @@ import { EmptyState } from "../../../components/ui/EmptyState";
 import { ErrorState } from "../../../components/ui/ErrorState";
 import { useToast } from "../../../components/ui/Toast";
 import { API_URL } from "../../../config";
+import type { TransferOrderRow, InTransitReport, InTransitProduct } from "./types";
 
 const STATUS_VARIANTS: Record<string, BadgeVariant> = {
     DRAFT: "neutral",
@@ -53,13 +54,13 @@ function daysSince(iso?: string | null): number | null {
 /** Widget reading the virtual In Transit location explicitly. */
 const InTransitWidget = () => {
     const { t } = useTranslation(["transfers"]);
-    const { data } = useCustom({
+    const { data } = useCustom<InTransitReport>({
         url: `${API_URL}/api/v1/transfer-orders/in_transit/`,
         method: "get",
-    }) as any;
+    });
     const report = data?.data;
     const total = report?.total ?? "0";
-    const rows: any[] = report?.by_product ?? [];
+    const rows: InTransitProduct[] = report?.by_product ?? [];
     if (!rows.length) return null;
     return (
         <div
@@ -106,13 +107,13 @@ export const TransferOrderList = () => {
         return result;
     }, [search, statusFilter]);
 
-    const { data: listData, isLoading, isError, refetch } = useList({
+    const { data: listData, isLoading, isError, refetch } = useList<TransferOrderRow>({
         resource: "transfer-orders",
         filters: crudFilters,
         sorters: [{ field: "created_at", order: "desc" }],
-    }) as any;
+    });
 
-    const orders = Array.isArray(listData?.data) ? listData.data : [];
+    const orders: TransferOrderRow[] = Array.isArray(listData?.data) ? listData.data : [];
 
     const { mutate: deleteOrder } = useDelete();
     const { mutateAsync: postAction } = useCustomMutation();
@@ -219,7 +220,7 @@ export const TransferOrderList = () => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {orders.map((to: any) => {
+                        {orders.map((to) => {
                             const isDraft = to.status === "DRAFT";
                             const isReceivable = RECEIVABLE.includes(to.status);
                             const days = isReceivable ? daysSince(to.shipped_at) : null;
@@ -243,7 +244,7 @@ export const TransferOrderList = () => {
                                     </TableCell>
                                     <TableCell>
                                         <Badge variant={STATUS_VARIANTS[to.status] ?? "neutral"}>
-                                            {t(`status.${to.status}`, to.status)}
+                                            {t(`status.${to.status}`, String(to.status))}
                                         </Badge>
                                     </TableCell>
                                     <TableCell>

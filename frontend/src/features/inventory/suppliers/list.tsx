@@ -28,7 +28,12 @@ import { useTableSelection } from "../../../hooks/useTableSelection";
 import { API_URL } from "../../../config";
 import { exportToExcel } from "../../../utils/exportToExcel";
 import { fetchAllPages } from "../../../utils/fetchAllPages";
-import { SUPPLIER_EXPORT_COLUMNS, SUPPLIER_EXPORT_FILENAME } from "./exportColumns";
+import {
+    SUPPLIER_EXPORT_COLUMNS,
+    SUPPLIER_EXPORT_FILENAME,
+    type SupplierExportRow,
+} from "./exportColumns";
+import type { SupplierRow } from "./types";
 
 export const SupplierList = () => {
     const { t } = useTranslation(["inventory", "common"]);
@@ -46,11 +51,11 @@ export const SupplierList = () => {
         return result;
     }, [search]);
 
-    const { data: listData, isLoading, isError, refetch } = useList({
+    const { data: listData, isLoading, isError, refetch } = useList<SupplierRow>({
         resource: "suppliers",
         filters: crudFilters,
         sorters: [{ field: "name", order: "asc" }],
-    }) as any;
+    });
 
     const navigate = useNavigate();
     const { mutate: deleteSupplier } = useDelete();
@@ -58,7 +63,7 @@ export const SupplierList = () => {
     const { confirm, dialogProps } = useConfirmDialog();
     const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
-    const suppliers = Array.isArray(listData?.data) ? listData.data : [];
+    const suppliers: SupplierRow[] = Array.isArray(listData?.data) ? listData.data : [];
 
     const [exporting, setExporting] = useState(false);
     // Export must cover the full filtered dataset, not the visible page —
@@ -68,7 +73,7 @@ export const SupplierList = () => {
         try {
             const params: Record<string, string> = {};
             if (search) params.search = search;
-            const all = await fetchAllPages<any>(`${API_URL}/api/v1/suppliers/`, params);
+            const all = await fetchAllPages<SupplierExportRow>(`${API_URL}/api/v1/suppliers/`, params);
             exportToExcel(all, SUPPLIER_EXPORT_COLUMNS, `${SUPPLIER_EXPORT_FILENAME}.xlsx`);
         } finally {
             setExporting(false);
@@ -79,8 +84,8 @@ export const SupplierList = () => {
     const selectedItems = useMemo(
         () =>
             suppliers
-                .filter((s: any) => selection.selectedIds.has(s.id))
-                .map((s: any) => ({ id: String(s.id), label: s.name as string })),
+                .filter((s) => selection.selectedIds.has(s.id))
+                .map((s) => ({ id: String(s.id), label: s.name })),
         [suppliers, selection.selectedIds],
     );
 
@@ -169,7 +174,7 @@ export const SupplierList = () => {
                                 icon: Download,
                                 onClick: () =>
                                     exportToExcel(
-                                        suppliers.filter((s: any) =>
+                                        suppliers.filter((s) =>
                                             selection.selectedIds.has(s.id),
                                         ),
                                         SUPPLIER_EXPORT_COLUMNS,
@@ -200,7 +205,7 @@ export const SupplierList = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {suppliers.map((s: any) => (
+                            {suppliers.map((s) => (
                                 <TableRow
                                     key={s.id}
                                     className="cursor-pointer"

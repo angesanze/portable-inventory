@@ -10,10 +10,18 @@ import type { Card } from "../types";
 vi.mock("recharts", () => {
     const passthrough =
         (testid: string) =>
-        ({ children }: any) => <div data-testid={testid}>{children}</div>;
+        ({ children }: { children?: React.ReactNode }) => (
+            <div data-testid={testid}>{children}</div>
+        );
     return {
         ResponsiveContainer: passthrough("rc-responsive"),
-        ComposedChart: ({ children, data }: any) => (
+        ComposedChart: ({
+            children,
+            data,
+        }: {
+            children?: React.ReactNode;
+            data?: unknown[];
+        }) => (
             <div data-testid="rc-composed" data-points={data?.length ?? 0}>
                 {children}
             </div>
@@ -22,13 +30,13 @@ vi.mock("recharts", () => {
         XAxis: () => <div data-testid="rc-xaxis" />,
         YAxis: () => <div data-testid="rc-yaxis" />,
         Tooltip: () => <div data-testid="rc-tooltip" />,
-        Area: ({ dataKey }: any) => (
+        Area: ({ dataKey }: { dataKey?: string }) => (
             <div data-testid="rc-area" data-key={dataKey} />
         ),
-        Bar: ({ dataKey }: any) => (
+        Bar: ({ dataKey }: { dataKey?: string }) => (
             <div data-testid={`rc-bar-${dataKey}`} data-key={dataKey} />
         ),
-        ReferenceLine: ({ y, stroke }: any) => (
+        ReferenceLine: ({ y, stroke }: { y?: number; stroke?: string }) => (
             <div
                 data-testid="rc-refline"
                 data-y={String(y)}

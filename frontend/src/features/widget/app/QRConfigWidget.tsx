@@ -1,5 +1,5 @@
 import { useWidgetOperations } from "../hooks/useWidgetOperations";
-import React, { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Select, type SelectOption } from "../../../components/ui/Select";
 import { useWidgetData } from "../hooks/useWidgetData";
 import { useWidgetApiKey } from "../hooks/useWidgetApiKey";
@@ -92,6 +92,7 @@ export const QRConfigWidget = () => {
         setQrConfiguring, setQrConfigured, setQrLocking,
         sendTransactionEvent, sendErrorEvent,
         expiryDate: "", batchRef: "",
+        fulfillSuccessText: "", fulfillFailedText: "",
     };
 
     const widgetDataBag = {

@@ -12,6 +12,7 @@ import { useToast } from "../../../components/ui/Toast";
 import { ConfirmDialog, useConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { FormErrorBanner } from "../../../components/ui/ErrorState";
 import { API_URL } from "../../../config";
+import type { ReceiveOrderRecord, ReceiveLine } from "./types";
 
 const STATUS_VARIANTS: Record<string, BadgeVariant> = {
     DRAFT: "neutral",
@@ -28,17 +29,17 @@ export const TransferOrderReceive = () => {
     const { toast } = useToast();
     const { confirm, dialogProps } = useConfirmDialog();
 
-    const { data, isLoading, refetch } = useOne({
+    const { data, isLoading, refetch } = useOne<ReceiveOrderRecord>({
         resource: "transfer-orders",
         id: id ?? "",
         queryOptions: { enabled: !!id },
     });
-    const order = data?.data as any;
+    const order = data?.data;
 
     const [quantities, setQuantities] = useState<Record<string, string>>({});
 
-    const lines: any[] = order?.lines ?? [];
-    const transitOf = (line: any) =>
+    const lines: ReceiveLine[] = order?.lines ?? [];
+    const transitOf = (line: ReceiveLine) =>
         Number(line.quantity_sent) -
         Number(line.quantity_received) -
         Number(line.quantity_shortage);
@@ -89,7 +90,7 @@ export const TransferOrderReceive = () => {
         }
     };
 
-    const handleShortage = async (line: any) => {
+    const handleShortage = async (line: ReceiveLine) => {
         const residual = transitOf(line);
         if (
             !(await confirm({
@@ -145,7 +146,7 @@ export const TransferOrderReceive = () => {
                         {order.from_location_name} → {order.to_location_name}
                     </span>
                     <Badge variant={STATUS_VARIANTS[order.status] ?? "neutral"}>
-                        {t(`status.${order.status}`, order.status)}
+                        {t(`status.${order.status}`, String(order.status))}
                     </Badge>
                 </div>
                 {!isReceivable && (

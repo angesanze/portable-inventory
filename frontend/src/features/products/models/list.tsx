@@ -35,7 +35,12 @@ import { API_URL } from "../../../config";
 import { exportToExcel } from "../../../utils/exportToExcel";
 import { fetchAllPages } from "../../../utils/fetchAllPages";
 import { profileVariant } from "../../../utils/inventoryBadges";
-import { PRODUCT_EXPORT_COLUMNS, PRODUCT_EXPORT_FILENAME } from "./exportColumns";
+import {
+    PRODUCT_EXPORT_COLUMNS,
+    PRODUCT_EXPORT_FILENAME,
+    type ProductExportRow,
+} from "./exportColumns";
+import type { ProductModelRow, ProductStockSummary } from "../types";
 
 /** Maps an inventory profile to its `products:profiles.*` translation key. */
 const PROFILE_LABEL_KEYS: Record<InventoryProfile, string> = {
@@ -62,19 +67,22 @@ function formatRelativeTime(dateString: string, t: TFunction): string {
     return date.toLocaleDateString();
 }
 
-function profileLabel(model: any, t: TFunction): string {
+function profileLabel(model: ProductModelRow, t: TFunction): string {
     const key = PROFILE_LABEL_KEYS[model.profile as InventoryProfile];
     return key ? t(`products:profiles.${key}`) : t("products:unknownProfile");
 }
 
-function formatStockDisplay(stockSummary: any, t: TFunction): { text: string; colorClass: string } {
+function formatStockDisplay(
+    stockSummary: ProductStockSummary | null | undefined,
+    t: TFunction,
+): { text: string; colorClass: string } {
     if (!stockSummary) return { text: "—", colorClass: "text-zinc-500" };
 
     const { total, tracking_mode, status, batch_count, unit } = stockSummary;
     const formattedTotal = Number(total).toLocaleString();
 
     let colorClass: string;
-    if (status === "ZERO" || total <= 0) {
+    if (status === "ZERO" || Number(total) <= 0) {
         colorClass = "text-zinc-500";
     } else if (status === "LOW") {
         colorClass = "text-amber-400";
@@ -132,11 +140,11 @@ export const ProductModelList = () => {
         return result;
     }, [filters]);
 
-    const { data: listData, isLoading, isError, refetch } = useList({
+    const { data: listData, isLoading, isError, refetch } = useList<ProductModelRow>({
         resource: "product-models",
         filters: crudFilters,
         sorters: [{ field: "name", order: "asc" }],
-    }) as any;
+    });
 
     const navigate = useNavigate();
     const { open: notify } = useNotification();
@@ -145,7 +153,7 @@ export const ProductModelList = () => {
     const { confirm, dialogProps } = useConfirmDialog();
     const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
-    const models = Array.isArray(listData?.data) ? listData.data : [];
+    const models: ProductModelRow[] = Array.isArray(listData?.data) ? listData.data : [];
 
     const [exporting, setExporting] = useState(false);
     // Export must cover the full filtered dataset, not the visible page —
@@ -156,7 +164,7 @@ export const ProductModelList = () => {
             const params: Record<string, string> = {};
             if (filters.name) params.search = filters.name;
             if (filters.profile) params.profile = filters.profile;
-            const all = await fetchAllPages<any>(`${API_URL}/api/v1/product-models/`, params);
+            const all = await fetchAllPages<ProductExportRow>(`${API_URL}/api/v1/product-models/`, params);
             exportToExcel(all, PRODUCT_EXPORT_COLUMNS, `${PRODUCT_EXPORT_FILENAME}.xlsx`);
         } finally {
             setExporting(false);
@@ -167,8 +175,8 @@ export const ProductModelList = () => {
     const selectedItems = useMemo(
         () =>
             models
-                .filter((m: any) => selection.selectedIds.has(m.id))
-                .map((m: any) => ({ id: String(m.id), label: m.name as string })),
+                .filter((m) => selection.selectedIds.has(m.id))
+                .map((m) => ({ id: String(m.id), label: m.name as string })),
         [models, selection.selectedIds],
     );
 
@@ -295,7 +303,7 @@ export const ProductModelList = () => {
                                 icon: Download,
                                 onClick: () =>
                                     exportToExcel(
-                                        models.filter((m: any) =>
+                                        models.filter((m) =>
                                             selection.selectedIds.has(m.id),
                                         ),
                                         PRODUCT_EXPORT_COLUMNS,
@@ -337,7 +345,7 @@ export const ProductModelList = () => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {models.map((model: any) => (
+                        {models.map((model) => (
                             <TableRow
                                 key={model.id}
                                 className="cursor-pointer"

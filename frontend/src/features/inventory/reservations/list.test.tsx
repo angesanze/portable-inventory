@@ -51,7 +51,7 @@ const mockMutateAsync = vi.fn().mockResolvedValue({});
 const useListSpy = vi.fn();
 
 vi.mock("@refinedev/core", () => ({
-    useList: (params: any) => {
+    useList: (params: { resource?: string }) => {
         useListSpy(params);
         if (params?.resource === "reservations") {
             return {

@@ -2,7 +2,9 @@ import { useForm } from "@refinedev/core";
 import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { TransferForm, buildTransferPayload, type LineDraft } from "./TransferForm";
+import { TransferForm } from "./TransferForm";
+import { buildTransferPayload, emptyLine, type LineDraft } from "./transferForm";
+import type { TransferOrderRecord } from "./types";
 
 export const TransferOrderEdit = () => {
     const { t } = useTranslation(["transfers", "common"]);
@@ -14,7 +16,7 @@ export const TransferOrderEdit = () => {
     const [notes, setNotes] = useState("");
     const [lines, setLines] = useState<LineDraft[]>([]);
 
-    const { onFinish, queryResult, mutationResult, formLoading } = useForm({
+    const { onFinish, queryResult, mutationResult, formLoading } = useForm<TransferOrderRecord>({
         action: "edit",
         resource: "transfer-orders",
         id,
@@ -22,7 +24,7 @@ export const TransferOrderEdit = () => {
         onMutationSuccess: () => navigate("/transfers"),
     });
 
-    const record = queryResult?.data?.data as any;
+    const record = queryResult?.data?.data;
 
     useEffect(() => {
         if (!record) return;
@@ -35,7 +37,8 @@ export const TransferOrderEdit = () => {
         setToLocationId(record.to_location ?? "");
         setNotes(record.notes ?? "");
         setLines(
-            (record.lines ?? []).map((l: any) => ({
+            (record.lines ?? []).map((l) => ({
+                _key: emptyLine()._key,
                 product_model_id: l.product_model ?? "",
                 quantity_sent: String(l.quantity_sent ?? "1"),
             })),

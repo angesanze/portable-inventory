@@ -8,6 +8,7 @@ import { Select } from "../../../components/ui/Select";
 import { FormErrorBanner } from "../../../components/ui/ErrorState";
 import { useToast } from "../../../components/ui/Toast";
 import { API_URL } from "../../../config";
+import type { ReservationProductRow, ReservationLocationRow } from "./types";
 
 interface CreateReservationModalProps {
     isOpen: boolean;
@@ -44,12 +45,12 @@ export const CreateReservationModal = ({
         reset,
     } = useCustomMutation();
 
-    const { data: productsData } = useList({
+    const { data: productsData } = useList<ReservationProductRow>({
         resource: "product-models",
         pagination: { mode: "off" },
         queryOptions: { enabled: isOpen },
     });
-    const { data: locationsData } = useList({
+    const { data: locationsData } = useList<ReservationLocationRow>({
         resource: "locations",
         pagination: { mode: "off" },
         queryOptions: { enabled: isOpen },
@@ -58,15 +59,15 @@ export const CreateReservationModal = ({
     const products = productsData?.data || [];
     const locations = locationsData?.data || [];
 
-    const productOptions = products.map((p: any) => ({
+    const productOptions = products.map((p) => ({
         value: p.id,
         label: p.name,
         description: p.sku,
     }));
     // Reservations only make sense against real stock-holding locations.
     const locationOptions = locations
-        .filter((l: any) => l.type === "WAREHOUSE" || l.type === "STORE")
-        .map((l: any) => ({
+        .filter((l) => l.type === "WAREHOUSE" || l.type === "STORE")
+        .map((l) => ({
             value: l.id,
             label: l.name,
             description: l.type,

@@ -4,7 +4,32 @@ import { useNotification, useList } from "@refinedev/core";
 import { axiosInstance } from "../../providers/axios-client";
 import { PROFILE_METADATA } from "../../types/api";
 
-export const QuickAdjust = ({ product, onUpdate }: { product: any, onUpdate: () => void }) => {
+/** Product fields the strategy adjust view reads. `stock_value` is either a
+ * scalar count (bulk) or a list of stock buckets (tracked profiles). */
+interface StrategyProduct {
+    id: string;
+    profile?: string;
+    tracking_mode?: string;
+    stock_value?: number | unknown[];
+}
+
+/** DRF error body surfaced via axios: either a field map or a bare message list. */
+interface ApiErrorBody {
+    detail?: string;
+    [field: string]: unknown;
+}
+
+/** First human-readable message from an axios-shaped error, if any. */
+function readApiError(err: unknown): string | undefined {
+    const data = (err as { response?: { data?: ApiErrorBody | string[] } } | undefined)?.response
+        ?.data;
+    if (!data) return undefined;
+    if (Array.isArray(data)) return typeof data[0] === "string" ? data[0] : undefined;
+    if (typeof data.detail === "string") return data.detail;
+    return undefined;
+}
+
+export const QuickAdjust = ({ product, onUpdate }: { product: StrategyProduct, onUpdate: () => void }) => {
     const [delta, setDelta] = useState<number>(1);
     const [identifier, setIdentifier] = useState("");
     const [loading, setLoading] = useState(false);
@@ -55,10 +80,10 @@ export const QuickAdjust = ({ product, onUpdate }: { product: any, onUpdate: () 
             });
             setIdentifier(""); // Reset
             onUpdate?.();
-        } catch (err: any) {
+        } catch (err: unknown) {
             open?.({
                 message: "Error",
-                description: err.response?.data?.detail || err.response?.data?.[0] || "Adjustment failed",
+                description: readApiError(err) || "Adjustment failed",
                 type: "error"
             });
             console.error(err);

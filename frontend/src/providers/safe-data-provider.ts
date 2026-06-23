@@ -1,6 +1,6 @@
 import simpleRestProvider from "@refinedev/simple-rest";
-import type { AxiosInstance } from "axios";
-import type { DataProvider, CrudFilters, CrudSorting } from "@refinedev/core";
+import type { AxiosInstance, AxiosRequestConfig } from "axios";
+import type { BaseRecord, DataProvider, CrudFilters, CrudSorting, GetListParams } from "@refinedev/core";
 
 /**
  * Converts Refine CrudFilters to Django REST Framework query params.
@@ -50,11 +50,17 @@ const convertSortersToParams = (sorters?: CrudSorting): Record<string, string> =
 };
 
 export const safeDataProvider = (apiUrl: string, httpClient: AxiosInstance): DataProvider => {
-    const baseProvider = simpleRestProvider(apiUrl, httpClient as any);
+    // @refinedev/simple-rest bundles its own (older) axios copy, so its
+    // `AxiosInstance` is a nominally-distinct-but-structurally-compatible type.
+    // Bridge across the duplicate-package skew with the provider's own param type.
+    const baseProvider = simpleRestProvider(
+        apiUrl,
+        httpClient as Parameters<typeof simpleRestProvider>[1],
+    );
 
     return {
         ...baseProvider,
-        getList: async (params) => {
+        getList: async <TData extends BaseRecord = BaseRecord>(params: GetListParams) => {
             const { resource, pagination, filters, sorters } = params;
 
             // Build query params
@@ -81,8 +87,9 @@ export const safeDataProvider = (apiUrl: string, httpClient: AxiosInstance): Dat
                 const response = await httpClient.get(url);
                 const rawData = response.data;
 
-                // Handle DRF pagination wrapper or direct array
-                let data: any[];
+                // Handle DRF pagination wrapper or direct array. `rawData` is the
+                // raw axios body (untyped); rows are surfaced as the caller's TData.
+                let data: TData[];
                 let total: number;
 
                 if (Array.isArray(rawData)) {
@@ -127,7 +134,10 @@ export const safeDataProvider = (apiUrl: string, httpClient: AxiosInstance): Dat
         custom: async ({ url, method, payload, query, headers }) => {
             let requestUrl = url;
             if (query) {
-                const queryString = new URLSearchParams(query as any).toString();
+                // Refine types `query` as `unknown`; callers pass a flat string map.
+                const queryString = new URLSearchParams(
+                    query as Record<string, string>,
+                ).toString();
                 requestUrl = `${url}?${queryString}`;
             }
 
@@ -136,7 +146,7 @@ export const safeDataProvider = (apiUrl: string, httpClient: AxiosInstance): Dat
                     url: requestUrl,
                     method,
                     data: payload,
-                    headers: headers as any,
+                    headers: headers as AxiosRequestConfig["headers"],
                 });
                 return { data: response.data };
             } catch (error) {

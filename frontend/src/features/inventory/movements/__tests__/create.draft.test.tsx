@@ -18,10 +18,12 @@ vi.mock("react-router-dom", async () => {
     };
 });
 
+type MutationSuccess = (d: { data: { id: string } }) => void;
+
 // Mutable state shared with the hoisted @refinedev/core mock.
 const h = vi.hoisted(() => ({
-    suppliers: [] as any[],
-    onMutationSuccess: undefined as undefined | ((d: any) => void),
+    suppliers: [] as unknown[],
+    onMutationSuccess: undefined as undefined | MutationSuccess,
 }));
 
 const mockProducts = [
@@ -44,7 +46,7 @@ vi.mock("@refinedev/core", () => ({
     // Capture the onMutationSuccess callback and fire it (with the Refine-wrapped
     // shape `{ data: { id } }`) when the form is submitted, so we can assert the
     // draft gets cleared on success.
-    useForm: (opts: any) => {
+    useForm: (opts?: { onMutationSuccess?: MutationSuccess }) => {
         h.onMutationSuccess = opts?.onMutationSuccess;
         return {
             onFinish: vi.fn(async () => {

@@ -45,6 +45,8 @@ export const WorkOrderEdit = () => {
     useEffect(() => {
         if (queryResult?.data?.data) {
             const record = queryResult.data.data;
+            // Hydrate form fields from the fetched record (async fetch → setState).
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setName(record.name || "");
             setDescription(record.description || "");
             setStatus(record.status || "OPEN");
@@ -52,7 +54,7 @@ export const WorkOrderEdit = () => {
     }, [queryResult]);
 
     const handleSubmit = async () => {
-        const data: Record<string, any> = {};
+        const data: Record<string, unknown> = {};
         if (name) data.name = name;
         if (description) data.description = description;
         if (status) data.status = status;

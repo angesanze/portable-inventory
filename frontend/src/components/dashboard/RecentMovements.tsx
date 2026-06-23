@@ -23,7 +23,34 @@ function formatRelativeTime(dateString: string, t: TFunction): string {
 
 type MovementType = "inbound" | "outbound" | "transfer";
 
-function getMovementType(item: any): MovementType {
+/** A location as populated on a movement row (object form via `meta.populate`). */
+interface PopulatedLocation {
+    name?: string;
+    [key: string]: unknown;
+}
+
+/** A product model as populated on a movement row. */
+interface PopulatedProduct {
+    name?: string;
+    [key: string]: unknown;
+}
+
+/** Movement row as consumed by this widget (locations/product expanded). */
+interface MovementRow {
+    id: string | number;
+    quantity: number | string;
+    occurred_at: string;
+    from_location?: PopulatedLocation | string | null;
+    to_location?: PopulatedLocation | string | null;
+    product_model?: PopulatedProduct | string | null;
+}
+
+/** Narrow a possibly-string location reference to its populated object form. */
+function locationName(loc: MovementRow["from_location"]): string | undefined {
+    return loc && typeof loc === "object" ? loc.name : undefined;
+}
+
+function getMovementType(item: MovementRow): MovementType {
     const qty = Number(item.quantity);
     if (item.from_location && item.to_location) return "transfer";
     if (qty > 0) return "inbound";
@@ -36,10 +63,10 @@ const dotColors: Record<MovementType, string> = {
     transfer: "bg-blue-500",
 };
 
-function getMovementDescription(item: any, type: MovementType, t: TFunction): string {
+function getMovementDescription(item: MovementRow, type: MovementType, t: TFunction): string {
     const qty = Math.abs(Number(item.quantity));
-    const fromName = item.from_location?.name;
-    const toName = item.to_location?.name;
+    const fromName = locationName(item.from_location);
+    const toName = locationName(item.to_location);
 
     switch (type) {
         case "transfer":
@@ -56,7 +83,7 @@ function getMovementDescription(item: any, type: MovementType, t: TFunction): st
 }
 
 interface RecentMovementsViewProps {
-    movements: any[];
+    movements: MovementRow[];
     isLoading: boolean;
 }
 
@@ -79,8 +106,12 @@ export const RecentMovementsView: React.FC<RecentMovementsViewProps> = ({ moveme
                     </div>
                 ) : (
                     <ul role="list" className="divide-y divide-white/[0.04]">
-                        {movements.slice(0, 10).map((item: any) => {
+                        {movements.slice(0, 10).map((item) => {
                             const type = getMovementType(item);
+                            const productName =
+                                item.product_model && typeof item.product_model === "object"
+                                    ? item.product_model.name
+                                    : undefined;
                             return (
                                 <li key={item.id} className="px-6 py-3 flex items-start gap-3">
                                     <span
@@ -89,7 +120,7 @@ export const RecentMovementsView: React.FC<RecentMovementsViewProps> = ({ moveme
                                     />
                                     <div className="min-w-0 flex-1">
                                         <p className="font-medium text-zinc-200 text-sm truncate">
-                                            {item.product_model?.name || t("unknownProduct")}
+                                            {productName || t("unknownProduct")}
                                         </p>
                                         <p className="text-sm text-zinc-400 truncate">
                                             {getMovementDescription(item, type, t)}
@@ -116,7 +147,7 @@ export const RecentMovementsView: React.FC<RecentMovementsViewProps> = ({ moveme
 };
 
 export const RecentMovements: React.FC = () => {
-    const { data, isLoading } = useList({
+    const { data, isLoading } = useList<MovementRow>({
         resource: "movements",
         pagination: {
             current: 1,
@@ -131,10 +162,10 @@ export const RecentMovements: React.FC = () => {
         meta: {
             populate: ["product_model", "from_location", "to_location"],
         }
-    }) as any;
+    });
 
     const listData = data?.data;
-    const movements = Array.isArray(listData) ? listData : [];
+    const movements: MovementRow[] = Array.isArray(listData) ? listData : [];
 
     return <RecentMovementsView movements={movements} isLoading={isLoading} />;
 };

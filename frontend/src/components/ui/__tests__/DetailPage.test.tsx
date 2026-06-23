@@ -70,7 +70,7 @@ describe("DetailPage", () => {
     });
 
     it("renders badges with dot indicator", () => {
-        const { container } = render(
+        render(
             <DetailPage
                 title="Test"
                 badges={[{ label: "Status", variant: "success", dot: true }]}
@@ -152,7 +152,7 @@ describe("DetailPage", () => {
     });
 
     it("does not render badges section when badges array is empty", () => {
-        const { container } = render(
+        render(
             <DetailPage title="Test" badges={[]}>
                 <div>content</div>
             </DetailPage>

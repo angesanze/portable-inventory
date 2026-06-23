@@ -20,12 +20,12 @@ export const Dashboard = () => {
     const { data: productsData, isLoading: isLoadingProducts } = useList({
         resource: "product-models",
         pagination: { pageSize: 1 },
-    }) as any;
+    });
 
     const { data: itemsData, isLoading: isLoadingItems } = useList({
         resource: "physical-products",
         pagination: { pageSize: 1 },
-    }) as any;
+    });
 
     const { data: pendingWorkOrdersData, isLoading: isLoadingWorkOrders } = useList({
         resource: "work-orders",
@@ -33,7 +33,7 @@ export const Dashboard = () => {
         filters: [
             { field: "status", operator: "eq", value: "OPEN" },
         ],
-    }) as any;
+    });
 
     return (
         <div className="w-full">

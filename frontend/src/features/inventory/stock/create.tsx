@@ -5,6 +5,7 @@ import { ArrowLeft, Check, Info, Loader } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Select, type SelectOption } from "../../../components/ui/Select";
 import { FormErrorBanner } from "../../../components/ui/ErrorState";
+import type { StockModelOption, StockLocationOption } from "./types";
 
 export const PhysicalProductCreate = () => {
     const { t } = useTranslation(["inventory", "common"]);
@@ -18,7 +19,7 @@ export const PhysicalProductCreate = () => {
         }
     });
 
-    const { data: productModels } = useList({
+    const { data: productModels } = useList<StockModelOption>({
         resource: "product-models",
         filters: [
             { field: "profile", operator: "eq", value: "SERIALIZED" }
@@ -26,17 +27,17 @@ export const PhysicalProductCreate = () => {
         pagination: { mode: "off" }
     });
 
-    const { data: locations } = useList({
+    const { data: locations } = useList<StockLocationOption>({
         resource: "locations",
         pagination: { mode: "off" }
     });
 
-    const modelOptions = (productModels?.data || []).map((m: any) => ({
+    const modelOptions = (productModels?.data || []).map((m) => ({
         label: `${m.sku} - ${m.name}`,
         value: m.id
     }));
 
-    const locationOptions = (locations?.data || []).map((l: any) => ({
+    const locationOptions = (locations?.data || []).map((l) => ({
         label: l.name,
         value: l.id
     }));

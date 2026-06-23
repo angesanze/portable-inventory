@@ -38,7 +38,9 @@ import { fetchAllPages } from "../../utils/fetchAllPages";
 import {
     PURCHASE_ORDER_EXPORT_COLUMNS,
     PURCHASE_ORDER_EXPORT_FILENAME,
+    type PurchaseOrderExportRow,
 } from "./exportColumns";
+import type { PurchaseOrderRecord } from "./types";
 
 const STATUS_VARIANTS: Record<string, BadgeVariant> = {
     DRAFT: "neutral",
@@ -73,13 +75,15 @@ export const PurchaseOrderList = () => {
         return result;
     }, [search, statusFilter]);
 
-    const { data: listData, isLoading, isError, refetch } = useList({
+    const { data: listData, isLoading, isError, refetch } = useList<PurchaseOrderRecord>({
         resource: "purchase-orders",
         filters: crudFilters,
         sorters: [{ field: "created_at", order: "desc" }],
-    }) as any;
+    });
 
-    const orders = Array.isArray(listData?.data) ? listData.data : [];
+    const orders: PurchaseOrderRecord[] = Array.isArray(listData?.data)
+        ? listData.data
+        : [];
 
     const { mutate: deleteOrder } = useDelete();
     const { mutateAsync: postAction } = useCustomMutation();
@@ -92,7 +96,7 @@ export const PurchaseOrderList = () => {
             const params: Record<string, string> = {};
             if (search) params.search = search;
             if (statusFilter) params.status = statusFilter;
-            const all = await fetchAllPages<any>(`${API_URL}/api/v1/purchase-orders/`, params);
+            const all = await fetchAllPages<PurchaseOrderExportRow>(`${API_URL}/api/v1/purchase-orders/`, params);
             exportToExcel(all, PURCHASE_ORDER_EXPORT_COLUMNS, `${PURCHASE_ORDER_EXPORT_FILENAME}.xlsx`);
         } finally {
             setExporting(false);
@@ -208,7 +212,7 @@ export const PurchaseOrderList = () => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {orders.map((po: any) => {
+                        {orders.map((po) => {
                             const isDraft = po.status === "DRAFT";
                             const isReceivable = RECEIVABLE.includes(po.status);
                             return (
@@ -231,7 +235,7 @@ export const PurchaseOrderList = () => {
                                     </TableCell>
                                     <TableCell>
                                         <Badge variant={STATUS_VARIANTS[po.status] ?? "neutral"}>
-                                            {t(`status.${po.status}`, po.status)}
+                                            {t(`status.${po.status}`, String(po.status))}
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-zinc-400 text-sm">

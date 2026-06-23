@@ -53,14 +53,14 @@ describe("Button", () => {
 
     it("shows spinner and disables when loading", () => {
         render(<Button loading>Save</Button>);
-        const btn = screen.getByRole("button");
+        const btn = screen.getByRole("button") as HTMLButtonElement;
         expect(btn.disabled).toBe(true);
         expect(btn.querySelector(".animate-spin")).toBeTruthy();
     });
 
     it("is disabled when disabled prop is set", () => {
         render(<Button disabled>Nope</Button>);
-        expect(screen.getByRole("button").disabled).toBe(true);
+        expect((screen.getByRole("button") as HTMLButtonElement).disabled).toBe(true);
     });
 
     it("calls onClick handler", () => {

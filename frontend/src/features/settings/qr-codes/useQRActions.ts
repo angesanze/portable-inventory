@@ -1,6 +1,7 @@
 import { useCreate, useUpdate, useDelete } from "@refinedev/core";
 import { useState } from "react";
 import { useToast } from "../../../components/ui/Toast";
+import type { QRCode } from "./types";
 
 export const useQRActions = (refetch: () => void) => {
     const { mutateAsync: createQR } = useCreate();
@@ -39,7 +40,7 @@ export const useQRActions = (refetch: () => void) => {
         }
     };
 
-    const handleLock = async (qr: any) => {
+    const handleLock = async (qr: QRCode) => {
         try {
             await updateQR({
                 resource: "qr-codes",
@@ -52,7 +53,7 @@ export const useQRActions = (refetch: () => void) => {
         }
     };
 
-    const handleUnlock = async (qr: any) => {
+    const handleUnlock = async (qr: QRCode) => {
         try {
             await updateQR({
                 resource: "qr-codes",
@@ -65,7 +66,7 @@ export const useQRActions = (refetch: () => void) => {
         }
     };
 
-    const handleConfigure = async (configuring: any, configProduct: string, configBatch: string, configWorkOrder: string, callback: () => void) => {
+    const handleConfigure = async (configuring: QRCode | null, configProduct: string, configBatch: string, configWorkOrder: string, callback: () => void) => {
         if (!configuring) return;
         try {
             await updateQR({
@@ -84,7 +85,7 @@ export const useQRActions = (refetch: () => void) => {
         }
     };
 
-    const handleDelete = async (qr: any, confirm: () => Promise<boolean>) => {
+    const handleDelete = async (qr: QRCode, confirm: () => Promise<boolean>) => {
         if (!(await confirm())) return;
         await deleteQR({ resource: "qr-codes", id: qr.id });
         setTimeout(() => refetch(), 300);

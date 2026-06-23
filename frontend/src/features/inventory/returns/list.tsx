@@ -32,6 +32,7 @@ import { EmptyState } from "../../../components/ui/EmptyState";
 import { ErrorState } from "../../../components/ui/ErrorState";
 import { useToast } from "../../../components/ui/Toast";
 import { API_URL } from "../../../config";
+import type { ReturnOrderRow } from "./types";
 
 const STATUS_VARIANTS: Record<string, BadgeVariant> = {
     OPEN: "neutral",
@@ -66,13 +67,13 @@ export const ReturnOrderList = () => {
         return result;
     }, [search, statusFilter, kindFilter]);
 
-    const { data: listData, isLoading, isError, refetch } = useList({
+    const { data: listData, isLoading, isError, refetch } = useList<ReturnOrderRow>({
         resource: "return-orders",
         filters: crudFilters,
         sorters: [{ field: "created_at", order: "desc" }],
-    }) as any;
+    });
 
-    const orders = Array.isArray(listData?.data) ? listData.data : [];
+    const orders: ReturnOrderRow[] = Array.isArray(listData?.data) ? listData.data : [];
 
     const { mutate: deleteOrder } = useDelete();
     const { mutateAsync: postAction } = useCustomMutation();
@@ -195,7 +196,7 @@ export const ReturnOrderList = () => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {orders.map((ro: any) => {
+                        {orders.map((ro) => {
                             const isOpen = ro.status === "OPEN";
                             const isCustomer = ro.kind === "CUSTOMER_RETURN";
                             const isReceived = ro.status === "RECEIVED";
@@ -214,7 +215,7 @@ export const ReturnOrderList = () => {
                                     </TableCell>
                                     <TableCell>
                                         <Badge variant={KIND_VARIANTS[ro.kind] ?? "neutral"}>
-                                            {t(`kind.${ro.kind}`, ro.kind)}
+                                            {t(`kind.${ro.kind}`, String(ro.kind))}
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-zinc-300 text-sm">
@@ -222,11 +223,11 @@ export const ReturnOrderList = () => {
                                     </TableCell>
                                     <TableCell>
                                         <Badge variant={STATUS_VARIANTS[ro.status] ?? "neutral"}>
-                                            {t(`status.${ro.status}`, ro.status)}
+                                            {t(`status.${ro.status}`, String(ro.status))}
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-zinc-400 text-sm">
-                                        {t(`reason.${ro.reason_code}`, ro.reason_code)}
+                                        {t(`reason.${ro.reason_code}`, String(ro.reason_code))}
                                     </TableCell>
                                     <TableCell className="text-zinc-400 text-sm">
                                         {ro.lines?.length ?? 0}

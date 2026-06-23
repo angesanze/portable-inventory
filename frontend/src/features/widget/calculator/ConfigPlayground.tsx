@@ -11,6 +11,7 @@ import { Button } from "../../../components/ui/Button";
 import { Badge } from "../../../components/ui/Badge";
 import type { BadgeVariant } from "../../../components/ui/Badge";
 import { ConfirmDialog, useConfirmDialog } from "../../../components/ui/ConfirmDialog";
+import type { CalculatorConfig, CalculatorTemplate } from "../types";
 
 const CATEGORY_VARIANT: Record<string, BadgeVariant> = {
     TIME: "amber",
@@ -26,7 +27,7 @@ const CATEGORY_VARIANT: Record<string, BadgeVariant> = {
 
 export const ConfigPlayground = () => {
     const [yaml, setYaml] = useState(PRESET_EXAMPLES[0].yaml);
-    const [parsed, setParsed] = useState<any>(null);
+    const [parsed, setParsed] = useState<CalculatorConfig | null>(null);
     const [error, setError] = useState("");
     const { confirm, dialogProps } = useConfirmDialog();
 
@@ -43,8 +44,8 @@ export const ConfigPlayground = () => {
             const obj = YAML.parse(yaml);
             setParsed(obj);
             setError("");
-        } catch (e: any) {
-            setError(e.message);
+        } catch (e) {
+            setError(e instanceof Error ? e.message : String(e));
         }
     }, [yaml]);
 
@@ -72,8 +73,8 @@ export const ConfigPlayground = () => {
         }
     };
 
-    const loadTemplate = (tmpl: any) => {
-        const obj: Record<string, any> = {
+    const loadTemplate = (tmpl: CalculatorTemplate) => {
+        const obj: CalculatorConfig = {
             name: tmpl.name,
             profile: tmpl.profile,
             engine: {
@@ -170,7 +171,7 @@ export const ConfigPlayground = () => {
                         <CardContent className="flex-1 overflow-y-auto space-y-2 !py-3">
                             {templates.map(t => {
                                 const cat = getCategoryLabel(t);
-                                const variant = CATEGORY_VARIANT[cat] ?? ("slate" as BadgeVariant);
+                                const variant = CATEGORY_VARIANT[cat as string] ?? ("slate" as BadgeVariant);
 
                                 return (
                                     <div

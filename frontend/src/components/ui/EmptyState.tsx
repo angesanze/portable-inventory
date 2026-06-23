@@ -11,7 +11,7 @@ interface HelpItem {
 interface EmptyStateProps {
     icon: LucideIcon;
     title: string;
-    description: string;
+    description?: string;
     actionLabel?: string;
     onAction?: () => void;
     secondaryActionLabel?: string;
@@ -40,7 +40,9 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
             <Icon size={24} className="text-zinc-500" />
         </div>
         <h3 className="text-sm font-medium text-zinc-300 mb-1">{title}</h3>
-        <p className="text-sm text-zinc-500 text-center max-w-sm">{description}</p>
+        {description && (
+            <p className="text-sm text-zinc-500 text-center max-w-sm">{description}</p>
+        )}
         {helpItems && helpItems.length > 0 && (
             <ul className="mt-4 space-y-2 max-w-sm w-full">
                 {helpItems.map((item, idx) => (

@@ -1,10 +1,17 @@
 import { useList } from "@refinedev/core";
 import { useTranslation } from "react-i18next";
 import { Select } from "../../../../components/ui/Select";
+import type { WorkOrderSerialOption } from "../listTypes";
 
-export const SerialPicker = ({ modelId, onChange, excludeIds }: any) => {
+interface SerialPickerProps {
+    modelId: string;
+    onChange: (value: string) => void;
+    excludeIds: string[];
+}
+
+export const SerialPicker = ({ modelId, onChange, excludeIds }: SerialPickerProps) => {
     const { t } = useTranslation(["inventory", "common"]);
-    const { data: physicalProducts } = useList({
+    const { data: physicalProducts } = useList<WorkOrderSerialOption>({
         resource: "physical-products",
         filters: [
             { field: "product_model", operator: "eq", value: modelId },
@@ -17,9 +24,9 @@ export const SerialPicker = ({ modelId, onChange, excludeIds }: any) => {
     });
 
     const options = (physicalProducts?.data || [])
-        .filter((p: any) => !excludeIds.includes(p.id))
-        .map((p: any) => ({
-            label: p.identifier,
+        .filter((p) => !excludeIds.includes(p.id))
+        .map((p) => ({
+            label: p.identifier ?? "",
             value: p.id
         }));
 

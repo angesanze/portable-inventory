@@ -23,7 +23,12 @@ const mockUsers = [
     },
 ];
 
-let mockListResult: any;
+let mockListResult: {
+    data: { data: Record<string, unknown>[]; total?: number };
+    isLoading?: boolean;
+    isError?: boolean;
+    refetch?: () => void;
+};
 const mockRefetch = vi.fn();
 
 vi.mock("@refinedev/core", () => ({
@@ -40,8 +45,8 @@ const mockPatch = vi.fn();
 const mockPost = vi.fn();
 vi.mock("../../../../providers/axios-client", () => ({
     axiosInstance: {
-        patch: (...args: any[]) => mockPatch(...args),
-        post: (...args: any[]) => mockPost(...args),
+        patch: (...args: unknown[]) => mockPatch(...args),
+        post: (...args: unknown[]) => mockPost(...args),
     },
 }));
 

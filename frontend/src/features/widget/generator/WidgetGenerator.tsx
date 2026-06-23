@@ -12,6 +12,17 @@ import { Button } from "../../../components/ui/Button";
 import { Badge } from "../../../components/ui/Badge";
 import { API_URL } from "../../../config";
 import { PROFILE_METADATA } from "../../../types/api";
+import type { InventoryProfile } from "../../../types/api";
+import type { WidgetProductSummary, WidgetListResponse } from "../types";
+
+/** An API-key row from `GET /api-keys` (refine list resource), used to populate
+ *  the key picker and build the embed/QR URLs. */
+interface ApiKeyRow {
+    key: string;
+    label: string;
+    company?: { name?: string };
+    company_name?: string;
+}
 
 export const WidgetGenerator = () => {
     const { t } = useTranslation(["settings", "common"]);
@@ -20,12 +31,12 @@ export const WidgetGenerator = () => {
     // listing on the capability too as defense-in-depth so a manager who ever
     // reaches it never triggers the `GET /api-keys` 403 (DUAL-TIER-09).
     const { capabilities } = useCapabilities();
-    const { data: keysData, isLoading: keysLoading } = useList({
+    const { data: keysData, isLoading: keysLoading } = useList<ApiKeyRow>({
         resource: "api-keys",
         queryOptions: { enabled: capabilities.manage_api_keys },
-    }) as any;
+    });
 
-    const keys = Array.isArray(keysData?.data) ? keysData.data : [];
+    const keys: ApiKeyRow[] = Array.isArray(keysData?.data) ? keysData.data : [];
 
     const [selectedKey, setSelectedKey] = useState<string>("");
     const [activeTab, setActiveTab] = useState<"embed" | "api">("embed");
@@ -72,8 +83,9 @@ export const WidgetGenerator = () => {
                 const text = await res.text();
                 setJsonPreview(`// Non-JSON response (Status: ${res.status})\n\n${text.substring(0, 2000)}`);
             }
-        } catch (err: any) {
-            setJsonPreview(JSON.stringify({ error: "Fetch failed", details: err.message }, null, 2));
+        } catch (err) {
+            const details = err instanceof Error ? err.message : undefined;
+            setJsonPreview(JSON.stringify({ error: "Fetch failed", details }, null, 2));
         } finally {
             setLoadingPreview(false);
         }
@@ -107,10 +119,10 @@ export const WidgetGenerator = () => {
                                 <Select
                                     custom
                                     value={selectedKey}
-                                    onChange={(val: any) => setSelectedKey(val)}
+                                    onChange={(val) => setSelectedKey(String(val))}
                                     disabled={keysLoading}
                                     placeholder={keysLoading ? t("settings:widgetGenerator.loadingKeys") : t("settings:widgetGenerator.selectKey")}
-                                    options={keysLoading ? [] : keys.map((key: any) => ({
+                                    options={keysLoading ? [] : keys.map((key) => ({
                                         value: key.key,
                                         label: `${key.label} — ${key.company?.name || key.company_name || 'Unknown'}`,
                                         description: `(${key.key.substring(0, 8)}...)`,
@@ -316,8 +328,8 @@ export const WidgetGenerator = () => {
 
 const ProductQRList = ({ apiKey, widgetBaseUrl }: { apiKey: string; widgetBaseUrl: string }) => {
     const { t } = useTranslation(["settings", "common"]);
-    const [products, setProducts] = useState<any[]>([]);
-    const [polyProducts, setPolyProducts] = useState<any[]>([]);
+    const [products, setProducts] = useState<WidgetProductSummary[]>([]);
+    const [polyProducts, setPolyProducts] = useState<WidgetProductSummary[]>([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -325,7 +337,7 @@ const ProductQRList = ({ apiKey, widgetBaseUrl }: { apiKey: string; widgetBaseUr
             setLoading(true);
             try {
                 const res = await fetch(`${API_URL}/api/v1/widget/?api_key=${apiKey}`);
-                const data = await res.json();
+                const data: WidgetListResponse = await res.json();
                 setProducts(data.products || []);
                 setPolyProducts(data.poly_products || []);
             } catch (err) {
@@ -358,7 +370,7 @@ const ProductQRList = ({ apiKey, widgetBaseUrl }: { apiKey: string; widgetBaseUr
                                         <QRCodeSVG value={url} size={96} />
                                     </div>
                                     <div className="text-xs font-medium text-zinc-200 leading-tight mb-1">{p.name}</div>
-                                    <Badge variant="indigo">{PROFILE_METADATA[p.profile]?.label ?? p.profile}</Badge>
+                                    <Badge variant="indigo">{PROFILE_METADATA[p.profile as InventoryProfile]?.label ?? p.profile}</Badge>
                                 </div>
                             );
                         })}

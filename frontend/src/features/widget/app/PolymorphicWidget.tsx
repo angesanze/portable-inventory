@@ -6,6 +6,7 @@ import { useWidgetApiKey } from "../hooks/useWidgetApiKey";
 import type { WidgetData } from "../types";
 import type { InventoryProfile } from "../../../types/api";
 import { PROFILE_METADATA } from "../../../types/api";
+import { buildTransactionPayload, resolveEngineType } from "../payload";
 import {
     CounterPanel,
     BucketPanel,
@@ -37,25 +38,29 @@ export const PolymorphicWidget = () => {
 
     useEffect(() => {
         if (id && apiKey) {
-            fetchConfig();
+            const ctrl = new AbortController();
+            fetchConfig(ctrl.signal);
+            return () => ctrl.abort();
         } else if (!apiKey && !resolvingKey) {
             setError(keyError || "Missing API Key");
             setLoading(false);
         }
     }, [id, apiKey, resolvingKey]);
 
-    const fetchConfig = async () => {
+    const fetchConfig = async (signal?: AbortSignal) => {
         setLoading(true);
         try {
-            const res = await fetch(`${API_URL}/api/v1/widget/${id}/?api_key=${apiKey}`);
+            const res = await fetch(`${API_URL}/api/v1/widget/${id}/`, { headers: { "X-Api-Key": apiKey ?? "" }, signal });
             if (!res.ok) throw new Error("Failed to load widget config");
             const json = await res.json();
             setData(json);
             if (json.ui_config?.step) setQty(String(json.ui_config.step));
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err) {
+            // Superseded by a newer id/apiKey — the effect aborted this one.
+            if (err instanceof DOMException && err.name === 'AbortError') return;
+            setError(err instanceof Error ? err.message : 'Failed to load widget config');
         } finally {
-            setLoading(false);
+            if (!signal?.aborted) setLoading(false);
         }
     };
 
@@ -64,41 +69,19 @@ export const PolymorphicWidget = () => {
         setMessage(null);
 
         try {
-            const payload: any = {
+            // MOD-03: dispatch on the product profile (single source of truth),
+            // falling back to the legacy engine string for pre-profile data.
+            const payload = buildTransactionPayload(
+                data?.profile,
+                data?.engine,
                 operation,
-                quantity: parseFloat(qty) || 0
-            };
+                { qty, bucketData, dimensionValues, trackerItemId, trackerStatus, trackerNotes, expiryDate, batchRef },
+            );
+            const engine = resolveEngineType(data?.profile, data?.engine);
 
-            if (data?.engine === 'tracker') {
-                payload.physical_product_id = trackerItemId;
-                payload.new_status = trackerStatus;
-                payload.notes = trackerNotes || undefined;
-                delete payload.quantity;
-            }
-
-            if (data?.engine === 'dimension') {
-                payload.dimension_values = Object.fromEntries(
-                    Object.entries(dimensionValues).map(([k, v]) => [k, parseFloat(v) || 0])
-                );
-            }
-
-            if (data?.engine === 'time_based') {
-                if (expiryDate) payload.expiry_date = expiryDate;
-                if (batchRef) payload.batch_ref = batchRef;
-            }
-
-            if (data?.engine === 'bucket') {
-                if (operation === 'add') {
-                    payload.bucket_data = bucketData;
-                } else {
-                    if (bucketData['batch_id']) payload.bucket_id = bucketData['batch_id'];
-                    if (bucketData['id']) payload.bucket_id = bucketData['id'];
-                }
-            }
-
-            const res = await fetch(`${API_URL}/api/v1/widget/${id}/transaction/?api_key=${apiKey}`, {
+            const res = await fetch(`${API_URL}/api/v1/widget/${id}/transaction/`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", "X-Api-Key": apiKey ?? "" },
                 body: JSON.stringify(payload)
             });
 
@@ -110,30 +93,30 @@ export const PolymorphicWidget = () => {
 
             // Clear inputs after operation
             if (operation === 'add') {
-                if (data?.engine !== 'bucket') setQty("");
+                if (engine !== 'bucket') setQty("");
                 setBucketData({});
             }
-            if (data?.engine === 'tracker') {
+            if (engine === 'tracker') {
                 setTrackerStatus("");
                 setTrackerNotes("");
             }
-            if (data?.engine === 'dimension') {
+            if (engine === 'dimension') {
                 setDimensionValues({});
             }
-            if (data?.engine === 'time_based') {
+            if (engine === 'time_based') {
                 setExpiryDate("");
                 setBatchRef("");
                 setQty("");
             }
 
-        } catch (err: any) {
-            setMessage({ type: 'error', text: err.message });
+        } catch (err) {
+            setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Transaction failed' });
         } finally {
             setSubmitting(false);
         }
     };
 
-    const handleBatchTransaction = async (modelId: string, delta: number, identifier: string | null = null, physicalProductId: string | null = null, batchId: string | null = null) => {
+    const handleBatchTransaction = async (modelId: string | undefined, delta: number, identifier: string | null = null, physicalProductId: string | null = null, batchId: string | null = null) => {
         setSubmitting(true);
         setMessage(null);
         try {
@@ -146,9 +129,9 @@ export const PolymorphicWidget = () => {
                 batch_id: batchId
             };
 
-            const res = await fetch(`${API_URL}/api/v1/widget/${id}/transaction/?api_key=${apiKey}`, {
+            const res = await fetch(`${API_URL}/api/v1/widget/${id}/transaction/`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", "X-Api-Key": apiKey ?? "" },
                 body: JSON.stringify(payload)
             });
 
@@ -158,8 +141,8 @@ export const PolymorphicWidget = () => {
             setMessage({ type: 'success', text: "Updated successfully" });
             fetchConfig();
 
-        } catch (err: any) {
-            setMessage({ type: 'error', text: err.message });
+        } catch (err) {
+            setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Update failed' });
         } finally {
             setSubmitting(false);
         }
@@ -229,7 +212,7 @@ export const PolymorphicWidget = () => {
             case 'tracker':
                 return (
                     <TrackerPanel
-                        fields={(data.ui_config.fields as any) || []}
+                        fields={data.ui_config.fields || []}
                         trackerItemId={trackerItemId}
                         setTrackerItemId={setTrackerItemId}
                         trackerStatus={trackerStatus}
@@ -243,9 +226,9 @@ export const PolymorphicWidget = () => {
             case 'dimension':
                 return (
                     <DimensionPanel
-                        fields={data.ui_config.fields as any || []}
-                        formula={(data.ui_config as any).formula || ''}
-                        computedUnit={(data.ui_config as any).computed_unit || ''}
+                        fields={data.ui_config.fields || []}
+                        formula={data.ui_config.formula || ''}
+                        computedUnit={data.ui_config.computed_unit || ''}
                         dimensionValues={dimensionValues}
                         setDimensionValues={setDimensionValues}
                         submitting={submitting}
@@ -258,7 +241,7 @@ export const PolymorphicWidget = () => {
                         qty={qty}
                         setQty={setQty}
                         step={data.ui_config.step}
-                        expiryTracking={!!(data.ui_config as any).expiry_tracking}
+                        expiryTracking={!!data.ui_config.expiry_tracking}
                         expiryDate={expiryDate}
                         setExpiryDate={setExpiryDate}
                         batchRef={batchRef}

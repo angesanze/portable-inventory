@@ -10,8 +10,8 @@ vi.mock("react-router-dom", () => ({
 const mockUseList = vi.fn();
 const mockUseGetIdentity = vi.fn();
 vi.mock("@refinedev/core", () => ({
-    useList: (...args: any[]) => mockUseList(...args),
-    useGetIdentity: (...args: any[]) => mockUseGetIdentity(...args),
+    useList: (...args: unknown[]) => mockUseList(...args),
+    useGetIdentity: (...args: unknown[]) => mockUseGetIdentity(...args),
 }));
 
 import { GettingStartedChecklist } from "../GettingStartedChecklist";
@@ -31,7 +31,7 @@ function setupMock(counts: {
     apiKeys?: number;
     isLoading?: boolean;
 }) {
-    mockUseList.mockImplementation(({ resource }: any) => {
+    mockUseList.mockImplementation(({ resource }: { resource?: string }) => {
         const loading = counts.isLoading ?? false;
         const make = (total: number) => ({
             data: { data: [], total },

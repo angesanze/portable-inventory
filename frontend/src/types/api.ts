@@ -127,7 +127,7 @@ export interface CalculatorTemplate {
     id: string;
     name: string;
     engine_type: EngineType;
-    engine_config: Record<string, any>;
+    engine_config: Record<string, unknown>;
     company: string;
 }
 
@@ -142,11 +142,11 @@ export interface ProductModel {
     tracking_mode: TrackingMode;
     /** Read-only, derived from profile on backend. */
     engine_type: EngineType;
-    engine_config: Record<string, any>;
+    engine_config: Record<string, unknown>;
     engine_ui_config?: EngineUiConfig | null;
     company: string;
     initial_balance?: number;
-    attributes: Record<string, any>;
+    attributes: Record<string, unknown>;
     default_calculator?: string | null;
     created_at: string;
 }
@@ -173,7 +173,7 @@ export interface ProductBatch {
     work_order?: string | WorkOrder;
     batch_identifier: string;
     quantity: number;
-    data: Record<string, any>;
+    data: Record<string, unknown>;
 }
 
 export interface PhysicalProduct {

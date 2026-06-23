@@ -1,14 +1,16 @@
+import type { ReactNode } from "react";
 import { screen } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { MemoryRouter } from "react-router-dom";
-import { useList } from "@refinedev/core";
 import { renderWithI18n, i18n } from "../../../../test-utils/i18n-wrapper";
 
+/** Partial `useList` return shape the dashboard reads (data + isLoading). */
+type ListResultMock = { data: { data: unknown[]; total?: number }; isLoading: boolean };
+
+const mockUseList = vi.fn<(arg: { resource?: string }) => ListResultMock>();
+
 vi.mock("@refinedev/core", () => ({
-    useList: vi.fn(() => ({
-        data: { data: [], total: 42 },
-        isLoading: false,
-    })),
+    useList: (arg: { resource?: string }) => mockUseList(arg),
     // GettingStartedChecklist resolves capabilities via useGetIdentity; treat
     // the dashboard test user as a developer so the QR widget step renders.
     useGetIdentity: vi.fn(() => ({
@@ -17,13 +19,10 @@ vi.mock("@refinedev/core", () => ({
     })),
 }));
 
-const mockUseList = vi.mocked(useList);
-
 vi.mock("recharts", () => {
-    const React = require("react");
     return {
-        ResponsiveContainer: ({ children }: any) => <div>{children}</div>,
-        LineChart: ({ children }: any) => <div>{children}</div>,
+        ResponsiveContainer: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+        LineChart: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
         Line: () => <div />,
         XAxis: () => <div />,
         YAxis: () => <div />,
@@ -39,7 +38,7 @@ describe("Dashboard", () => {
         mockUseList.mockImplementation(() => ({
             data: { data: [], total: 42 },
             isLoading: false,
-        }) as any);
+        }));
     });
 
     afterEach(async () => {
@@ -80,12 +79,12 @@ describe("Dashboard", () => {
 
     it("renders GettingStartedChecklist when counts are low", () => {
         localStorage.removeItem("gettingStartedDismissed");
-        mockUseList.mockImplementation(({ resource }: any) => {
-            if (resource === "product-models") return { data: { data: [], total: 1 }, isLoading: false } as any;
-            if (resource === "locations") return { data: { data: [], total: 0 }, isLoading: false } as any;
-            if (resource === "movements") return { data: { data: [], total: 0 }, isLoading: false } as any;
-            if (resource === "api-keys") return { data: { data: [], total: 0 }, isLoading: false } as any;
-            return { data: { data: [], total: 0 }, isLoading: false } as any;
+        mockUseList.mockImplementation(({ resource }: { resource?: string }) => {
+            if (resource === "product-models") return { data: { data: [], total: 1 }, isLoading: false };
+            if (resource === "locations") return { data: { data: [], total: 0 }, isLoading: false };
+            if (resource === "movements") return { data: { data: [], total: 0 }, isLoading: false };
+            if (resource === "api-keys") return { data: { data: [], total: 0 }, isLoading: false };
+            return { data: { data: [], total: 0 }, isLoading: false };
         });
         renderWithI18n(<MemoryRouter><Dashboard /></MemoryRouter>);
         expect(screen.getByText("Getting Started")).toBeTruthy();

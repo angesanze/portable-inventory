@@ -94,7 +94,7 @@ function App() {
   return (
     <BrowserRouter>
       <Refine
-        dataProvider={safeDataProvider((API_URL.endsWith("/") ? API_URL.slice(0, -1) : API_URL) + "/api/v1", axiosInstance as any)}
+        dataProvider={safeDataProvider((API_URL.endsWith("/") ? API_URL.slice(0, -1) : API_URL) + "/api/v1", axiosInstance)}
         authProvider={authProvider}
         resources={resources}
         options={{

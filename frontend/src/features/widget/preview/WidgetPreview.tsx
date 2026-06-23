@@ -7,6 +7,7 @@ import { PageHeader } from "../../../components/ui/PageHeader";
 import { DismissableHint } from "../../../components/ui/DismissableHint";
 import { Card, CardHeader, CardContent } from "../../../components/ui/Card";
 import { Select, type SelectOption } from "../../../components/ui/Select";
+import type { WidgetProductSummary, WidgetListResponse } from "../types";
 
 interface PreviewProduct {
     id: string;
@@ -40,16 +41,19 @@ export const WidgetPreview = () => {
     useEffect(() => {
         if (!key) return;
         let cancelled = false;
+        // Standard fetch-then-setState: flag loading before the async request and
+        // clear it (plus populate products) in the settled handlers below.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setLoadingProducts(true);
-        fetch(`${API_URL}/api/v1/widget/?api_key=${key}`)
-            .then((res) => res.json())
+        fetch(`${API_URL}/api/v1/widget/`, { headers: { "X-Api-Key": key } })
+            .then((res) => res.json() as Promise<WidgetListResponse>)
             .then((data) => {
                 if (cancelled) return;
                 const std: PreviewProduct[] = (Array.isArray(data.products) ? data.products : []).map(
-                    (p: any) => ({ id: String(p.id), name: p.name, sku: p.sku, poly: false }),
+                    (p: WidgetProductSummary) => ({ id: String(p.id), name: p.name, sku: p.sku, poly: false }),
                 );
                 const poly: PreviewProduct[] = (Array.isArray(data.poly_products) ? data.poly_products : []).map(
-                    (p: any) => ({ id: String(p.id), name: p.name, poly: true }),
+                    (p: WidgetProductSummary) => ({ id: String(p.id), name: p.name, poly: true }),
                 );
                 setProducts(std.concat(poly));
             })

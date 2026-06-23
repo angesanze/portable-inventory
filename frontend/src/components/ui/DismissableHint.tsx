@@ -30,7 +30,10 @@ export const DismissableHint: React.FC<DismissableHintProps> = ({
 
     // Sync if id changes
     useEffect(() => {
+        // Re-read the per-id dismissal flag from localStorage (the external
+        // source of truth) whenever the hint's id changes.
         try {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setDismissed(localStorage.getItem(getStorageKey(id)) === "true");
         } catch {
             setDismissed(false);

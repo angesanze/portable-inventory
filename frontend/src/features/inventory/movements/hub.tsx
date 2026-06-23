@@ -1,7 +1,7 @@
 import { useList } from "@refinedev/core";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
-import { ArrowUpRight, ArrowDownLeft, ArrowRightLeft } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { PageHeader } from "../../../components/ui/PageHeader";
 import { MovementTypePicker } from "./components/MovementTypePicker";
 import {
@@ -14,8 +14,12 @@ import {
 } from "../../../components/ui/Table";
 import { Badge, type BadgeVariant } from "../../../components/ui/Badge";
 import { SkeletonRow } from "../../../components/ui/Skeleton";
+import type { MovementListRow } from "./listTypes";
 
-function directionBadge(move: any, t: TFunction): { label: string; variant: BadgeVariant } {
+/** Minimal shape needed to derive a movement's direction (location routing). */
+type MovementDirectionInput = Pick<MovementListRow, "from_location" | "to_location">;
+
+function directionBadge(move: MovementDirectionInput, t: TFunction): { label: string; variant: BadgeVariant } {
     const fromType = move.from_location?.type;
     const toType = move.to_location?.type;
 
@@ -35,7 +39,7 @@ function directionBadge(move: any, t: TFunction): { label: string; variant: Badg
 
 export const MovementHub = () => {
     const { t } = useTranslation(["inventory", "common"]);
-    const { data: listData, isLoading } = useList({
+    const { data: listData, isLoading } = useList<MovementListRow>({
         resource: "movements",
         sorters: [{ field: "occurred_at", order: "desc" }],
         pagination: { pageSize: 5 },
@@ -91,7 +95,7 @@ export const MovementHub = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {movements.map((move: any) => {
+                            {movements.map((move) => {
                                 const dir = directionBadge(move, t);
                                 const qty = move.quantity ?? move.delta ?? 0;
                                 const isNegative = Number(qty) < 0;

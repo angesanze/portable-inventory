@@ -3,6 +3,7 @@ import { useForm, useList } from "@refinedev/core";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Save, Loader } from "lucide-react";
 import { Select, type SelectOption } from "../../../components/ui/Select";
+import type { StockLocationOption, PhysicalProductEditRecord } from "./types";
 
 const statusOptions: SelectOption[] = [
     { value: "ACTIVE", label: "ACTIVE - Available" },
@@ -15,19 +16,19 @@ export const PhysicalProductEdit = () => {
     const navigate = useNavigate();
     const { id } = useParams();
 
-    const { onFinish, queryResult, mutationResult, formLoading } = useForm({
+    const { onFinish, queryResult, mutationResult, formLoading } = useForm<PhysicalProductEditRecord>({
         action: "edit",
         resource: "physical-products",
         id: id,
         redirect: "list"
     });
 
-    const { data: locations } = useList({
+    const { data: locations } = useList<StockLocationOption>({
         resource: "locations",
         pagination: { mode: "off" }
     });
 
-    const locationOptions = (locations?.data || []).map((l: any) => ({
+    const locationOptions = (locations?.data || []).map((l) => ({
         label: l.name,
         value: l.id
     }));
@@ -38,7 +39,7 @@ export const PhysicalProductEdit = () => {
         const rawData = Object.fromEntries(formData.entries());
 
         // Clean data: filter empty values, handle location_id specially
-        const data: Record<string, any> = {};
+        const data: Record<string, FormDataEntryValue | null> = {};
         for (const [key, value] of Object.entries(rawData)) {
             if (key === 'location_id') {
                 data[key] = value === '' ? null : value;

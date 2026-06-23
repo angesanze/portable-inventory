@@ -1,14 +1,9 @@
 import { useTranslation } from "react-i18next";
 import { Minus } from "lucide-react";
-
-interface BucketField {
-    key: string;
-    label: string;
-    type: string;
-}
+import type { UiConfigField } from "../../types";
 
 interface BucketPanelProps {
-    fields: BucketField[];
+    fields: UiConfigField[];
     bucketData: Record<string, string>;
     setBucketData: (v: Record<string, string>) => void;
     qty: string;
@@ -26,20 +21,23 @@ export const BucketPanel: React.FC<BucketPanelProps> = ({
     return (
     <div className="space-y-4" data-testid="panel-batch-composition">
         <div className="grid gap-3">
-            {fields.map(field => (
-                <div key={field.key}>
+            {fields.map(field => {
+                const key = field.key ?? field.name ?? field.label;
+                return (
+                <div key={key}>
                     <label className="pi-label">
                         {field.label}
                     </label>
                     <input
                         type={field.type === 'date' ? 'date' : 'text'}
                         className="pi-input"
-                        value={bucketData[field.key] || ""}
-                        onChange={e => setBucketData({ ...bucketData, [field.key]: e.target.value })}
+                        value={bucketData[key] || ""}
+                        onChange={e => setBucketData({ ...bucketData, [key]: e.target.value })}
                         placeholder={field.label}
                     />
                 </div>
-            ))}
+                );
+            })}
             <div>
                 <label className="pi-label">
                     {t('common.quantity')}

@@ -1,15 +1,10 @@
 import { useTranslation } from "react-i18next";
 import { Plus, Minus } from "lucide-react";
 import { safeEvalFormula } from "../../calculator/utils";
-
-interface DimensionField {
-    name: string;
-    label: string;
-    unit?: string;
-}
+import type { UiConfigField } from "../../types";
 
 interface DimensionPanelProps {
-    fields: DimensionField[];
+    fields: UiConfigField[];
     formula: string;
     computedUnit: string;
     dimensionValues: Record<string, string>;
@@ -23,12 +18,15 @@ export const DimensionPanel: React.FC<DimensionPanelProps> = ({
     submitting, onTransaction,
 }) => {
     const { t } = useTranslation('widget');
-    const allFilled = fields.every(f => dimensionValues[f.name] && parseFloat(dimensionValues[f.name]) > 0);
+    // Dimension fields are keyed by `name`; normalise so the index is always a
+    // string regardless of which key the backend used.
+    const dimFields = fields.map(f => ({ name: f.name ?? f.key ?? f.label, label: f.label, unit: f.unit }));
+    const allFilled = dimFields.every(f => dimensionValues[f.name] && parseFloat(dimensionValues[f.name]) > 0);
     let computedValue: number | null = null;
     if (allFilled) {
         try {
             let expr = formula;
-            fields.forEach(f => {
+            dimFields.forEach(f => {
                 expr = expr.replace(new RegExp(`\\b${f.name}\\b`, 'g'), String(parseFloat(dimensionValues[f.name]) || 0));
             });
             const evaluated = safeEvalFormula(expr);
@@ -43,7 +41,7 @@ export const DimensionPanel: React.FC<DimensionPanelProps> = ({
     return (
         <div className="space-y-4" data-testid="panel-dimension">
             <div className="grid gap-3">
-                {fields.map((field) => (
+                {dimFields.map((field) => (
                     <div key={field.name}>
                         <label className="pi-label">
                             {field.label} {field.unit ? `(${field.unit})` : ''}

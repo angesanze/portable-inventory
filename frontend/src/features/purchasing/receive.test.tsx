@@ -149,7 +149,7 @@ describe("PurchaseOrderReceive submit", () => {
         await waitFor(() => expect(mockReceiveAsync).toHaveBeenCalledTimes(1));
         const payload = mockReceiveAsync.mock.calls[0][0];
         expect(payload.values.receipts).toHaveLength(2);
-        expect(payload.values.receipts.map((r: any) => r.line_id)).toEqual(
+        expect(payload.values.receipts.map((r: { line_id: string }) => r.line_id)).toEqual(
             expect.arrayContaining(["line-001", "line-002"]),
         );
     });

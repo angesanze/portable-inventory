@@ -10,8 +10,8 @@ interface TrackerFormProps {
     identifierLocked: boolean;
     availableItems: PhysicalItem[];
     activeProduct: Product;
-    batchData: any;
-    setBatchData: (d: any) => void;
+    batchData: Record<string, string>;
+    setBatchData: (d: Record<string, string>) => void;
     handleMove: (isAdd: boolean) => Promise<void>;
     actionLoading: boolean;
 }

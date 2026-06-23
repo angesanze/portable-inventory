@@ -21,9 +21,10 @@ export const authProvider: AuthProvider = {
                     redirectTo: "/",
                 };
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Login failed:", error);
-            const errorMessage = error.response?.data?.detail || error.message || "Invalid username or password";
+            const axiosError = error as { response?: { data?: { detail?: string } }; message?: string };
+            const errorMessage = axiosError.response?.data?.detail || axiosError.message || "Invalid username or password";
             return {
                 success: false,
                 error: {
@@ -90,7 +91,7 @@ export const authProvider: AuthProvider = {
                 role: data.role ?? null,
                 license: data.license ?? null,
             };
-        } catch (error) {
+        } catch {
             return {
                 id: 0,
                 name: "Guest",

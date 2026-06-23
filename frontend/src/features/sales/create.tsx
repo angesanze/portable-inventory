@@ -2,7 +2,8 @@ import { useForm } from "@refinedev/core";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { OrderForm, buildOrderPayload, emptyLine, type LineDraft } from "./OrderForm";
+import { OrderForm } from "./OrderForm";
+import { buildOrderPayload, emptyLine, type LineDraft } from "./orderForm";
 
 export const SalesOrderCreate = () => {
     const { t } = useTranslation(["sales", "common"]);
@@ -18,9 +19,9 @@ export const SalesOrderCreate = () => {
     const [lines, setLines] = useState<LineDraft[]>([
         prefillProductId
             ? {
+                  ...emptyLine(),
                   product_model_id: prefillProductId,
                   quantity_ordered: prefillQty && parseFloat(prefillQty) > 0 ? prefillQty : "1",
-                  unit_price: "",
               }
             : emptyLine(),
     ]);

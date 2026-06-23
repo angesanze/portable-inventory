@@ -67,6 +67,9 @@ export const ChannelFormModal = ({ isOpen, onClose, onSuccess, channel }: Channe
     // Re-seed the form whenever the modal opens (create vs edit target).
     useEffect(() => {
         if (isOpen) {
+            // Prop-sync: hydrate the form from the edit target each time the modal
+            // opens; gated on `isOpen` so it runs only on open transitions.
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setForm(toFormState(channel));
             setErrors({});
         }

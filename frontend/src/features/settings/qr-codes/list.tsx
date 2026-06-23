@@ -7,6 +7,7 @@ import type { TFunction } from "i18next";
 import { QRCodeSVG } from 'qrcode.react';
 import { Eye, Settings, Lock, Unlock, Trash2, MoreVertical, QrCode } from "lucide-react";
 import { useQRActions } from './useQRActions';
+import type { QRCode, QRProductModel, QRApiKey, QRLocation, QRBatch, QRWorkOrder } from './types';
 import { PageHeader } from '../../../components/ui/PageHeader';
 import { Card } from '../../../components/ui/Card';
 import {
@@ -47,7 +48,7 @@ function statusLabel(status: string, t: TFunction): string {
 
 export const QRCodeList = () => {
     const { t } = useTranslation(["settings", "common"]);
-    const { data, isLoading, isError, refetch } = useList({ resource: "qr-codes" }) as any;
+    const { data, isLoading, isError, refetch } = useList<QRCode>({ resource: "qr-codes" });
 
     const { confirm, dialogProps } = useConfirmDialog();
     const {
@@ -59,7 +60,7 @@ export const QRCodeList = () => {
         handleDelete
     } = useQRActions(refetch);
 
-    const { data: productsData } = useList({ resource: "product-models" }) as any;
+    const { data: productsData } = useList<QRProductModel>({ resource: "product-models" });
     const products = Array.isArray(productsData?.data) ? productsData.data : [];
 
     // Developers manage multiple keys via the dropdown; managers own a single
@@ -68,15 +69,15 @@ export const QRCodeList = () => {
     const { capabilities } = useCapabilities();
     const canManageKeys = capabilities.manage_api_keys;
 
-    const { data: apiKeysData } = useList({
+    const { data: apiKeysData } = useList<QRApiKey>({
         resource: "api-keys",
         queryOptions: { enabled: canManageKeys },
-    }) as any;
+    });
     const apiKeys = Array.isArray(apiKeysData?.data) ? apiKeysData.data : [];
 
     const { apiKey: defaultKey } = useDefaultApiKey(!canManageKeys);
 
-    const { data: locationsData } = useList({ resource: "locations", pagination: { mode: 'off' } }) as any;
+    const { data: locationsData } = useList<QRLocation>({ resource: "locations", pagination: { mode: 'off' } });
     const locations = Array.isArray(locationsData?.data) ? locationsData.data : [];
 
     const [generateCount, setGenerateCount] = useState(5);
@@ -87,40 +88,43 @@ export const QRCodeList = () => {
     // Managers have no dropdown — transparently use their single default key.
     useEffect(() => {
         if (!canManageKeys && defaultKey) {
+            // Sync the async-loaded default key into selection for manager users;
+            // converges once `defaultKey` resolves.
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setSelectedApiKey(String(defaultKey.id));
         }
     }, [canManageKeys, defaultKey]);
 
-    const [showQR, setShowQR] = useState<any | null>(null);
-    const [configuring, setConfiguring] = useState<any | null>(null);
+    const [showQR, setShowQR] = useState<QRCode | null>(null);
+    const [configuring, setConfiguring] = useState<QRCode | null>(null);
     const [configProduct, setConfigProduct] = useState("");
     const [configBatch, setConfigBatch] = useState("");
     const [configWorkOrder, setConfigWorkOrder] = useState("");
 
     const qrCodes = Array.isArray(data?.data) ? data.data : [];
 
-    const { data: batchesData } = useList({
+    const { data: batchesData } = useList<QRBatch>({
         resource: "batches",
         queryOptions: { enabled: !!configProduct },
         filters: [{ field: "product_model", operator: "eq", value: configProduct }]
-    }) as any;
+    });
     const batches = Array.isArray(batchesData?.data) ? batchesData.data : [];
 
-    const { data: workOrdersData } = useList({
+    const { data: workOrdersData } = useList<QRWorkOrder>({
         resource: "work-orders",
         queryOptions: { enabled: !!configProduct },
         filters: [{ field: "product_model", operator: "eq", value: configProduct }]
-    }) as any;
+    });
     const workOrders = Array.isArray(workOrdersData?.data) ? workOrdersData.data : [];
 
-    const apiKeyOptions: SelectOption[] = apiKeys.map((k: any) => ({
+    const apiKeyOptions: SelectOption[] = apiKeys.map((k) => ({
         value: String(k.id),
         label: k.label,
     }));
 
     const locationOptions: SelectOption[] = [
         { value: "", label: t("settings:qrCodes.noneOption") },
-        ...locations.map((l: any) => ({
+        ...locations.map((l) => ({
             value: String(l.id),
             label: `${l.name} [${l.type}]`,
         })),
@@ -128,7 +132,7 @@ export const QRCodeList = () => {
 
     const productOptions: SelectOption[] = [
         { value: "", label: t("settings:qrCodes.notAssigned") },
-        ...products.map((p: any) => {
+        ...products.map((p) => {
             let typeLabel = "";
             if (p.profile === 'ASSEMBLED' || (p.components && p.components.length > 0)) typeLabel = t("settings:qrCodes.typeKit");
             else if (p.profile === 'BATCH_TRACKED' || p.profile === 'PERISHABLE') typeLabel = t("settings:qrCodes.typeBatch");
@@ -141,7 +145,7 @@ export const QRCodeList = () => {
 
     const batchOptions: SelectOption[] = [
         { value: "", label: t("settings:qrCodes.noneOption") },
-        ...batches.map((b: any) => ({
+        ...batches.map((b) => ({
             value: String(b.id),
             label: `${t("settings:qrCodes.batchItemPrefix")} ${b.batch_identifier || b.identifier || t("settings:qrCodes.untitled")}`,
         })),
@@ -149,7 +153,7 @@ export const QRCodeList = () => {
 
     const workOrderOptions: SelectOption[] = [
         { value: "", label: t("settings:qrCodes.genericProduct") },
-        ...workOrders.map((wo: any) => ({
+        ...workOrders.map((wo) => ({
             value: String(wo.id),
             label: `${t("settings:qrCodes.batchPrefix")} ${wo.name}`,
         })),
@@ -278,7 +282,7 @@ export const QRCodeList = () => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {qrCodes.map((qr: any) => (
+                        {qrCodes.map((qr) => (
                             <TableRow key={qr.id}>
                                 <TableCell className="font-mono font-medium text-zinc-200">
                                     {qr.code}
@@ -354,7 +358,7 @@ export const QRCodeList = () => {
             {/* Show QR Modal */}
             {showQR && (
                 <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setShowQR(null)}>
-                    <Card padding="none" className="p-8 max-w-sm w-full flex flex-col items-center flex-none" onClick={(e: any) => e.stopPropagation()}>
+                    <Card padding="none" className="p-8 max-w-sm w-full flex flex-col items-center flex-none" onClick={(e) => e.stopPropagation()}>
                         <h3 className="text-xl font-semibold text-zinc-50 mb-2">{t("settings:qrCodes.showTitle", { code: showQR.code })}</h3>
                         <p className="text-zinc-400 text-sm mb-6 text-center">{showQR.target_display}</p>
                         <div className="bg-white p-4 rounded-xl mb-4">
@@ -371,7 +375,7 @@ export const QRCodeList = () => {
             {/* Configure Modal */}
             {configuring && (
                 <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setConfiguring(null)}>
-                    <Card className="max-w-md w-full flex-none" onClick={(e: any) => e.stopPropagation()}>
+                    <Card className="max-w-md w-full flex-none" onClick={(e) => e.stopPropagation()}>
                         <h3 className="text-xl font-semibold text-zinc-50 mb-6">{t("settings:qrCodes.configureTitle", { code: configuring.code })}</h3>
                         <div className="space-y-4">
                             <div>

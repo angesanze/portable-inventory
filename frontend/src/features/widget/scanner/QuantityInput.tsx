@@ -79,7 +79,6 @@ export const QuantityInput: React.FC<QuantityInputProps> = ({
     dimensionFormula,
     dimensionComputedUnit,
     showExpiryDate,
-    timeUnit,
 }) => {
     const [display, setDisplay] = useState("0");
     const [hasDecimal, setHasDecimal] = useState(false);

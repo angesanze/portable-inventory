@@ -7,36 +7,8 @@ import { Input } from "../../../components/ui/Input";
 import { Select } from "../../../components/ui/Select";
 import { Button } from "../../../components/ui/Button";
 import { FormErrorBanner } from "../../../components/ui/ErrorState";
-
-export interface LineDraft {
-    product_model_id: string;
-    quantity_sent: string;
-}
-
-export const emptyLine = (): LineDraft => ({
-    product_model_id: "",
-    quantity_sent: "1",
-});
-
-/** Build the API payload from the form state. */
-export function buildTransferPayload(args: {
-    fromLocationId: string;
-    toLocationId: string;
-    notes: string;
-    lines: LineDraft[];
-}) {
-    return {
-        from_location_id: args.fromLocationId,
-        to_location_id: args.toLocationId,
-        notes: args.notes,
-        lines: args.lines
-            .filter((l) => l.product_model_id && parseFloat(l.quantity_sent) > 0)
-            .map((l) => ({
-                product_model_id: l.product_model_id,
-                quantity_sent: l.quantity_sent,
-            })),
-    };
-}
+import type { TransferLocationRow, TransferProductRow } from "./types";
+import { emptyLine, type LineDraft } from "./transferForm";
 
 interface TransferFormProps {
     title: string;
@@ -72,24 +44,24 @@ export const TransferForm = ({
 }: TransferFormProps) => {
     const { t } = useTranslation(["transfers", "common"]);
 
-    const { data: locationsData } = useList({
+    const { data: locationsData } = useList<TransferLocationRow>({
         resource: "locations",
         pagination: { mode: "off" },
     });
-    const { data: productsData } = useList({
+    const { data: productsData } = useList<TransferProductRow>({
         resource: "product-models",
         pagination: { mode: "off" },
     });
 
     const realLocations = (locationsData?.data || []).filter(
-        (l: any) => l.type === "WAREHOUSE" || l.type === "STORE",
+        (l) => l.type === "WAREHOUSE" || l.type === "STORE",
     );
-    const locationOptions = realLocations.map((l: any) => ({
+    const locationOptions = realLocations.map((l) => ({
         value: l.id,
         label: l.name,
         description: l.type,
     }));
-    const productOptions = (productsData?.data || []).map((p: any) => ({
+    const productOptions = (productsData?.data || []).map((p) => ({
         value: p.id,
         label: p.name,
         description: p.sku,
@@ -164,7 +136,7 @@ export const TransferForm = ({
                 )}
                 {lines.map((line, index) => (
                     <div
-                        key={index}
+                        key={line._key}
                         className="flex flex-col sm:flex-row gap-3 sm:items-end border border-white/[0.06] rounded-lg p-3"
                         data-testid={`transfer-line-${index}`}
                     >

@@ -9,6 +9,11 @@ import { Select } from "../../../components/ui/Select";
 import { FormErrorBanner } from "../../../components/ui/ErrorState";
 import { InfoTip } from "../../../components/ui/InfoTip";
 import { BatchLineItemsInput } from "./components/BatchLineItemsInput";
+import type {
+    WorkOrderProductModel,
+    WorkOrderLineItem,
+    WorkOrderPayloadItem,
+} from "./listTypes";
 
 // Persisted to the description field as a tag prefix (audit data) — kept in English.
 const PURPOSE_LABELS: Record<string, string> = {
@@ -71,7 +76,7 @@ export const WorkOrderCreate = () => {
     const [purpose, setPurpose] = useState<string | number | null>(null);
     const [status, setStatus] = useState<string | number>("OPEN");
     const [selectedModelId, setSelectedModelId] = useState<string | number | null>(null);
-    const [items, setItems] = useState<any[]>([]);
+    const [items, setItems] = useState<WorkOrderLineItem[]>([]);
 
     const { onFinish, mutationResult } = useForm({
         action: "create",
@@ -79,26 +84,26 @@ export const WorkOrderCreate = () => {
         redirect: false,
     });
 
-    const { data: productModels } = useList({
+    const { data: productModels } = useList<WorkOrderProductModel>({
         resource: "product-models",
         pagination: { mode: "off" },
     });
 
     const definitionOptions = (productModels?.data || [])
-        .filter((p: any) => p.engine_type === "bucket")
-        .map((p: any) => ({
+        .filter((p) => p.engine_type === "bucket")
+        .map((p) => ({
             label: `${p.sku} - ${p.name}`,
             value: p.id,
         }));
 
     const componentOptions = (productModels?.data || [])
-        .filter((p: any) => p.engine_type !== "bucket")
-        .map((p: any) => ({
+        .filter((p) => p.engine_type !== "bucket")
+        .map((p) => ({
             label: `${p.sku} - ${p.name}`,
             value: p.id,
         }));
 
-    const { data: selectedModelDetails } = useOne({
+    const { data: selectedModelDetails } = useOne<WorkOrderProductModel>({
         resource: "product-models",
         id: selectedModelId as string,
         queryOptions: {
@@ -112,14 +117,17 @@ export const WorkOrderCreate = () => {
         if (selectedModelDetails?.data?.components && productModels?.data) {
             if (lastProcessedModelId.current === selectedModelId) return;
 
-            const newItems = selectedModelDetails.data.components.map((c: any) => ({
+            const newItems: WorkOrderLineItem[] = selectedModelDetails.data.components.map((c) => ({
                 product_model_id: c.child,
-                quantity: parseFloat(c.quantity),
+                quantity: parseFloat(String(c.quantity)),
                 temp_serials: [],
                 locked: true,
                 key: Math.random(),
             }));
 
+            // Seed line items from the fetched model's BOM; guarded by the ref
+            // above so it runs once per model selection (async fetch → setState).
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setItems(newItems);
             lastProcessedModelId.current = selectedModelId as string;
         }
@@ -127,11 +135,11 @@ export const WorkOrderCreate = () => {
 
     const handleSubmit = async () => {
         try {
-            const payloadItems: any[] = [];
+            const payloadItems: WorkOrderPayloadItem[] = [];
 
             items.forEach((item) => {
                 const model = (productModels?.data || []).find(
-                    (p: any) => p.id === item.product_model_id,
+                    (p) => p.id === item.product_model_id,
                 );
                 const isSerialized = model?.profile === "SERIALIZED" || model?.tracking_mode === "INDIVIDUAL";
 

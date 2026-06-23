@@ -7,39 +7,8 @@ import { Input } from "../../components/ui/Input";
 import { Select } from "../../components/ui/Select";
 import { Button } from "../../components/ui/Button";
 import { FormErrorBanner } from "../../components/ui/ErrorState";
-
-export interface LineDraft {
-    product_model_id: string;
-    quantity_ordered: string;
-    unit_price: string;
-}
-
-export const emptyLine = (): LineDraft => ({
-    product_model_id: "",
-    quantity_ordered: "1",
-    unit_price: "",
-});
-
-/** Build the API payload from the form state (shared by create/edit). */
-export function buildOrderPayload(args: {
-    customerId: string;
-    promisedAt: string;
-    notes: string;
-    lines: LineDraft[];
-}) {
-    return {
-        customer_id: args.customerId,
-        promised_at: args.promisedAt || null,
-        notes: args.notes,
-        lines: args.lines
-            .filter((l) => l.product_model_id)
-            .map((l) => ({
-                product_model_id: l.product_model_id,
-                quantity_ordered: l.quantity_ordered,
-                unit_price: l.unit_price === "" ? null : l.unit_price,
-            })),
-    };
-}
+import type { SalesCustomerRow, SalesProductRow } from "./types";
+import { emptyLine, type LineDraft } from "./orderForm";
 
 interface OrderFormProps {
     title: string;
@@ -75,22 +44,22 @@ export const OrderForm = ({
 }: OrderFormProps) => {
     const { t } = useTranslation(["sales", "common"]);
 
-    const { data: customersData } = useList({
+    const { data: customersData } = useList<SalesCustomerRow>({
         resource: "customers",
         pagination: { mode: "off" },
         filters: [{ field: "is_active", operator: "eq", value: true }],
     });
-    const { data: productsData } = useList({
+    const { data: productsData } = useList<SalesProductRow>({
         resource: "product-models",
         pagination: { mode: "off" },
     });
 
-    const customerOptions = (customersData?.data || []).map((c: any) => ({
+    const customerOptions = (customersData?.data || []).map((c) => ({
         value: c.id,
         label: c.name,
         description: c.vat_number || undefined,
     }));
-    const productOptions = (productsData?.data || []).map((p: any) => ({
+    const productOptions = (productsData?.data || []).map((p) => ({
         value: p.id,
         label: p.name,
         description: p.sku,
@@ -157,7 +126,7 @@ export const OrderForm = ({
                 )}
                 {lines.map((line, index) => (
                     <div
-                        key={index}
+                        key={line._key}
                         className="flex flex-col sm:flex-row gap-3 sm:items-end border border-white/[0.06] rounded-lg p-3"
                         data-testid={`order-line-${index}`}
                     >

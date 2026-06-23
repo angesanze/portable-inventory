@@ -2,7 +2,6 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Badge, type BadgeVariant } from "./Badge";
-import { Button } from "./Button";
 import { SkeletonDetailPage } from "./Skeleton";
 
 export interface DetailPageBadge {

@@ -52,6 +52,7 @@ export const ActingTenantProvider: React.FC<{ children: React.ReactNode }> = ({ 
  * `ActingTenantProvider` so misuse fails loudly rather than silently
  * dropping the `X-Acting-Company` header.
  */
+// eslint-disable-next-line react-refresh/only-export-components -- the hook is intentionally co-located with its ActingTenantProvider (canonical context+consumer pairing); splitting it to a sibling module would fan out its import sites for a dev-only HMR optimization.
 export const useActingTenant = (): ActingTenantContextValue => {
     const ctx = useContext(ActingTenantContext);
     if (!ctx) {

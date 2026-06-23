@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Package, Trash2, Plus, Check, X } from "lucide-react";
-import type { WidgetData } from "../../types";
+import type { BatchManagerData } from "../../types";
 
 interface MessageState {
     type: 'success' | 'error';
@@ -9,11 +9,13 @@ interface MessageState {
 }
 
 interface BatchManagerPanelProps {
-    data: WidgetData;
+    data: BatchManagerData;
     submitting: boolean;
     message: MessageState | null;
     onBatchTransaction: (
-        modelId: string,
+        // A batch_manager grouped entry exposes its id under `model.id`, not a
+        // top-level `product_model_id`, so callers may pass undefined.
+        modelId: string | undefined,
         delta: number,
         identifier?: string | null,
         physicalProductId?: string | null,
@@ -27,11 +29,12 @@ export const BatchManagerPanel: React.FC<BatchManagerPanelProps> = ({
     const { t } = useTranslation('widget');
     const [serialInputs, setSerialInputs] = useState<Record<string, string>>({});
     // Inline withdraw editor — replaces the native window.prompt() dialog (UI Native-Style Audit P07).
-    const [withdrawFor, setWithdrawFor] = useState<string | null>(null);
+    // Tracks the open lot by its `batch_id`, which is optional on the row shape.
+    const [withdrawFor, setWithdrawFor] = useState<string | null | undefined>(null);
     const [withdrawQty, setWithdrawQty] = useState("1");
-    const items = Object.values((data as any).grouped_items || {});
+    const items = Object.values(data.grouped_items || {});
 
-    const confirmWithdraw = (modelId: string, batchId: string) => {
+    const confirmWithdraw = (modelId: string | undefined, batchId: string | undefined) => {
         const val = parseFloat(withdrawQty);
         if (withdrawQty && !isNaN(val) && val > 0) {
             onBatchTransaction(modelId, -val, null, null, batchId);
@@ -73,9 +76,13 @@ export const BatchManagerPanel: React.FC<BatchManagerPanelProps> = ({
                     </div>
                 </div>
 
-                {items.map((model: any) => (
+                {items.map((model) => {
+                    // The id is read from the flat `product_model_id`; assert here so it
+                    // can key the `serialInputs` record (runtime value unchanged).
+                    const modelId = model.product_model_id as string;
+                    return (
                     <div
-                        key={model.product_model_id}
+                        key={modelId}
                         className="pi-card-dark rounded-3xl overflow-hidden shadow-2xl backdrop-blur-sm"
                         style={{ backgroundColor: 'var(--pi-surface)' }}
                     >
@@ -127,7 +134,7 @@ export const BatchManagerPanel: React.FC<BatchManagerPanelProps> = ({
                                     >
                                         {model.total_quantity !== undefined
                                             ? model.total_quantity
-                                            : model.items.reduce((acc: number, item: any) => acc + (Number(item.quantity) || 1), 0)
+                                            : model.items.reduce((acc: number, item) => acc + (Number(item.quantity) || 1), 0)
                                         }
                                     </div>
                                     <div
@@ -152,7 +159,7 @@ export const BatchManagerPanel: React.FC<BatchManagerPanelProps> = ({
                                             {t('panels.batchManager.activeLots')}
                                         </label>
                                         <div className="grid gap-2">
-                                            {model.items.map((batch: any) => (
+                                            {model.items.map((batch) => (
                                                 <div
                                                     key={batch.batch_id}
                                                     className="rounded-2xl p-4 flex items-center justify-between transition-colors"
@@ -180,7 +187,7 @@ export const BatchManagerPanel: React.FC<BatchManagerPanelProps> = ({
                                                                     value={withdrawQty}
                                                                     onChange={(e) => setWithdrawQty(e.target.value)}
                                                                     onKeyDown={(e) => {
-                                                                        if (e.key === 'Enter') confirmWithdraw(model.product_model_id, batch.id);
+                                                                        if (e.key === 'Enter') confirmWithdraw(modelId, batch.id);
                                                                         if (e.key === 'Escape') setWithdrawFor(null);
                                                                     }}
                                                                     disabled={submitting}
@@ -194,7 +201,7 @@ export const BatchManagerPanel: React.FC<BatchManagerPanelProps> = ({
                                                                     }}
                                                                 />
                                                                 <button
-                                                                    onClick={() => confirmWithdraw(model.product_model_id, batch.id)}
+                                                                    onClick={() => confirmWithdraw(modelId, batch.id)}
                                                                     disabled={submitting}
                                                                     aria-label="Confirm withdrawal"
                                                                     className="p-2 rounded-xl transition-all duration-150 active:scale-90"
@@ -262,7 +269,7 @@ export const BatchManagerPanel: React.FC<BatchManagerPanelProps> = ({
                                             {t('panels.batchComposition.assignedSerials')}
                                         </label>
                                         <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1 scroll-thin">
-                                            {model.items.map((item: any) => (
+                                            {model.items.map((item) => (
                                                 <div
                                                     key={item.id}
                                                     className="rounded-xl p-3 flex justify-between items-center group"
@@ -274,7 +281,7 @@ export const BatchManagerPanel: React.FC<BatchManagerPanelProps> = ({
                                                     <span className="font-mono text-sm font-bold" style={{ color: 'var(--pi-primary, #3b82f6)' }}>{item.identifier}</span>
                                                     <button
                                                         onClick={async () => {
-                                                            await onBatchTransaction(model.product_model_id, -1, item.identifier, item.id);
+                                                            await onBatchTransaction(modelId, -1, item.identifier, item.id);
                                                         }}
                                                         className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors duration-150"
                                                         style={{ color: 'var(--pi-muted, #64748b)' }}
@@ -305,7 +312,7 @@ export const BatchManagerPanel: React.FC<BatchManagerPanelProps> = ({
                                             <div className="relative flex-1">
                                                 <input
                                                     type="text"
-                                                    list={`candidates-${model.product_model_id}`}
+                                                    list={`candidates-${modelId}`}
                                                     placeholder={t('panels.batchManager.scanOrSearchSerial')}
                                                     className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-colors duration-150 font-mono"
                                                     style={{
@@ -313,35 +320,35 @@ export const BatchManagerPanel: React.FC<BatchManagerPanelProps> = ({
                                                         border: '1px solid var(--pi-border)',
                                                         color: 'var(--pi-text)',
                                                     }}
-                                                    value={serialInputs[model.product_model_id] || ""}
-                                                    onChange={(e) => setSerialInputs({ ...serialInputs, [model.product_model_id]: e.target.value })}
+                                                    value={serialInputs[modelId] || ""}
+                                                    onChange={(e) => setSerialInputs({ ...serialInputs, [modelId]: e.target.value })}
                                                     onKeyDown={(e) => {
                                                         if (e.key === 'Enter') {
-                                                            const val = serialInputs[model.product_model_id];
+                                                            const val = serialInputs[modelId];
                                                             if (val) {
-                                                                const candidate = model.candidates?.find((c: any) => c.identifier === val);
-                                                                onBatchTransaction(model.product_model_id, 1, val, candidate?.id);
-                                                                setSerialInputs({ ...serialInputs, [model.product_model_id]: "" });
+                                                                const candidate = model.candidates?.find((c) => c.identifier === val);
+                                                                onBatchTransaction(modelId, 1, val, candidate?.id);
+                                                                setSerialInputs({ ...serialInputs, [modelId]: "" });
                                                             }
                                                         }
                                                     }}
                                                 />
-                                                <datalist id={`candidates-${model.product_model_id}`}>
-                                                    {model.candidates && model.candidates.map((c: any) => (
+                                                <datalist id={`candidates-${modelId}`}>
+                                                    {model.candidates && model.candidates.map((c) => (
                                                         <option key={c.id} value={c.identifier} />
                                                     ))}
                                                 </datalist>
                                             </div>
                                             <button
                                                 onClick={() => {
-                                                    const val = serialInputs[model.product_model_id];
+                                                    const val = serialInputs[modelId];
                                                     if (val) {
-                                                        const candidate = model.candidates?.find((c: any) => c.identifier === val);
-                                                        onBatchTransaction(model.product_model_id, 1, val, candidate?.id);
-                                                        setSerialInputs({ ...serialInputs, [model.product_model_id]: "" });
+                                                        const candidate = model.candidates?.find((c) => c.identifier === val);
+                                                        onBatchTransaction(modelId, 1, val, candidate?.id);
+                                                        setSerialInputs({ ...serialInputs, [modelId]: "" });
                                                     }
                                                 }}
-                                                disabled={!serialInputs[model.product_model_id] || submitting}
+                                                disabled={!serialInputs[modelId] || submitting}
                                                 className="px-5 rounded-xl transition-all duration-150 shadow-lg active:scale-95"
                                                 style={{ backgroundColor: 'var(--pi-primary, #3b82f6)', color: '#fff' }}
                                             >
@@ -354,7 +361,8 @@ export const BatchManagerPanel: React.FC<BatchManagerPanelProps> = ({
                             )}
                         </div>
                     </div>
-                ))}
+                    );
+                })}
 
                 {items.length === 0 && (
                     <div

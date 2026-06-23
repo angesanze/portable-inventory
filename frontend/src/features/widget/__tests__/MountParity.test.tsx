@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { TransactionWidget } from "../app/TransactionWidget";
 import { PolymorphicWidget } from "../app/PolymorphicWidget";
+import type { ProductComponent } from "../types";
 
 /**
  * Phase 07 mount-point parity.
@@ -46,7 +47,7 @@ interface ProductFixture {
     inputType: string;
     quantity: number;
     transitions?: Record<string, string[]>;
-    components?: any[];
+    components?: ProductComponent[];
 }
 
 const FIXTURES: Record<string, ProductFixture> = {

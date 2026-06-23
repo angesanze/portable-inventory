@@ -5,8 +5,8 @@ import { safeEvalFormula } from '../calculator/utils';
 
 interface DimensionFormProps {
     uiConfig: UiConfig | undefined;
-    batchData: any;
-    setBatchData: (d: any) => void;
+    batchData: Record<string, string>;
+    setBatchData: (d: Record<string, string>) => void;
     handleMove: (isAdd: boolean) => Promise<void>;
     actionLoading: boolean;
 }
@@ -20,16 +20,18 @@ export const DimensionForm: React.FC<DimensionFormProps> = ({
 }) => {
     const { t } = useTranslation('widget');
     const fields = uiConfig?.fields || [];
-    const formula: string = (uiConfig as any)?.formula || '';
-    const computedUnit: string = (uiConfig as any)?.computed_unit || '';
+    const formula: string = uiConfig?.formula || '';
+    const computedUnit: string = uiConfig?.computed_unit || '';
 
-    const allFilled = fields.every((f: any) => batchData[f.name] && parseFloat(batchData[f.name]) > 0);
+    // Dimension fields always carry a `name`; the shared UiConfigField type keeps
+    // it optional for bucket forms, so assert the key here (runtime unchanged).
+    const allFilled = fields.every(f => batchData[f.name as string] && parseFloat(batchData[f.name as string]) > 0);
     let computedValue: number | null = null;
     if (allFilled && formula) {
         try {
             let expr = formula;
-            fields.forEach((f: any) => {
-                expr = expr.replace(new RegExp(`\\b${f.name}\\b`, 'g'), String(parseFloat(batchData[f.name]) || 0));
+            fields.forEach(f => {
+                expr = expr.replace(new RegExp(`\\b${f.name}\\b`, 'g'), String(parseFloat(batchData[f.name as string]) || 0));
             });
             const evaluated = safeEvalFormula(expr);
             if (!isNaN(evaluated)) {
@@ -53,7 +55,7 @@ export const DimensionForm: React.FC<DimensionFormProps> = ({
                 <span className="text-lg">📐</span> {t('panels.dimensionForm.title')}
             </h3>
             <div className="space-y-3">
-                {fields.map((field: any) => (
+                {fields.map(field => (
                     <div key={field.name}>
                         <label className="pi-label">
                             {field.label} {field.unit ? `(${field.unit})` : ''}
@@ -62,8 +64,8 @@ export const DimensionForm: React.FC<DimensionFormProps> = ({
                             type="number"
                             step="any"
                             placeholder={`Enter ${field.label.toLowerCase()}`}
-                            value={batchData[field.name] || ''}
-                            onChange={e => setBatchData({ ...batchData, [field.name]: e.target.value })}
+                            value={batchData[field.name as string] || ''}
+                            onChange={e => setBatchData({ ...batchData, [field.name as string]: e.target.value })}
                             className="pi-input text-lg font-bold text-center"
                         />
                     </div>

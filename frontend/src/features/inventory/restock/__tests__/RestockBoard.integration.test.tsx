@@ -9,7 +9,9 @@ import type { BoardResponse } from "../types";
 // recharts has no layout in jsdom; passthrough every primitive the board,
 // card sparklines and drawer history chart touch.
 vi.mock("recharts", () => {
-    const passthrough = ({ children }: any) => <div>{children}</div>;
+    const passthrough = ({ children }: { children?: React.ReactNode }) => (
+        <div>{children}</div>
+    );
     return {
         ResponsiveContainer: passthrough,
         LineChart: passthrough,

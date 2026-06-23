@@ -87,12 +87,19 @@ export function BulkStockEditor({
             });
             setEditing(false);
             onUpdated();
-        } catch (err: any) {
+        } catch (err) {
+            // axios rejects with an error whose `response.data` is either the
+            // DRF error object (`{ detail }`) or a list of strings (`[0]`).
+            const data = (
+                err as {
+                    response?: { data?: { detail?: string } & Record<number, string> };
+                }
+            )?.response?.data;
             open?.({
                 message: t("common:error"),
                 description:
-                    err?.response?.data?.detail ||
-                    err?.response?.data?.[0] ||
+                    data?.detail ||
+                    data?.[0] ||
                     t("products:adjustmentFailed"),
                 type: "error",
             });

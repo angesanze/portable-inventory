@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useState } from 'react'
 
 interface ThemeConfig {
   primaryColor?: string
@@ -43,19 +43,23 @@ function deserializeTheme(encoded: string): ThemeConfig {
  * to the provided container ref. Falls back to defaults when no theme present.
  */
 export function useTheme(containerRef: React.RefObject<HTMLElement | null>) {
-  const theme = useRef<ThemeConfig>(DEFAULT_THEME)
+  const [theme, setTheme] = useState<ThemeConfig>(DEFAULT_THEME)
 
   useEffect(() => {
     const params = new URL(window.location.href).searchParams
     const encoded = params.get('theme')
+    const t: ThemeConfig = encoded
+      ? { ...DEFAULT_THEME, ...deserializeTheme(encoded) }
+      : DEFAULT_THEME
     if (encoded) {
-      theme.current = { ...DEFAULT_THEME, ...deserializeTheme(encoded) }
+      // One-time sync of immutable URL-derived theme into state for the return
+      // value; runs once per containerRef and converges immediately.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTheme(t)
     }
 
     const el = containerRef.current
     if (!el) return
-
-    const t = theme.current
     // Apply tokens to BOTH the container (descendant scope) and
     // documentElement (so portal-mounted nodes — e.g. <Select>'s
     // CustomDropdown listbox, which createPortal'd into document.body —
@@ -79,5 +83,5 @@ export function useTheme(containerRef: React.RefObject<HTMLElement | null>) {
     }
   }, [containerRef])
 
-  return theme.current
+  return theme
 }

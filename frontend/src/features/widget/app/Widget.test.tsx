@@ -58,7 +58,7 @@ const mockLocations = [
 const fetchMock = vi.fn();
 vi.stubGlobal('fetch', fetchMock);
 
-function setupFetchMock(products: any[]) {
+function setupFetchMock(products: Record<string, unknown>[]) {
     fetchMock.mockImplementation((url: string) => {
         if (url.includes("/widget/locations")) {
             return Promise.resolve({
@@ -139,8 +139,8 @@ describe("Widget Component", () => {
         fireEvent.click(screen.getByText("Check In"));
 
         await waitFor(() => {
-            const calls = fetchMock.mock.calls;
-            const moveCall = calls.find((call: any) => call[0].includes("/widget/move/"));
+            const calls = fetchMock.mock.calls as [string, RequestInit?][];
+            const moveCall = calls.find((call) => call[0].includes("/widget/move/"));
             expect(moveCall).toBeDefined();
         });
     });

@@ -37,7 +37,9 @@ import { fetchAllPages } from "../../utils/fetchAllPages";
 import {
     SALES_ORDER_EXPORT_COLUMNS,
     SALES_ORDER_EXPORT_FILENAME,
+    type SalesOrderExportRow,
 } from "./exportColumns";
+import type { SalesOrderRecord } from "./types";
 
 const STATUS_VARIANTS: Record<string, BadgeVariant> = {
     DRAFT: "neutral",
@@ -73,13 +75,15 @@ export const SalesOrderList = () => {
         return result;
     }, [search, statusFilter]);
 
-    const { data: listData, isLoading, isError, refetch } = useList({
+    const { data: listData, isLoading, isError, refetch } = useList<SalesOrderRecord>({
         resource: "sales-orders",
         filters: crudFilters,
         sorters: [{ field: "created_at", order: "desc" }],
-    }) as any;
+    });
 
-    const orders = Array.isArray(listData?.data) ? listData.data : [];
+    const orders: SalesOrderRecord[] = Array.isArray(listData?.data)
+        ? listData.data
+        : [];
 
     const { mutate: deleteOrder } = useDelete();
     const { mutateAsync: postAction } = useCustomMutation();
@@ -92,7 +96,7 @@ export const SalesOrderList = () => {
             const params: Record<string, string> = {};
             if (search) params.search = search;
             if (statusFilter) params.status = statusFilter;
-            const all = await fetchAllPages<any>(`${API_URL}/api/v1/sales-orders/`, params);
+            const all = await fetchAllPages<SalesOrderExportRow>(`${API_URL}/api/v1/sales-orders/`, params);
             exportToExcel(all, SALES_ORDER_EXPORT_COLUMNS, `${SALES_ORDER_EXPORT_FILENAME}.xlsx`);
         } finally {
             setExporting(false);
@@ -208,7 +212,7 @@ export const SalesOrderList = () => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {orders.map((so: any) => {
+                        {orders.map((so) => {
                             const isDraft = so.status === "DRAFT";
                             return (
                                 <TableRow
@@ -228,7 +232,7 @@ export const SalesOrderList = () => {
                                     </TableCell>
                                     <TableCell>
                                         <Badge variant={STATUS_VARIANTS[so.status] ?? "neutral"}>
-                                            {t(`status.${so.status}`, so.status)}
+                                            {t(`status.${so.status}`, String(so.status))}
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-zinc-400 text-sm">

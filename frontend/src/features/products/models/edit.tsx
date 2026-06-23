@@ -1,5 +1,6 @@
 
 import { useForm, useList, useCustom } from "@refinedev/core";
+import type { HttpError } from "@refinedev/core";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -14,6 +15,13 @@ import { PROFILE_METADATA, type InventoryProfile, type CalculatorTemplate } from
 import { API_URL } from "../../../config";
 import { BulkStockEditor } from "./BulkStockEditor";
 import { EngineConfigForm } from "../../settings/calculators/EngineConfigForm";
+import type {
+    ProductModelEditRecord,
+    ProductModelEditValues,
+    ComponentItem,
+    ComponentModelOption,
+    StockLevelSummary,
+} from "../types";
 
 function formatPresetValue(val: unknown, t: (key: string) => string): string {
     if (typeof val === "boolean") return val ? t("common:yes") : t("common:no");
@@ -32,41 +40,45 @@ export const ProductModelEdit = () => {
     const navigate = useNavigate();
     const { t } = useTranslation(["products", "common"]);
 
-    const { onFinish, queryResult, mutationResult } = useForm({
+    const { onFinish, queryResult, mutationResult } = useForm<
+        ProductModelEditRecord,
+        HttpError,
+        ProductModelEditValues
+    >({
         action: "edit",
         resource: "product-models",
         id: id,
         redirect: false,
-    }) as any;
+    });
 
-    const [componentItems, setComponentItems] = useState<any[]>([]);
+    const [componentItems, setComponentItems] = useState<ComponentItem[]>([]);
     const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
     const [engineConfig, setEngineConfig] = useState<Record<string, unknown>>({});
 
-    const { data: calculatorTemplates } = useList({
+    const { data: calculatorTemplates } = useList<CalculatorTemplate>({
         resource: "calculator-templates",
         pagination: { mode: "off" },
-    }) as any;
+    });
 
     // Current stock level — drives the inline BULK giacenza editor below.
-    const { data: stockData, refetch: refetchStock } = useCustom({
+    const { data: stockData, refetch: refetchStock } = useCustom<StockLevelSummary>({
         url: `${API_URL}/api/v1/stock/${id}/level`,
         method: "get",
         queryOptions: { enabled: !!id },
-    }) as any;
+    });
     const stockTotal = Number(stockData?.data?.total || 0);
 
-    const { data: productModels } = useList({
+    const { data: productModels } = useList<ComponentModelOption>({
         resource: "product-models",
         pagination: { mode: "off" },
-    }) as any;
+    });
 
     const modelOptions = (productModels?.data || [])
-        .filter((p: any) => {
+        .filter((p) => {
             const meta = p.profile ? PROFILE_METADATA[p.profile as InventoryProfile] : null;
             return meta ? !meta.supportsBatches : p.engine_type !== "bucket";
         })
-        .map((p: any) => ({
+        .map((p) => ({
             label: `${p.sku} - ${p.name}`,
             value: p.id,
         }));
@@ -75,10 +87,12 @@ export const ProductModelEdit = () => {
         if (queryResult?.data?.data) {
             const data = queryResult.data.data;
             if (data.components) {
+                // Hydrate component rows from the fetched model (async fetch → setState).
+                // eslint-disable-next-line react-hooks/set-state-in-effect
                 setComponentItems(
-                    data.components.map((c: any) => ({
+                    data.components.map((c) => ({
                         product_model_id: c.child,
-                        quantity: parseFloat(c.quantity),
+                        quantity: parseFloat(String(c.quantity)),
                         key: Math.random(),
                     }))
                 );
@@ -103,7 +117,7 @@ export const ProductModelEdit = () => {
     const handleSave = async (e: React.FormEvent) => {
         const form = e.target as HTMLFormElement;
         const formData = new FormData(form);
-        const values: any = Object.fromEntries(formData.entries());
+        const values: ProductModelEditValues = Object.fromEntries(formData.entries());
 
         values.components = componentItems.map((c) => ({
             child: c.product_model_id,
@@ -380,7 +394,7 @@ export const ProductModelEdit = () => {
                                         setComponentItems(updated);
                                     }}
                                     placeholder={t("products:selectModelPlaceholder")}
-                                    options={modelOptions.filter((m: any) => m.value !== id)}
+                                    options={modelOptions.filter((m) => m.value !== id)}
                                 />
                             </div>
                             <div className="w-24">

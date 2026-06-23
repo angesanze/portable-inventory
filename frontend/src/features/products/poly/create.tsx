@@ -1,17 +1,24 @@
 import { useState } from "react";
 import { useForm, useSelect } from "@refinedev/core";
+import type { BaseRecord, HttpError } from "@refinedev/core";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Select, type SelectOption } from "../../../components/ui/Select";
 
+/**
+ * Fields posted by the poly-create form, collected from `FormData`
+ * (the `name` and `product_model` inputs).
+ */
+type PolyCreateValues = Record<string, FormDataEntryValue>;
+
 export const ProductPolyCreate = () => {
     const { t } = useTranslation(["products", "common"]);
     const navigate = useNavigate();
-    const { onFinish, mutation } = useForm({
+    const { onFinish, mutation } = useForm<BaseRecord, HttpError, PolyCreateValues>({
         action: "create",
         resource: "products-poly",
         redirect: false,
-    }) as any;
+    });
 
     const { options: modelOptions } = useSelect({
         resource: "product-models",

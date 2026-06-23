@@ -1,5 +1,5 @@
 import { useList, useDelete, useUpdate, useApiUrl } from "@refinedev/core";
-import { Key, Trash2, ShieldCheck, ShieldAlert, RefreshCw, Copy, AlertTriangle, Plus, MoreVertical, KeyRound } from "lucide-react";
+import { Trash2, RefreshCw, Copy, AlertTriangle, Plus, MoreVertical, KeyRound } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
@@ -23,6 +23,7 @@ import { SkeletonRow } from "../../../components/ui/Skeleton";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { ErrorState } from "../../../components/ui/ErrorState";
 import { useToast } from "../../../components/ui/Toast";
+import type { ApiKey } from "./types";
 
 const PERMISSION_LABEL_KEYS: Record<string, string> = {
     read: "read",
@@ -72,9 +73,9 @@ export const ApiKeyList = () => {
     const [rotatedKey, setRotatedKey] = useState<{ id: string; key: string } | null>(null);
     const apiUrl = useApiUrl();
 
-    const { data: listData, isLoading, isError, refetch } = useList({
+    const { data: listData, isLoading, isError, refetch } = useList<ApiKey>({
         resource: "api-keys",
-    }) as any;
+    });
 
     const { mutate: deleteKey } = useDelete();
     const { mutate: updateKey, isLoading: isUpdating } = useUpdate();
@@ -205,7 +206,7 @@ export const ApiKeyList = () => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {keys.map((key: any) => {
+                        {keys.map((key) => {
                             const expired = isExpired(key.expires_at);
                             const expiringSoon = isExpiringSoon(key.expires_at);
 

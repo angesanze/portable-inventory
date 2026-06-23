@@ -66,7 +66,7 @@ vi.mock("@refinedev/core", () => ({
         },
         mutationResult: { isLoading: false },
     }),
-    useList: (args: any) => {
+    useList: (args: { resource?: string }) => {
         if (args?.resource === "calculator-templates") {
             return { data: { data: mockCalculatorTemplates } };
         }

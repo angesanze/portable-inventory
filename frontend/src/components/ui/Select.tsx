@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, forwardRef } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, Check, AlertCircle } from "lucide-react";
+import { ChevronDown, Check } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 /* ─── Shared styles (matches Input component tokens) ───────────── */
@@ -34,13 +34,17 @@ interface SelectBaseProps {
     className?: string;
 }
 
-/** Native HTML select — use for simple option lists. */
-interface NativeSelectProps
+/** Props consumed by the internal NativeSelect component (no discriminant). */
+interface NativeSelectComponentProps
     extends SelectBaseProps,
         Omit<React.SelectHTMLAttributes<HTMLSelectElement>, "className"> {
-    custom: false;
     value?: string | number;
     onChange?: React.ChangeEventHandler<HTMLSelectElement>;
+}
+
+/** Native HTML select — use for simple option lists. */
+interface NativeSelectProps extends NativeSelectComponentProps {
+    custom: false;
 }
 
 /** Custom dropdown — platform-styled combobox (default). */
@@ -58,7 +62,7 @@ export type SelectProps = NativeSelectProps | CustomSelectProps;
 
 /* ─── Native Select ────────────────────────────────────────────── */
 
-const NativeSelect = forwardRef<HTMLSelectElement, NativeSelectProps>(
+const NativeSelect = forwardRef<HTMLSelectElement, NativeSelectComponentProps>(
     ({ label, labelExtra, options, error, helperText, placeholder, className = "", ...props }, ref) => {
         const inputId = props.id ?? (label ? label.toLowerCase().replace(/\s+/g, "-") : undefined);
 
@@ -355,15 +359,19 @@ const CustomDropdown: React.FC<CustomSelectProps> = ({
 /* ─── Unified Select ───────────────────────────────────────────── */
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>((props, ref) => {
-    const useCustom = props.custom !== false;
+    // Strip the `custom` discriminant before forwarding so it never leaks onto
+    // the DOM <select>; the branch below re-supplies it explicitly. `custom`
+    // also selects the branch, so the rest cast (which `custom` has narrowed)
+    // is sound.
+    const { custom, ...rest } = props as (CustomSelectProps | NativeSelectProps) & {
+        custom?: boolean;
+    };
 
-    if (useCustom) {
-        const { custom: _, ...rest } = props as CustomSelectProps & { custom?: boolean };
-        return <CustomDropdown {...rest} custom={true} />;
+    if (custom !== false) {
+        return <CustomDropdown {...(rest as CustomSelectProps)} custom={true} />;
     }
 
-    const { custom: _, ...rest } = props as NativeSelectProps & { custom?: boolean };
-    return <NativeSelect ref={ref} {...rest} />;
+    return <NativeSelect ref={ref} {...(rest as NativeSelectComponentProps)} />;
 });
 
 Select.displayName = "Select";

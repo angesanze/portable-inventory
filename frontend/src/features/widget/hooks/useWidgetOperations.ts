@@ -1,11 +1,106 @@
 import { PROFILE_METADATA } from '../../../types/api';
 import type { InventoryProfile } from '../../../types/api';
+import type { Product, ProductBatch, ProductComponent, BatchManagerData } from '../types';
+import { buildMoveCalculatorPayload } from '../payload';
+
+type WidgetMessage = { type: 'success' | 'error'; text: string } | null;
+
+interface TransactionEvent {
+    transactionType: string;
+    productId: string;
+    quantity: number;
+    success: boolean;
+}
+
+/** State + actions the data hook owns (products, batches, loaders). */
+interface WidgetDataBag {
+    products: Product[];
+    batches: ProductBatch[];
+    setBatches: (updater: (prev: ProductBatch[]) => ProductBatch[]) => void;
+    selectedProduct: string;
+    selectedLocation: string;
+    selectedBatchId: string;
+    // Backend-shaped batch-manager payload (grouped child items).
+    batchManagerData: BatchManagerData | null;
+    loadBatches: (productId: string, locationId: string) => void;
+    loadAvailableItems: (productId: string, locationId: string) => void;
+    loadBatchManagerData: (productId: string, locationId: string) => void;
+    loadProductsForLocation?: (locationId: string) => void;
+    setLoading: (v: boolean) => void;
+    setActionLoading: (v: boolean) => void;
+    qrCode: string | null;
+}
+
+/** Form state + callbacks the widget shell owns. */
+interface WidgetStateBag {
+    quantity: string;
+    setQuantity: (v: string) => void;
+    identifier: string;
+    setIdentifier: (v: string) => void;
+    batchIdentifier: string;
+    batchData: Record<string, string>;
+    setMessage: (m: WidgetMessage) => void;
+    componentBatches: Record<string, unknown>;
+    setComponentBatches: (updater: (prev: Record<string, unknown>) => Record<string, unknown>) => void;
+    setQrConfiguring: (v: boolean) => void;
+    setQrConfigured: (v: boolean) => void;
+    setQrLocking: (v: boolean) => void;
+    sendTransactionEvent?: (e: TransactionEvent) => void;
+    sendErrorEvent?: (msg: string) => void;
+    expiryDate: string;
+    batchRef: string;
+    fulfillSuccessText: string;
+    fulfillFailedText: string;
+}
+
+/** Per-engine calculation envelope nested inside a move payload. */
+interface CalculatorPayload {
+    operation: 'add' | 'subtract';
+    quantity?: number | string;
+    dimension_values?: Record<string, number>;
+    expiry_date?: string;
+    batch_ref?: string;
+    batch_data?: Record<string, string>;
+    batch_id?: string;
+}
+
+/** Body posted to `/widget/move/`. */
+interface MovePayload {
+    api_key: string | null;
+    product_id: string;
+    location_id: string;
+    quantity: number;
+    reason: string;
+    physical_identifier?: string;
+    work_order_id?: string;
+    calculator_payload?: CalculatorPayload;
+}
+
+/** A grouped child bucket built for the batch-manager composition view. */
+interface GroupedEntry {
+    model: { id: string; name?: string; sku?: string; tracking_mode?: string };
+    items: Array<Record<string, unknown>>;
+}
+
+/** One row from `GET /work-orders/{id}/contents/`. */
+interface WorkOrderContentItem {
+    type?: string;
+    product_id: string;
+    product_name?: string;
+    sku?: string;
+    item_id?: string;
+    identifier?: string;
+    batch_id?: string;
+    batch_identifier?: string;
+    quantity?: number;
+    meta?: Record<string, unknown>;
+}
 
 export const useWidgetOperations = (
     apiKey: string | null,
     apiUrl: string,
-    widgetData: any,
-    widgetState: any
+    widgetData: WidgetDataBag,
+    widgetState: WidgetStateBag
 ) => {
     const {
         products, batches, setBatches, selectedProduct, selectedLocation,
@@ -22,18 +117,18 @@ export const useWidgetOperations = (
         fulfillSuccessText, fulfillFailedText,
     } = widgetState;
 
-    const activeProduct = products.find((p: any) => p.id === selectedProduct);
+    const activeProduct = products.find((p) => p.id ===selectedProduct);
     const activeMeta = activeProduct?.profile ? PROFILE_METADATA[activeProduct.profile as InventoryProfile] : null;
     const isBucketStrategy = activeMeta?.supportsBatches ?? false;
 
     const loadComponentBatches = async (modelId: string) => {
         if (componentBatches[modelId]) return;
         try {
-            const url = `${apiUrl}/widget/batches/?api_key=${apiKey}&product_id=${modelId}&location_id=${selectedLocation}`;
-            const res = await fetch(url);
+            const url = `${apiUrl}/widget/batches/?product_id=${modelId}&location_id=${selectedLocation}`;
+            const res = await fetch(url, { headers: { "X-Api-Key": apiKey ?? "" } });
             if (res.ok) {
                 const data = await res.json();
-                setComponentBatches((prev: any) => ({ ...prev, [modelId]: data }));
+                setComponentBatches((prev) => ({ ...prev, [modelId]: data }));
             }
         } catch (e) {
             console.error("Failed to load component batches", e);
@@ -43,14 +138,14 @@ export const useWidgetOperations = (
     const fetchBatchDetails = async (force = false) => {
         if (!selectedBatchId || !isBucketStrategy) return;
 
-        const batch = batches.find((b: any) => b.id === selectedBatchId);
+        const batch = batches.find((b) => b.id === selectedBatchId);
         if (!force && batch?.data?.grouped_items) return;
 
         setLoading(true);
         try {
-            const grouped: any = {};
+            const grouped: Record<string, GroupedEntry> = {};
             if (activeProduct?.components) {
-                activeProduct.components.forEach((comp: any) => {
+                activeProduct.components.forEach((comp: ProductComponent) => {
                     grouped[comp.child_id] = {
                         model: {
                             id: comp.child_id,
@@ -63,16 +158,16 @@ export const useWidgetOperations = (
                 });
             }
 
-            let contents: any[] = [];
+            let contents: WorkOrderContentItem[] = [];
             if (batch?.work_order) {
-                const compositionUrl = `${apiUrl}/work-orders/${batch.work_order}/contents/?api_key=${apiKey}`;
-                const res = await fetch(compositionUrl);
+                const compositionUrl = `${apiUrl}/work-orders/${batch.work_order}/contents/`;
+                const res = await fetch(compositionUrl, { headers: { "X-Api-Key": apiKey ?? "" } });
                 if (res.ok) {
                     contents = await res.json();
                 }
             }
 
-            contents.forEach((item: any) => {
+            contents.forEach((item) => {
                 const modelId = item.product_id;
                 if (!grouped[modelId]) {
                     grouped[modelId] = {
@@ -103,7 +198,7 @@ export const useWidgetOperations = (
                 }
             });
 
-            setBatches((prev: any) => prev.map((b: any) => {
+            setBatches((prev) => prev.map((b) => {
                 if (b.id === selectedBatchId) {
                     return { ...b, data: { ...b.data, grouped_items: grouped } };
                 }
@@ -120,18 +215,18 @@ export const useWidgetOperations = (
         const targetProductId = overrideProductId || selectedProduct;
         if (!targetProductId || !selectedLocation) return;
 
-        let targetProduct = products.find((p: any) => p.id === targetProductId);
+        let targetProduct = products.find((p) => p.id === targetProductId);
 
         if (!targetProduct && batchManagerData?.grouped_items) {
-            const found = Object.values(batchManagerData.grouped_items).find((g: any) => g.model?.id === targetProductId) as any;
+            const found = Object.values(batchManagerData.grouped_items).find((g) => g.model?.id === targetProductId);
             if (found?.model) {
                 targetProduct = {
                     id: found.model.id,
-                    sku: found.model.sku,
-                    name: found.model.name,
+                    sku: found.model.sku ?? '',
+                    name: found.model.name ?? '',
                     quantity: 0,
                     profile: found.model.tracking_mode === 'INDIVIDUAL' ? 'SERIALIZED' : 'BATCH_TRACKED',
-                } as any;
+                } satisfies Product;
             }
         }
 
@@ -143,7 +238,7 @@ export const useWidgetOperations = (
             return;
         }
 
-        let payload: any = {
+        const payload: MovePayload = {
             api_key: apiKey,
             product_id: targetProductId,
             location_id: selectedLocation,
@@ -159,54 +254,29 @@ export const useWidgetOperations = (
         const isTargetDimension = targetProduct.profile === 'DIMENSIONAL';
         const isTargetTimeBased = targetProduct.profile === 'PERISHABLE';
 
-        if (isTargetDimension) {
-            // Dimension engine: send dimension values for formula computation
-            const dimensionValues: Record<string, number> = {};
-            Object.entries(batchData).forEach(([k, v]) => {
-                const num = parseFloat(v as string);
-                if (!isNaN(num)) dimensionValues[k] = num;
-            });
-            payload.calculator_payload = {
-                operation: isAdd ? 'add' : 'subtract',
-                dimension_values: dimensionValues,
-            };
-        } else if (isTargetTimeBased) {
-            // Time-based engine: attach expiry metadata
-            payload.calculator_payload = {
-                operation: isAdd ? 'add' : 'subtract',
-                quantity: qty,
-                expiry_date: expiryDate || undefined,
-                batch_ref: batchRef || undefined,
-            };
-        } else if (isTargetTracker) {
+        // BATCH_TRACKED specifically — PERISHABLE is also supportsBatches but is
+        // handled by buildMoveCalculatorPayload's profile precedence (expiry, not
+        // a selected batch).
+        const isBatchTracked = isTargetBucket && !isTargetDimension && !isTargetTimeBased;
+        if (isTargetTracker) {
             if (!identifier) {
                 setMessage({ type: 'error', text: "Identifier / Serial Number is required" });
                 return;
             }
             payload.quantity = isAdd ? 1 : -1;
-        } else if (isTargetBucket) {
-            if (isAdd) {
-                payload.calculator_payload = {
-                    operation: 'add',
-                    quantity: qty,
-                    batch_data: { batch_identifier: batchIdentifier, ...batchData }
-                };
-            } else {
-                if (!selectedBatchId) {
-                    setMessage({ type: 'error', text: "Please select a batch to consume from" });
-                    return;
-                }
-                payload.calculator_payload = {
-                    operation: 'subtract',
-                    quantity: qty,
-                    batch_id: selectedBatchId
-                };
+        } else {
+            if (isBatchTracked && !isAdd && !selectedBatchId) {
+                setMessage({ type: 'error', text: "Please select a batch to consume from" });
+                return;
             }
-        } else if (targetProduct.calc_config) {
-            payload.calculator_payload = {
-                operation: isAdd ? 'add' : 'subtract',
-                quantity: quantity
-            };
+            // Per-engine calculator envelope — the per-profile field rules live in
+            // payload.ts so the move and transaction paths can't drift (MOD-03).
+            const calc = buildMoveCalculatorPayload(
+                targetProduct.profile,
+                isAdd ? 'add' : 'subtract',
+                { qty, batchData, batchIdentifier, selectedBatchId, expiryDate, batchRef, hasCalcConfig: !!targetProduct.calc_config },
+            );
+            if (calc) payload.calculator_payload = calc;
         }
 
         setActionLoading(true);
@@ -214,17 +284,19 @@ export const useWidgetOperations = (
 
         try {
             const isBatchRefill = isTargetBucket && isAdd && !!selectedBatchId;
-            const activeBatch = batches.find((b: any) => b.id === selectedBatchId);
+            const activeBatch = batches.find((b) => b.id === selectedBatchId);
             let workOrderId = activeBatch?.work_order;
 
-            const parentProduct = products.find((p: any) => p.id === selectedProduct);
+            const parentProduct = products.find((p) => p.id ===selectedProduct);
             const isParentBatchManager = parentProduct?.profile === 'ASSEMBLED';
             if (isParentBatchManager && selectedProduct) {
                 workOrderId = selectedProduct;
             }
 
             let url = `${apiUrl}/widget/move/`;
-            let finalPayload = payload;
+            // finalPayload may be swapped for a transfer / batch-update body below,
+            // each a distinct shape, so it is the JSON-serialisable bag type.
+            let finalPayload: Record<string, unknown> = { ...payload };
 
             if (isBatchRefill && workOrderId) {
                 url = `${apiUrl}/widget/transfer/`;
@@ -238,7 +310,7 @@ export const useWidgetOperations = (
                     reason: "Batch Refill"
                 };
             } else if (isParentBatchManager && workOrderId) {
-                url = `${apiUrl}/widget/${workOrderId}/transaction/?api_key=${apiKey}`;
+                url = `${apiUrl}/widget/${workOrderId}/transaction/`;
                 finalPayload = {
                     operation: 'batch_update_item',
                     product_model_id: targetProductId,
@@ -252,7 +324,7 @@ export const useWidgetOperations = (
 
             const res = await fetch(url, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", "X-Api-Key": apiKey ?? "" },
                 body: JSON.stringify(finalPayload)
             });
             const data = await res.json();
@@ -297,8 +369,8 @@ export const useWidgetOperations = (
                 });
                 sendErrorEvent?.(errorMsg);
             }
-        } catch (err: any) {
-            const errorMsg = err.message || "Network error";
+        } catch (err) {
+            const errorMsg = err instanceof Error ? err.message : "Network error";
             setMessage({ type: 'error', text: errorMsg });
             sendErrorEvent?.(errorMsg);
         } finally {
@@ -311,9 +383,9 @@ export const useWidgetOperations = (
         setActionLoading(true);
         setMessage(null);
         try {
-            const res = await fetch(`${apiUrl}/widget/${selectedProduct}/transaction/?api_key=${apiKey}`, {
+            const res = await fetch(`${apiUrl}/widget/${selectedProduct}/transaction/`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", "X-Api-Key": apiKey ?? "" },
                 body: JSON.stringify({
                     operation: "status_change",
                     physical_identifier: ident,
@@ -338,8 +410,8 @@ export const useWidgetOperations = (
             setIdentifier("");
             loadAvailableItems?.(selectedProduct, selectedLocation);
             loadProductsForLocation?.(selectedLocation);
-        } catch (err: any) {
-            const errorMsg = err.message || "Network error";
+        } catch (err) {
+            const errorMsg = err instanceof Error ? err.message : "Network error";
             setMessage({ type: 'error', text: errorMsg });
             sendErrorEvent?.(errorMsg);
         } finally {
@@ -354,10 +426,10 @@ export const useWidgetOperations = (
         setMessage(null);
 
         try {
-            const url = `${apiUrl}/widget/${workOrderId}/transaction/?api_key=${apiKey}`;
+            const url = `${apiUrl}/widget/${workOrderId}/transaction/`;
             const res = await fetch(url, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", "X-Api-Key": apiKey ?? "" },
                 body: JSON.stringify({ operation: 'fulfill' })
             });
             const data = await res.json();
@@ -376,8 +448,8 @@ export const useWidgetOperations = (
                 setMessage({ type: 'error', text: errorMsg });
                 sendErrorEvent?.(errorMsg);
             }
-        } catch (err: any) {
-            const errorMsg = err.message || "Network error";
+        } catch (err) {
+            const errorMsg = err instanceof Error ? err.message : "Network error";
             setMessage({ type: 'error', text: errorMsg });
             sendErrorEvent?.(errorMsg);
         } finally {
@@ -411,8 +483,8 @@ export const useWidgetOperations = (
             } else {
                 setMessage({ type: 'error', text: data.detail || data[0] || "Configuration failed" });
             }
-        } catch (err: any) {
-            setMessage({ type: 'error', text: err.message || "Network error" });
+        } catch (err) {
+            setMessage({ type: 'error', text: err instanceof Error ? err.message : "Network error" });
         } finally {
             setQrConfiguring(false);
         }
@@ -434,7 +506,11 @@ export const useWidgetOperations = (
             if (res.ok) {
                 setMessage({ type: 'success', text: "🔒 QR code locked! It will now always redirect to this configuration." });
                 setTimeout(() => {
-                    let redirectUrl = `/widget?api_key=${apiKey}&product_id=${selectedProduct}`;
+                    // SEC-04: stash the credential in sessionStorage rather than
+                    // putting it in the URL (history/Referer/logs). useWidgetApiKey
+                    // reads `pi-widget-key:direct` as a fallback source.
+                    if (apiKey) sessionStorage.setItem("pi-widget-key:direct", apiKey);
+                    let redirectUrl = `/widget?product_id=${selectedProduct}`;
                     if (selectedLocation) {
                         redirectUrl += `&location_id=${selectedLocation}`;
                     }
@@ -443,8 +519,8 @@ export const useWidgetOperations = (
             } else {
                 setMessage({ type: 'error', text: data.detail || data[0] || "Lock failed" });
             }
-        } catch (err: any) {
-            setMessage({ type: 'error', text: err.message || "Network error" });
+        } catch (err) {
+            setMessage({ type: 'error', text: err instanceof Error ? err.message : "Network error" });
         } finally {
             setQrLocking(false);
         }

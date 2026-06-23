@@ -20,12 +20,12 @@ export type {
 export { PROFILE_METADATA } from './api';
 export type { ProfileMetadata } from './api';
 
-// Extended Interfaces for Frontend (if needed) or simple re-exports
-export interface Location extends ApiLocation { }
+// Extended Interfaces for Frontend (if needed) or simple re-exports.
+// Plain aliases for now — frontend-specific computed fields can switch these
+// back to `interface ... extends` when there's something to add.
+export type Location = ApiLocation;
 
-export interface ProductModel extends ApiProductModel {
-    // Frontend specific computed fields might go here if extended
-}
+export type ProductModel = ApiProductModel;
 
 export interface PhysicalProduct extends ApiPhysicalProduct {
     // API responses often flatten related fields or include extra derived data

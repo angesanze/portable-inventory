@@ -4,9 +4,57 @@ import { useNotification, useList } from "@refinedev/core";
 import { axiosInstance } from "../../providers/axios-client";
 import { Select } from "../ui/Select";
 
-export const BatchManager = ({ product, onUpdate, variant = 'BATCH' }: { product: any, onUpdate?: () => void, variant?: 'BATCH' | 'ITEM' }) => {
-    // Current stock (buckets or trackers) is a list of objects
-    const batches = Array.isArray(product.stock_value) ? product.stock_value : [];
+/** Product fields read here. `stock_value` is a list of stock buckets/trackers
+ * for tracked profiles, or a scalar count for bulk products. Kept as `unknown[]`
+ * so callers passing their own (narrower) bucket type still satisfy the prop. */
+interface BatchProduct {
+    id: string;
+    stock_value?: number | unknown[];
+}
+
+/** A single stock bucket / serialized tracker. Keys beyond the known ones are
+ * rendered dynamically, so the index signature stays open. */
+interface StockBucket {
+    id?: string;
+    identifier?: string;
+    batch_identifier?: string;
+    quantity?: number;
+    qty?: number;
+    expiration_date?: string;
+    work_order?: string;
+    location?: string | { name?: string };
+    [key: string]: unknown;
+}
+
+/** Render a dynamic bucket value: pass primitives through, ignore the rest
+ * (React already skips booleans/null and would throw on objects). */
+function renderCell(value: unknown): string | number | null {
+    return typeof value === "string" || typeof value === "number" ? value : null;
+}
+
+/** Location row from the `locations` resource used to pick a receive target. */
+interface LocationRow {
+    id: string;
+    name: string;
+    type?: string;
+}
+
+/** Payload posted to the widget `move` endpoint to receive a batch / item. */
+interface MovePayload {
+    product_id: string;
+    quantity: number;
+    location_id: string;
+    item_identifier?: string;
+    batch_data?: {
+        batch_identifier: string;
+        data: { created_via: string };
+    };
+}
+
+export const BatchManager = ({ product, onUpdate, variant = 'BATCH' }: { product: BatchProduct, onUpdate?: () => void, variant?: 'BATCH' | 'ITEM' }) => {
+    // Current stock (buckets or trackers) is a list of objects. The element
+    // shape varies per profile, so view it through the open `StockBucket` type.
+    const batches = (Array.isArray(product.stock_value) ? product.stock_value : []) as StockBucket[];
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const { open } = useNotification();
@@ -17,13 +65,13 @@ export const BatchManager = ({ product, onUpdate, variant = 'BATCH' }: { product
 
 
     // Fetch default location (Warehouse)
-    const { data: locationData } = useList({
+    const { data: locationData } = useList<LocationRow>({
         resource: "locations",
         pagination: { mode: "off" }
     });
 
     // Default to first WAREHOUSE or first location
-    const defaultLocation = locationData?.data?.find((l: any) => l.type === 'WAREHOUSE')?.id || locationData?.data?.[0]?.id;
+    const defaultLocation = locationData?.data?.find((l) => l.type === 'WAREHOUSE')?.id || locationData?.data?.[0]?.id;
     const [targetLocation, setTargetLocation] = useState(defaultLocation);
 
     const handleCreateBatch = async (e: React.FormEvent) => {
@@ -42,7 +90,7 @@ export const BatchManager = ({ product, onUpdate, variant = 'BATCH' }: { product
 
         setIsLoading(true);
         try {
-            const payload: any = {
+            const payload: MovePayload = {
                 product_id: product.id,
                 quantity: newBatchQty,
                 location_id: targetLocation,
@@ -72,10 +120,12 @@ export const BatchManager = ({ product, onUpdate, variant = 'BATCH' }: { product
             setNewBatchId("");
             setNewBatchQty(1);
             onUpdate?.();
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const detail = (err as { response?: { data?: { detail?: string } } } | undefined)
+                ?.response?.data?.detail;
             open?.({
                 message: "Error",
-                description: err.response?.data?.detail || "Failed to create",
+                description: detail || "Failed to create",
                 type: "error"
             });
         } finally {
@@ -146,7 +196,7 @@ export const BatchManager = ({ product, onUpdate, variant = 'BATCH' }: { product
                                 <Select // Use Select Component
                                     value={targetLocation}
                                     onChange={(val) => setTargetLocation(String(val))}
-                                    options={locationData?.data?.map((l: any) => ({ label: l.name, value: l.id })) || []}
+                                    options={locationData?.data?.map((l) => ({ label: l.name, value: l.id })) || []}
                                     placeholder="Select Location..."
                                 />
                             </div>
@@ -178,7 +228,7 @@ export const BatchManager = ({ product, onUpdate, variant = 'BATCH' }: { product
                         <p className="text-zinc-500">No active {variant === 'ITEM' ? 'items' : 'batches'} found.</p>
                     </div>
                 ) : (
-                    batches.map((batch: any, idx: number) => (
+                    batches.map((batch, idx) => (
                         <div key={idx} className="bg-zinc-900 border border-white/[0.06] rounded-xl p-4 flex items-center justify-between hover:border-white/20 transition-colors duration-150 group">
                             <div className="flex items-center gap-4">
                                 <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center text-zinc-400 font-mono text-xs border border-white/5">
@@ -188,7 +238,7 @@ export const BatchManager = ({ product, onUpdate, variant = 'BATCH' }: { product
                                     <div className="text-white font-bold text-lg">
                                         {variant === 'ITEM'
                                             ? (batch.identifier || batch.id)
-                                            : (['AGGREGATED', 'General', 'Standard'].includes(batch.batch_identifier || batch.id)
+                                            : (['AGGREGATED', 'General', 'Standard'].includes((batch.batch_identifier || batch.id) ?? '')
                                                 ? (batch.work_order ? `Batch for ${batch.work_order}` : "Standard Stock")
                                                 : (batch.batch_identifier || batch.id))
                                         }
@@ -202,7 +252,7 @@ export const BatchManager = ({ product, onUpdate, variant = 'BATCH' }: { product
                                         )}
                                         {/* Render other keys dynamically */}
                                         {Object.keys(batch).filter(k => !['id', 'quantity', 'qty', 'expiration_date', 'work_order', 'work_order_id', 'location', 'identifier', 'batch_identifier', 'status'].includes(k)).map(k => (
-                                            <span key={k} className="opacity-70">{k}: {batch[k]}</span>
+                                            <span key={k} className="opacity-70">{k}: {renderCell(batch[k])}</span>
                                         ))}
                                         <span className="opacity-70 text-zinc-500">@{typeof batch.location === 'string' ? batch.location : batch.location?.name}</span>
                                     </div>

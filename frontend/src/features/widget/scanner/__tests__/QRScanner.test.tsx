@@ -15,7 +15,7 @@ vi.mock("html5-qrcode", () => {
     return {
         Html5Qrcode: class MockHtml5Qrcode {
             static getCameras = mockGetCameras;
-            start(_config: any, _opts: any, onSuccess: any, _onFailure: any) {
+            start(_config: unknown, _opts: unknown, onSuccess: (text: string) => void) {
                 onSuccessRef.current = onSuccess;
                 return Promise.resolve();
             }
@@ -90,7 +90,15 @@ describe("QRScanner", () => {
         await act(async () => { onSuccessRef.current!("ABCD1234"); });
 
         await waitFor(() => {
-            expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("code=ABCD1234"));
+            expect(fetchMock).toHaveBeenCalledWith(
+                expect.stringContaining("code=ABCD1234"),
+                expect.objectContaining({ headers: expect.objectContaining({ "X-Api-Key": "test-key" }) }),
+            );
+            // Credential travels in the header, never the URL (SEC-04).
+            expect(fetchMock).toHaveBeenCalledWith(
+                expect.not.stringContaining("api_key="),
+                expect.anything(),
+            );
             expect(onScanComplete).toHaveBeenCalledWith(
                 expect.objectContaining({ code: "ABCD1234", productId: "p1", productName: "Widget A", locationId: "loc1" })
             );
@@ -106,7 +114,10 @@ describe("QRScanner", () => {
         });
 
         await waitFor(() => {
-            expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("code=XY789012"));
+            expect(fetchMock).toHaveBeenCalledWith(
+                expect.stringContaining("code=XY789012"),
+                expect.objectContaining({ headers: expect.objectContaining({ "X-Api-Key": "test-key" }) }),
+            );
         });
     });
 
@@ -119,7 +130,10 @@ describe("QRScanner", () => {
         });
 
         await waitFor(() => {
-            expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("code=MYCODE99"));
+            expect(fetchMock).toHaveBeenCalledWith(
+                expect.stringContaining("code=MYCODE99"),
+                expect.objectContaining({ headers: expect.objectContaining({ "X-Api-Key": "test-key" }) }),
+            );
         });
     });
 
@@ -202,7 +216,10 @@ describe("QRScanner", () => {
         });
 
         await waitFor(() => {
-            expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("code=TEST1234"));
+            expect(fetchMock).toHaveBeenCalledWith(
+                expect.stringContaining("code=TEST1234"),
+                expect.objectContaining({ headers: expect.objectContaining({ "X-Api-Key": "test-key" }) }),
+            );
             expect(onScanComplete).toHaveBeenCalled();
         });
     });

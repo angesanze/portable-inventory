@@ -50,7 +50,7 @@ export const TransactionWidget = () => {
     const [step, setStep] = useState<"LOCATION" | "OPERATION">("LOCATION");
     const [quantity, setQuantity] = useState("1");
     const [batchIdentifier, setBatchIdentifier] = useState("");
-    const [batchData, setBatchData] = useState<Record<string, any>>({});
+    const [batchData, setBatchData] = useState<Record<string, string>>({});
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
     const [expandedModelId, setExpandedModelId] = useState<string | null>(null);
     const [expiryDate, setExpiryDate] = useState("");
@@ -63,11 +63,11 @@ export const TransactionWidget = () => {
     const activeProfileMeta = activeProfile ? PROFILE_METADATA[activeProfile] : null;
     const isBucketStrategy = activeProfileMeta?.supportsBatches ?? false;
 
-    const [componentBatches, setComponentBatches] = useState<Record<string, any[]>>({});
-    // QR state stubs — useWidgetOperations destructures these
-    const [qrConfiguring, setQrConfiguring] = useState(false);
-    const [qrLocking, setQrLocking] = useState(false);
-    const [qrConfigured, setQrConfigured] = useState(false);
+    const [componentBatches, setComponentBatches] = useState<Record<string, unknown>>({});
+    // QR state stubs — useWidgetOperations only needs the setters here.
+    const [, setQrConfiguring] = useState(false);
+    const [, setQrLocking] = useState(false);
+    const [, setQrConfigured] = useState(false);
 
     const applyThemeToRoot = useCallback((theme: { primaryColor?: string; backgroundColor?: string; textColor?: string; borderRadius?: string; fontFamily?: string; successColor?: string; dangerColor?: string; mutedColor?: string; borderColor?: string; surfaceColor?: string; inputBgColor?: string; compact?: boolean }) => {
         const el = rootRef.current;

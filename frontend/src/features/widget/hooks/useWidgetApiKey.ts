@@ -18,7 +18,10 @@ export function useWidgetApiKey(): { apiKey: string | null; resolvingKey: boolea
     const token = params.get("token");
 
     const cached = token ? sessionStorage.getItem(`pi-widget-key:${token}`) : null;
-    const [apiKey, setApiKey] = useState<string | null>(directKey || cached);
+    // SEC-04: a same-origin redirect (e.g. after locking a QR) stashes the
+    // credential here instead of re-putting it in the URL (history/Referer/logs).
+    const storedDirect = (!directKey && !token) ? sessionStorage.getItem("pi-widget-key:direct") : null;
+    const [apiKey, setApiKey] = useState<string | null>(directKey || cached || storedDirect);
     const [resolvingKey, setResolvingKey] = useState(!directKey && !cached && !!token);
     const [keyError, setKeyError] = useState("");
 

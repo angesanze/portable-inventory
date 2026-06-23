@@ -1,10 +1,11 @@
 import { useState, useCallback } from "react";
 import { API_URL } from "../../../config";
 import { useToast } from "../../../components/ui/Toast";
+import type { CalculatorConfig, CalculatorTemplate } from "../types";
 
 export const useCalculatorTemplates = () => {
     const { toast } = useToast();
-    const [templates, setTemplates] = useState<any[]>([]);
+    const [templates, setTemplates] = useState<CalculatorTemplate[]>([]);
     const [saving, setSaving] = useState(false);
 
     const getAuthHeaders = (): HeadersInit => {
@@ -30,7 +31,7 @@ export const useCalculatorTemplates = () => {
                     const data = text ? JSON.parse(text) : {};
                     const results = Array.isArray(data) ? data : (data.results || []);
                     setTemplates(results);
-                } catch (e) {
+                } catch {
                     console.error("Failed to parse templates JSON. Response text preview:", text.substring(0, 100));
                     setTemplates([]);
                 }
@@ -42,7 +43,7 @@ export const useCalculatorTemplates = () => {
         }
     }, []);
 
-    const saveTemplate = async (parsed: any) => {
+    const saveTemplate = async (parsed: CalculatorConfig | null) => {
         if (!parsed) return false;
         setSaving(true);
         try {
@@ -59,10 +60,12 @@ export const useCalculatorTemplates = () => {
             });
 
             const text = await res.text();
-            let data: any = {};
+            let data: unknown = {};
             try {
                 data = text ? JSON.parse(text) : {};
-            } catch (jsonErr) { }
+            } catch {
+                // Non-JSON error body (e.g. HTML 500 page); keep data as {}.
+            }
 
             if (!res.ok) {
                 toast({ message: `Error saving (${res.status}): ` + (JSON.stringify(data) || res.statusText), variant: "error" });
@@ -72,9 +75,9 @@ export const useCalculatorTemplates = () => {
                 loadTemplates();
                 return true;
             }
-        } catch (e: any) {
+        } catch (e) {
             console.error("Save Error:", e);
-            toast({ message: "Network Error: " + e.message, variant: "error" });
+            toast({ message: "Network Error: " + (e instanceof Error ? e.message : String(e)), variant: "error" });
             return false;
         } finally {
             setSaving(false);
@@ -95,8 +98,8 @@ export const useCalculatorTemplates = () => {
                 toast({ message: "Failed to delete template", variant: "error" });
                 return false;
             }
-        } catch (e: any) {
-            toast({ message: "Network Error: " + e.message, variant: "error" });
+        } catch (e) {
+            toast({ message: "Network Error: " + (e instanceof Error ? e.message : String(e)), variant: "error" });
             return false;
         }
     };

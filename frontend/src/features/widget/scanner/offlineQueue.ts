@@ -277,8 +277,9 @@ export async function replayQueue(
                     result.failed.push(op.id);
                 }
             }
-        } catch (err: any) {
-            await updateOperationStatus(op.id, "failed", err.message || "Network error");
+        } catch (err) {
+            const message = (err instanceof Error ? err.message : undefined) || "Network error";
+            await updateOperationStatus(op.id, "failed", message);
             result.failed.push(op.id);
         }
     }

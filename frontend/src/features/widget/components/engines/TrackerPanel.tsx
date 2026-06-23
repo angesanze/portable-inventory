@@ -1,9 +1,10 @@
 import { useTranslation } from 'react-i18next';
 import { Select, type SelectOption } from '../../../../components/ui/Select';
 import { StatusPicker } from './StatusPicker';
+import type { UiConfigField } from '../../types';
 
 interface TrackerPanelProps {
-    fields: Array<{ name: string; label: string; options?: string[] }>;
+    fields: UiConfigField[];
     trackerItemId: string;
     setTrackerItemId: (v: string) => void;
     trackerStatus: string;
@@ -32,7 +33,7 @@ export const TrackerPanel: React.FC<TrackerPanelProps> = ({
     return (
     <div className="space-y-4" data-testid="panel-tracker-form">
         <div className="grid gap-3">
-            {effectiveFields.map((field: any) => {
+            {effectiveFields.map((field) => {
                 if (field.name === 'physical_product_id') {
                     return (
                         <div key={field.name}>

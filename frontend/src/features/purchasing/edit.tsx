@@ -2,7 +2,9 @@ import { useForm } from "@refinedev/core";
 import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { OrderForm, buildOrderPayload, type LineDraft } from "./OrderForm";
+import { OrderForm } from "./OrderForm";
+import { buildOrderPayload, type LineDraft } from "./orderForm";
+import type { PurchaseOrderRecord } from "./types";
 
 export const PurchaseOrderEdit = () => {
     const { t } = useTranslation(["purchasing", "common"]);
@@ -14,7 +16,7 @@ export const PurchaseOrderEdit = () => {
     const [notes, setNotes] = useState("");
     const [lines, setLines] = useState<LineDraft[]>([]);
 
-    const { onFinish, queryResult, mutationResult, formLoading } = useForm({
+    const { onFinish, queryResult, mutationResult, formLoading } = useForm<PurchaseOrderRecord>({
         action: "edit",
         resource: "purchase-orders",
         id,
@@ -22,7 +24,7 @@ export const PurchaseOrderEdit = () => {
         onMutationSuccess: () => navigate("/purchasing"),
     });
 
-    const record = queryResult?.data?.data as any;
+    const record = queryResult?.data?.data;
 
     useEffect(() => {
         if (!record) return;
@@ -34,13 +36,15 @@ export const PurchaseOrderEdit = () => {
         setSupplierId(record.supplier ?? "");
         setExpectedAt(record.expected_at ?? "");
         setNotes(record.notes ?? "");
-        setLines(
-            (record.lines ?? []).map((l: any) => ({
-                product_model_id: l.product_model ?? "",
-                quantity_ordered: String(l.quantity_ordered ?? "1"),
-                unit_cost: l.unit_cost == null ? "" : String(l.unit_cost),
-            })),
-        );
+        // Hydrated rows intentionally carry no `_key` (key={index} fallback, as
+        // before): the literal is structurally a keyless LineDraft, so the
+        // assertion only re-adds the optional field the runtime omits here.
+        const hydratedLines = (record.lines ?? []).map((l) => ({
+            product_model_id: l.product_model ?? "",
+            quantity_ordered: String(l.quantity_ordered ?? "1"),
+            unit_cost: l.unit_cost == null ? "" : String(l.unit_cost),
+        })) as LineDraft[];
+        setLines(hydratedLines);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [record]);
 

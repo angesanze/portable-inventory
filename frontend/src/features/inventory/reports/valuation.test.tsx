@@ -23,7 +23,11 @@ const { exportToExcelSpy } = vi.hoisted(() => ({ exportToExcelSpy: vi.fn() }));
 vi.mock("../../../utils/exportToExcel", () => ({ exportToExcel: exportToExcelSpy }));
 
 const mockRefetch = vi.fn();
-let customState = { data: { data: mockReport }, isLoading: false, isError: false };
+let customState: {
+    data: { data: typeof mockReport } | undefined;
+    isLoading: boolean;
+    isError: boolean;
+} = { data: { data: mockReport }, isLoading: false, isError: false };
 
 vi.mock("@refinedev/core", () => ({
     useCustom: () => ({ ...customState, refetch: mockRefetch }),
@@ -69,7 +73,7 @@ describe("ValuationReport", () => {
     });
 
     it("shows an error state and retries", () => {
-        customState = { data: undefined as any, isLoading: false, isError: true };
+        customState = { data: undefined, isLoading: false, isError: true };
         renderPage();
         const retry = screen.queryByRole("button", { name: /retry|riprova/i });
         if (retry) {

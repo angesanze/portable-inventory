@@ -30,6 +30,7 @@ import { EmptyState } from "../../../components/ui/EmptyState";
 import { ErrorState } from "../../../components/ui/ErrorState";
 import { useToast } from "../../../components/ui/Toast";
 import { API_URL } from "../../../config";
+import type { CountSessionRow } from "./types";
 
 const STATUS_VARIANTS: Record<string, BadgeVariant> = {
     OPEN: "neutral",
@@ -61,13 +62,13 @@ export const StocktakeList = () => {
         return result;
     }, [search, statusFilter]);
 
-    const { data: listData, isLoading, isError, refetch } = useList({
+    const { data: listData, isLoading, isError, refetch } = useList<CountSessionRow>({
         resource: "count-sessions",
         filters: crudFilters,
         sorters: [{ field: "created_at", order: "desc" }],
-    }) as any;
+    });
 
-    const sessions = Array.isArray(listData?.data) ? listData.data : [];
+    const sessions: CountSessionRow[] = Array.isArray(listData?.data) ? listData.data : [];
 
     const { mutate: deleteSession } = useDelete();
     const { mutateAsync: postAction } = useCustomMutation();
@@ -169,7 +170,7 @@ export const StocktakeList = () => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {sessions.map((s: any) => (
+                        {sessions.map((s) => (
                             <TableRow
                                 key={s.id}
                                 className="cursor-pointer"
@@ -181,7 +182,7 @@ export const StocktakeList = () => {
                                 </TableCell>
                                 <TableCell>
                                     <Badge variant={STATUS_VARIANTS[s.status] ?? "neutral"}>
-                                        {t(`status.${s.status}`, s.status)}
+                                        {t(`status.${s.status}`, String(s.status))}
                                     </Badge>
                                 </TableCell>
                                 <TableCell className="text-zinc-400 text-sm">

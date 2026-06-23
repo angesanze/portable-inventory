@@ -92,6 +92,7 @@ interface UseConfirmDialogReturn {
     dialogProps: ConfirmDialogProps;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- the hook is intentionally co-located with its ConfirmDialog primitive (canonical pairing); splitting it to a sibling module would fan out 26 import sites for a dev-only HMR optimization.
 export function useConfirmDialog(): UseConfirmDialogReturn {
     const [isOpen, setIsOpen] = useState(false);
     const [options, setOptions] = useState<ConfirmOptions>({

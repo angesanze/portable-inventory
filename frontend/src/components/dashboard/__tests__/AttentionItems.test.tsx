@@ -9,10 +9,13 @@ vi.mock("react-router-dom", () => ({
 
 const mockUseList = vi.fn();
 vi.mock("@refinedev/core", () => ({
-    useList: (...args: any[]) => mockUseList(...args),
+    useList: (...args: unknown[]) => mockUseList(...args),
 }));
 
 import { AttentionItems } from "../AttentionItems";
+
+/** Partial `useList` return shape the component reads (data + isLoading). */
+type ListResultMock = { data: { data: unknown[]; total?: number } | null; isLoading: boolean };
 
 describe("AttentionItems", () => {
     beforeEach(() => {
@@ -24,12 +27,12 @@ describe("AttentionItems", () => {
     });
 
     function setupMock(overrides: {
-        products?: any;
-        batches?: any;
-        workOrders?: any;
-        movements?: any;
+        products?: ListResultMock;
+        batches?: ListResultMock;
+        workOrders?: ListResultMock;
+        movements?: ListResultMock;
     }) {
-        mockUseList.mockImplementation(({ resource }: any) => {
+        mockUseList.mockImplementation(({ resource }: { resource?: string }) => {
             if (resource === "product-models") {
                 return overrides.products ?? {
                     data: { data: [] },

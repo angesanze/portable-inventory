@@ -20,6 +20,7 @@ export const I18nWrapper = ({ children }: { children: ReactNode }) => (
  * Drop-in replacement for Testing Library's `render` that wraps the UI in
  * {@link I18nWrapper}. Use for new test renders going forward.
  */
+// eslint-disable-next-line react-refresh/only-export-components -- test-only render helper co-located with the I18nWrapper it uses; this module is never part of the Fast Refresh component graph.
 export function renderWithI18n(
     ui: ReactElement,
     options?: Omit<RenderOptions, "wrapper">,
@@ -27,4 +28,5 @@ export function renderWithI18n(
     return render(ui, { wrapper: I18nWrapper, ...options });
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- re-export of the shared test i18n instance from a test-utils module (not a Fast Refresh boundary).
 export { i18n };

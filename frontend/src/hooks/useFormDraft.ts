@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useState } from "react";
 
 export interface UseFormDraftResult<T> {
     /** The draft restored from ``sessionStorage`` on mount, or ``null``. */
@@ -28,12 +28,10 @@ export const useFormDraft = <T>(
 ): UseFormDraftResult<T> => {
     const enabled = options?.enabled ?? true;
 
-    // Read once on mount; sessionStorage is synchronous so a ref keeps the
-    // restored value stable across renders without re-parsing.
-    const restoredRef = useRef<T | null | undefined>(undefined);
-    if (restoredRef.current === undefined) {
-        restoredRef.current = enabled ? readDraft<T>(key) : null;
-    }
+    // Read once on mount; sessionStorage is synchronous so a lazy-initialized
+    // state value keeps the restored draft stable across renders without
+    // re-parsing (and without reading a ref during render).
+    const [restored] = useState<T | null>(() => (enabled ? readDraft<T>(key) : null));
 
     const save = (state: T) => {
         if (!enabled) {
@@ -55,7 +53,7 @@ export const useFormDraft = <T>(
         }
     };
 
-    return { restored: restoredRef.current, save, clear };
+    return { restored, save, clear };
 };
 
 const readDraft = <T>(key: string): T | null => {

@@ -107,7 +107,7 @@ export const ReservationList = () => {
         resource: "reservations",
         filters: crudFilters,
         pagination: { current: page, pageSize: PAGE_SIZE },
-    }) as any;
+    });
 
     const reservations: ReservationRow[] = Array.isArray(listData?.data)
         ? listData.data

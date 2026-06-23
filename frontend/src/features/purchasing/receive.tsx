@@ -11,6 +11,13 @@ import { Badge, type BadgeVariant } from "../../components/ui/Badge";
 import { useToast } from "../../components/ui/Toast";
 import { FormErrorBanner } from "../../components/ui/ErrorState";
 import { API_URL } from "../../config";
+import type {
+    PurchaseOrderRecord,
+    PurchaseOrderLine,
+    PurchaseLocationRow,
+    ReceiptEntry,
+    ReceiptBatchData,
+} from "./types";
 
 const STATUS_VARIANTS: Record<string, BadgeVariant> = {
     DRAFT: "neutral",
@@ -50,21 +57,21 @@ export const PurchaseOrderReceive = () => {
     const { id } = useParams();
     const { toast } = useToast();
 
-    const { data, isLoading, refetch } = useOne({
+    const { data, isLoading, refetch } = useOne<PurchaseOrderRecord>({
         resource: "purchase-orders",
         id: id ?? "",
         queryOptions: { enabled: !!id },
     });
-    const po = data?.data as any;
+    const po = data?.data;
 
-    const { data: locationsData } = useList({
+    const { data: locationsData } = useList<PurchaseLocationRow>({
         resource: "locations",
         pagination: { mode: "off" },
     });
     const realLocations = (locationsData?.data || []).filter(
-        (l: any) => l.type === "WAREHOUSE" || l.type === "STORE",
+        (l) => l.type === "WAREHOUSE" || l.type === "STORE",
     );
-    const locationOptions = realLocations.map((l: any) => ({
+    const locationOptions = realLocations.map((l) => ({
         value: l.id,
         label: l.name,
         description: l.type,
@@ -80,8 +87,8 @@ export const PurchaseOrderReceive = () => {
         }
     }, [realLocations.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const lines: any[] = po?.lines ?? [];
-    const pendingOf = (line: any) =>
+    const lines = po?.lines ?? [];
+    const pendingOf = (line: PurchaseOrderLine) =>
         Number(line.quantity_ordered) - Number(line.quantity_received);
     const receivableLines = lines.filter((l) => pendingOf(l) > 0);
     const isReceivable = po && ["CONFIRMED", "PARTIALLY_RECEIVED"].includes(po.status);
@@ -121,14 +128,14 @@ export const PurchaseOrderReceive = () => {
         const payload = {
             location_id: locationId,
             receipts: activeReceipts.map(({ line, draft }) => {
-                const entry: any = {
+                const entry: ReceiptEntry = {
                     line_id: line.id,
                     quantity: draft.quantity,
                 };
                 if (line.product_profile === "SERIALIZED") {
                     entry.serials = parseSerials(draft.serials);
                 } else if (BATCH_PROFILES.includes(line.product_profile)) {
-                    const batchData: Record<string, string> = {};
+                    const batchData: ReceiptBatchData = {};
                     if (draft.batchIdentifier) batchData.batch_identifier = draft.batchIdentifier;
                     if (draft.lotNumber) batchData.lot_number = draft.lotNumber;
                     if (Object.keys(batchData).length > 0) entry.batch_data = batchData;
@@ -176,7 +183,7 @@ export const PurchaseOrderReceive = () => {
                     <span className="font-mono text-zinc-200">{po.number}</span>
                     <span className="text-zinc-400">{po.supplier_name}</span>
                     <Badge variant={STATUS_VARIANTS[po.status] ?? "neutral"}>
-                        {t(`status.${po.status}`, po.status)}
+                        {t(`status.${po.status}`, String(po.status))}
                     </Badge>
                 </div>
                 {!isReceivable && (

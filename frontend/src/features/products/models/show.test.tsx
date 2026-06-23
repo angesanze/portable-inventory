@@ -61,8 +61,8 @@ const useListSpy = vi.fn();
 
 /* ── Default mock (BULK / SIMPLE_COUNT) ───────────────────────────── */
 
-let currentModel = mockModel;
-let currentStock: any = mockStock;
+let currentModel: typeof mockModel & { engine_config?: unknown } = mockModel;
+let currentStock: unknown = mockStock;
 
 vi.mock("@refinedev/core", () => ({
     useOne: () => ({
@@ -74,7 +74,7 @@ vi.mock("@refinedev/core", () => ({
         isLoading: false,
         refetch: vi.fn(),
     }),
-    useList: (args: any) => {
+    useList: (args: Record<string, unknown>) => {
         useListSpy(args);
         return {
             data: { data: mockMovements },
@@ -463,7 +463,7 @@ describe("ProductModelShow – DIMENSIONAL inventory", () => {
                 computed_unit: "m²",
                 formula: "length * width",
             },
-        } as any;
+        };
         currentStock = {
             total: 45.2,
             breakdown: { Warehouse: 45.2 },

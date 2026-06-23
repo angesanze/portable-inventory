@@ -28,7 +28,12 @@ import { useTableSelection } from "../../../hooks/useTableSelection";
 import { API_URL } from "../../../config";
 import { exportToExcel } from "../../../utils/exportToExcel";
 import { fetchAllPages } from "../../../utils/fetchAllPages";
-import { CUSTOMER_EXPORT_COLUMNS, CUSTOMER_EXPORT_FILENAME } from "./exportColumns";
+import {
+    CUSTOMER_EXPORT_COLUMNS,
+    CUSTOMER_EXPORT_FILENAME,
+    type CustomerExportRow,
+} from "./exportColumns";
+import type { CustomerRow } from "./types";
 
 export const CustomerList = () => {
     const { t } = useTranslation(["inventory", "common"]);
@@ -46,11 +51,11 @@ export const CustomerList = () => {
         return result;
     }, [search]);
 
-    const { data: listData, isLoading, isError, refetch } = useList({
+    const { data: listData, isLoading, isError, refetch } = useList<CustomerRow>({
         resource: "customers",
         filters: crudFilters,
         sorters: [{ field: "name", order: "asc" }],
-    }) as any;
+    });
 
     const navigate = useNavigate();
     const { mutate: deleteCustomer } = useDelete();
@@ -58,7 +63,7 @@ export const CustomerList = () => {
     const { confirm, dialogProps } = useConfirmDialog();
     const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
-    const customers = Array.isArray(listData?.data) ? listData.data : [];
+    const customers: CustomerRow[] = Array.isArray(listData?.data) ? listData.data : [];
 
     const [exporting, setExporting] = useState(false);
     const exportAll = async () => {
@@ -66,7 +71,7 @@ export const CustomerList = () => {
         try {
             const params: Record<string, string> = {};
             if (search) params.search = search;
-            const all = await fetchAllPages<any>(`${API_URL}/api/v1/customers/`, params);
+            const all = await fetchAllPages<CustomerExportRow>(`${API_URL}/api/v1/customers/`, params);
             exportToExcel(all, CUSTOMER_EXPORT_COLUMNS, `${CUSTOMER_EXPORT_FILENAME}.xlsx`);
         } finally {
             setExporting(false);
@@ -77,8 +82,8 @@ export const CustomerList = () => {
     const selectedItems = useMemo(
         () =>
             customers
-                .filter((c: any) => selection.selectedIds.has(c.id))
-                .map((c: any) => ({ id: String(c.id), label: c.name as string })),
+                .filter((c) => selection.selectedIds.has(c.id))
+                .map((c) => ({ id: String(c.id), label: c.name })),
         [customers, selection.selectedIds],
     );
 
@@ -167,7 +172,7 @@ export const CustomerList = () => {
                                 icon: Download,
                                 onClick: () =>
                                     exportToExcel(
-                                        customers.filter((c: any) =>
+                                        customers.filter((c) =>
                                             selection.selectedIds.has(c.id),
                                         ),
                                         CUSTOMER_EXPORT_COLUMNS,
@@ -198,7 +203,7 @@ export const CustomerList = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {customers.map((c: any) => (
+                            {customers.map((c) => (
                                 <TableRow
                                     key={c.id}
                                     className="cursor-pointer"

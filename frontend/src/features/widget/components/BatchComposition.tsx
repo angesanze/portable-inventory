@@ -1,9 +1,9 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import type { PhysicalItem } from '../types';
+import type { PhysicalItem, BatchCompositionDataSource, BatchManagerModel } from '../types';
 
 interface BatchCompositionProps {
-    dataSource: any;
+    dataSource: BatchCompositionDataSource | null;
     expandedModelId: string | null;
     setExpandedModelId: (id: string | null) => void;
     setIdentifier: (id: string) => void;
@@ -57,11 +57,11 @@ export const BatchComposition: React.FC<BatchCompositionProps> = ({
                 <span className="text-lg">📦</span> {t('panels.batchComposition.title')}
             </h3>
             <div className="space-y-3">
-                {Object.entries(dataSource.grouped_items || {}).map(([modelId, modelData]: [string, any]) => {
+                {(Object.entries(dataSource.grouped_items || {}) as [string, BatchManagerModel][]).map(([modelId, modelData]) => {
                     const isBulk = modelData.model?.tracking_mode !== 'INDIVIDUAL';
                     const isExpanded = expandedModelId === modelId;
                     const itemCount = Array.isArray(modelData.items) ? modelData.items.length : 0;
-                    const totalQty = isBulk ? modelData.items?.reduce((acc: number, i: any) => acc + (Number(i.quantity) || 0), 0) : itemCount;
+                    const totalQty = isBulk ? modelData.items?.reduce((acc: number, i) => acc + (Number(i.quantity) || 0), 0) : itemCount;
 
                     return (
                         <div
@@ -179,7 +179,7 @@ export const BatchComposition: React.FC<BatchCompositionProps> = ({
                                                     <div className="mb-4">
                                                         <span className="pi-label">{t('panels.batchComposition.assignedSerials')}</span>
                                                         <div className="flex flex-wrap gap-2">
-                                                            {modelData.items.map((item: any) => (
+                                                            {modelData.items.map((item) => (
                                                                 <div
                                                                     key={item.id}
                                                                     className="px-2 py-1 rounded text-sm font-mono flex items-center gap-2"
@@ -191,7 +191,7 @@ export const BatchComposition: React.FC<BatchCompositionProps> = ({
                                                                 >
                                                                     <span>{item.identifier}</span>
                                                                     <button
-                                                                        onClick={() => setIdentifier(item.identifier)}
+                                                                        onClick={() => setIdentifier(item.identifier as string)}
                                                                         className="font-bold"
                                                                         style={{ color: 'var(--pi-muted, #a1a1aa)' }}
                                                                         title="Copy to input"

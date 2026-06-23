@@ -7,6 +7,7 @@ import { EngineConfigForm } from "./EngineConfigForm";
 import { FormulaPreview } from "./FormulaPreview";
 import { FormErrorBanner } from "../../../components/ui/ErrorState";
 import { Select, type SelectOption } from "../../../components/ui/Select";
+import type { CalculatorTemplate, EngineConfig, PresetProduct } from "./types";
 
 const ENGINE_TYPES = [
     { value: "counter", labelKey: "counter" },
@@ -22,10 +23,10 @@ export const CalculatorEdit = () => {
     const navigate = useNavigate();
     const { id } = useParams();
     const [engineType, setEngineType] = useState("counter");
-    const [engineConfig, setEngineConfig] = useState<Record<string, any>>({});
+    const [engineConfig, setEngineConfig] = useState<EngineConfig>({});
     const [initialized, setInitialized] = useState(false);
 
-    const { onFinish, queryResult, mutationResult, formLoading } = useForm({
+    const { onFinish, queryResult, mutationResult, formLoading } = useForm<CalculatorTemplate>({
         action: "edit",
         resource: "calculator-templates",
         id: id,
@@ -39,6 +40,9 @@ export const CalculatorEdit = () => {
 
     useEffect(() => {
         if (record && !initialized) {
+            // One-time hydration of form state from the fetched record; the
+            // `initialized` guard makes this converge after the first run.
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setEngineType(record.engine_type || "counter");
             setEngineConfig(record.engine_config || {});
             setInitialized(true);
@@ -56,12 +60,12 @@ export const CalculatorEdit = () => {
         });
     };
 
-    const { data: usageData, isLoading: isLoadingUsage } = useList({
+    const { data: usageData, isLoading: isLoadingUsage } = useList<PresetProduct>({
         resource: "product-models",
         filters: id ? [{ field: "default_calculator", operator: "eq", value: id }] : [],
         pagination: { pageSize: 50 },
         queryOptions: { enabled: !!id },
-    }) as any;
+    });
 
     const usingProducts = Array.isArray(usageData?.data) ? usageData.data : [];
 
@@ -196,7 +200,7 @@ export const CalculatorEdit = () => {
                     </p>
                 ) : (
                     <ul className="space-y-1">
-                        {usingProducts.map((p: any) => (
+                        {usingProducts.map((p) => (
                             <li key={p.id}>
                                 <Link
                                     to={`/products/${p.id}`}

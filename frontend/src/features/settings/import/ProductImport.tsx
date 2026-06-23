@@ -76,8 +76,10 @@ export const ProductImport: React.FC = () => {
                 );
                 setReport(res.data);
                 setStep(dryRun ? "preview" : "result");
-            } catch (err: any) {
-                setError(err?.response?.data?.detail || t("upload.errorParsing"));
+            } catch (err: unknown) {
+                const detail = (err as { response?: { data?: { detail?: string } } })
+                    ?.response?.data?.detail;
+                setError(detail || t("upload.errorParsing"));
             } finally {
                 setLoading(false);
             }

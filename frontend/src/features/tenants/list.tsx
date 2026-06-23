@@ -26,17 +26,24 @@ import { useActingTenant } from "../../context/ActingTenantProvider";
  * tenant. The row matching the current acting tenant is badged so the
  * developer can see which context is live.
  */
+/** Tenant (child manager-company) row fields rendered by the list. */
+interface TenantRow {
+    id: string | number;
+    name?: string;
+    license_code?: string | null;
+}
+
 export const TenantList = () => {
     const { t } = useTranslation(["settings", "common"]);
     const navigate = useNavigate();
     const { actingTenantId, setActingTenant } = useActingTenant();
 
-    const { data: listData, isLoading, isError, refetch } = useList({
+    const { data: listData, isLoading, isError, refetch } = useList<TenantRow>({
         resource: "tenants",
         sorters: [{ field: "name", order: "asc" }],
-    }) as any;
+    });
 
-    const tenants = Array.isArray(listData?.data) ? listData.data : [];
+    const tenants: TenantRow[] = Array.isArray(listData?.data) ? listData.data : [];
 
     return (
         <div>
@@ -90,7 +97,7 @@ export const TenantList = () => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {tenants.map((tenant: any) => {
+                        {tenants.map((tenant) => {
                             const isActing = String(tenant.id) === String(actingTenantId);
                             return (
                                 <TableRow key={tenant.id}>

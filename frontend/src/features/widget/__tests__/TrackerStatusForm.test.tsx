@@ -81,20 +81,20 @@ describe('OperationPanel tracker branch', () => {
                     input_type: 'tracker',
                 },
                 status_transitions: { ACTIVE: ['BROKEN'] },
-            } as any,
+            },
         };
         render(
             <OperationPanel
                 companyName="Acme"
-                activeSubLocation={{ id: 'loc-1', name: 'Main' }}
+                activeSubLocation={{ id: 'loc-1', name: 'Main', type: 'PHYSICAL' }}
                 locationLocked
                 onBackToLocation={vi.fn()}
                 products={[product]}
                 selectedProduct="p-1"
                 productLocked
                 onProductChange={vi.fn()}
-                handleMove={vi.fn() as any}
-                handleStatusChange={vi.fn() as any}
+                handleMove={vi.fn(async () => {})}
+                handleStatusChange={vi.fn(async () => {})}
                 actionLoading={false}
                 message={null}
                 quantity="1"
@@ -114,8 +114,8 @@ describe('OperationPanel tracker branch', () => {
                 batchManagerData={null}
                 expandedModelId={null}
                 setExpandedModelId={vi.fn()}
-                loadComponentBatches={vi.fn() as any}
-                loadAvailableItems={vi.fn() as any}
+                loadComponentBatches={vi.fn(async () => {})}
+                loadAvailableItems={vi.fn(async () => {})}
                 selectedLocation="loc-1"
                 setMessage={vi.fn()}
             />

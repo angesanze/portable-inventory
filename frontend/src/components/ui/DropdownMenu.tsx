@@ -120,6 +120,9 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
 
     // Reset focus index when menu opens/closes
     useEffect(() => {
+        // Clear keyboard focus whenever the menu closes so it never reopens
+        // with a stale highlighted item.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         if (!isOpen) setFocusedIndex(-1);
     }, [isOpen]);
 

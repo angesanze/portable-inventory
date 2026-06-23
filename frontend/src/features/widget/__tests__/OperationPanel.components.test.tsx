@@ -222,7 +222,7 @@ describe('DimensionForm', () => {
                         { key: 'length', label: 'Length', type: 'number' },
                         { key: 'width', label: 'Width', type: 'number' },
                     ],
-                } as any}
+                }}
                 batchData={{}}
                 setBatchData={vi.fn()}
                 handleMove={vi.fn()}
@@ -361,7 +361,7 @@ describe('DimensionForm — Phase 05 disabled-state regression', () => {
         const handleMove = vi.fn();
         const { rerender } = render(
             <DimensionForm
-                uiConfig={dimUi as any}
+                uiConfig={dimUi}
                 batchData={{}}
                 setBatchData={vi.fn()}
                 handleMove={handleMove}
@@ -373,7 +373,7 @@ describe('DimensionForm — Phase 05 disabled-state regression', () => {
 
         rerender(
             <DimensionForm
-                uiConfig={dimUi as any}
+                uiConfig={dimUi}
                 batchData={{ length: '2', width: '3' }}
                 setBatchData={vi.fn()}
                 handleMove={handleMove}

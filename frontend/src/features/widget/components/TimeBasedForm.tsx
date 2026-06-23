@@ -52,7 +52,7 @@ export const TimeBasedForm: React.FC<TimeBasedFormProps> = ({
                     />
                 </div>
 
-                {(uiConfig as any)?.expiry_tracking && (
+                {uiConfig?.expiry_tracking && (
                     <div>
                         <label className="pi-label">{t('panels.timeBasedForm.expiryDate')}</label>
                         <input

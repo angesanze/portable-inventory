@@ -5,7 +5,6 @@ import { QuantityInput } from "../QuantityInput";
 import { ScanResult } from "../ScanResult";
 import { SuccessFeedback, ErrorFeedback } from "../SuccessFeedback";
 import type { QRScanResult } from "../QRScanner";
-import type { OperationType } from "../ScanResult";
 
 // Suppress navigator.vibrate in tests
 beforeEach(() => {

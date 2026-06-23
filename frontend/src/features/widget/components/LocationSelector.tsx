@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Building2, Package, FolderOpen, ClipboardList, ChevronLeft, X } from 'lucide-react';
-import type { Location } from '../types';
+import type { Location, LocationInventoryItem } from '../types';
 
 interface LocationSelectorProps {
     companyName: string;
@@ -14,7 +14,7 @@ interface LocationSelectorProps {
 export const LocationSelector: React.FC<LocationSelectorProps> = ({ companyName, locations, onSelect, apiUrl, apiKey }) => {
     const [currentParentId, setCurrentParentId] = useState<string | null>(null);
     const [isInspectOpen, setIsInspectOpen] = useState(false);
-    const [inspectData, setInspectData] = useState<any[]>([]);
+    const [inspectData, setInspectData] = useState<LocationInventoryItem[]>([]);
     const [inspectLoading, setInspectLoading] = useState(false);
 
     const visibleLocations = locations.filter(l => (l.parent_id || null) === (currentParentId || null));
@@ -26,7 +26,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({ companyName,
         setInspectLoading(true);
         setInspectData([]);
         try {
-            const res = await fetch(`${apiUrl}/widget/location_inventory/?api_key=${apiKey}&location_id=${locId}`);
+            const res = await fetch(`${apiUrl}/widget/location_inventory/?location_id=${locId}`, { headers: { "X-Api-Key": apiKey ?? "" } });
             if (res.ok) {
                 const data = await res.json();
                 setInspectData(data.contents || []);
@@ -147,7 +147,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({ companyName,
                                         This location is empty.
                                     </div>
                                 )}
-                                {inspectData.map((item: any, idx: number) => (
+                                {inspectData.map((item, idx) => (
                                     <div key={idx} className="rounded-xl p-3 flex justify-between items-center" style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid var(--pi-border, rgba(255,255,255,0.06))' }}>
                                         <div>
                                             <div className="font-bold" style={{ color: 'var(--pi-text, #f4f4f5)' }}>{item.product_name}</div>

@@ -4,12 +4,20 @@ export type BadgeVariant =
     | 'success' | 'warning' | 'error' | 'info' | 'neutral' | 'primary'
     | 'emerald' | 'amber' | 'rose' | 'red' | 'cyan' | 'slate' | 'indigo';
 
+export type BadgeSize = 'sm' | 'md';
+
 interface BadgeProps {
     variant?: BadgeVariant;
+    size?: BadgeSize;
     dot?: boolean;
     className?: string;
     children: React.ReactNode;
 }
+
+const sizeStyles: Record<BadgeSize, string> = {
+    sm: 'px-1.5 py-0.5 text-[10px]',
+    md: 'px-2 py-0.5 text-[11px]',
+};
 
 const variantStyles: Record<BadgeVariant, { bg: string; text: string; border: string; dot: string }> = {
     // Semantic variants
@@ -31,6 +39,7 @@ const variantStyles: Record<BadgeVariant, { bg: string; text: string; border: st
 
 export const Badge: React.FC<BadgeProps> = ({
     variant = 'neutral',
+    size = 'md',
     dot = false,
     className = '',
     children
@@ -39,7 +48,7 @@ export const Badge: React.FC<BadgeProps> = ({
 
     return (
         <span
-            className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium uppercase tracking-wider border ${styles.bg} ${styles.text} ${styles.border} ${className}`}
+            className={`inline-flex items-center gap-1.5 rounded-full font-medium uppercase tracking-wider border ${sizeStyles[size]} ${styles.bg} ${styles.text} ${styles.border} ${className}`}
         >
             {dot && (
                 <span className={`size-1.5 rounded-full ${styles.dot} shrink-0`} />

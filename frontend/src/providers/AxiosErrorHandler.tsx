@@ -1,17 +1,21 @@
 import { useEffect } from "react";
-import axios, { AxiosError } from "axios";
+import { AxiosError } from "axios";
 import { useNotification, useLogout } from "@refinedev/core";
+import { axiosInstance } from "./axios-client";
 
 export const AxiosErrorHandler = () => {
     const { open } = useNotification();
     const { mutate: logout } = useLogout();
 
     useEffect(() => {
-        const interceptor = axios.interceptors.response.use(
+        // BP-02: register on the shared axiosInstance — all app traffic goes
+        // through it (axios.create), so interceptors on the global `axios`
+        // default never fired and the 401/403/4xx/5xx toasts were dead.
+        const interceptor = axiosInstance.interceptors.response.use(
             (response) => response,
             (error: AxiosError) => {
                 const status = error.response?.status;
-                const data: any = error.response?.data;
+                const data: unknown = error.response?.data;
 
                 // Handle 401 Unauthorized
                 if (status === 401) {
@@ -41,18 +45,19 @@ export const AxiosErrorHandler = () => {
 
                 // Handle Generic API Errors (400)
                 if (status === 400 && data) {
-                    let message = "Validation Error";
+                    const message = "Validation Error";
                     let description = "Please check your input.";
 
+                    const detail = (data as { detail?: unknown }).detail;
                     if (typeof data === 'string') {
                         description = data;
-                    } else if (data.detail) {
-                        description = data.detail;
+                    } else if (detail) {
+                        description = String(detail);
                     } else if (Array.isArray(data)) {
                         description = data.join(", ");
                     } else if (typeof data === 'object') {
                         // Concatenate all error messages
-                        description = Object.entries(data)
+                        description = Object.entries(data as Record<string, unknown>)
                             .map(([k, v]) => `${k}: ${v}`)
                             .join("; ");
                     }
@@ -70,7 +75,7 @@ export const AxiosErrorHandler = () => {
         );
 
         return () => {
-            axios.interceptors.response.eject(interceptor);
+            axiosInstance.interceptors.response.eject(interceptor);
         };
     }, [open, logout]);
 

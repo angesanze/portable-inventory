@@ -68,10 +68,7 @@ const locations = [
     { id: "loc-ext", name: "External Vendor", type: "VIRTUAL" },
 ];
 
-let lastOnFinishPayload: any = null;
-const mockOnFinish = vi.fn(async (payload: any) => {
-    lastOnFinishPayload = payload;
-});
+const mockOnFinish = vi.fn(async () => {});
 
 vi.mock("@refinedev/core", () => ({
     useForm: () => ({
@@ -105,7 +102,6 @@ describe("MovementCreate — per-profile gating (PRESET-LOGIC-07)", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         sessionStorage.clear();
-        lastOnFinishPayload = null;
     });
 
     it("SIMPLE_COUNT: shows quantity, no batch / serial sections", () => {

@@ -9,6 +9,7 @@ import { FormSection } from "../../../components/ui/FormSection";
 import { Input } from "../../../components/ui/Input";
 import { Select } from "../../../components/ui/Select";
 import { FormErrorBanner } from "../../../components/ui/ErrorState";
+import type { TransferProduct, TransferLocation, TransferPayload } from "./movementTypes";
 
 export const TransferCreate = () => {
     const navigate = useNavigate();
@@ -37,12 +38,12 @@ export const TransferCreate = () => {
         },
     });
 
-    const { data: productsData } = useList({
+    const { data: productsData } = useList<TransferProduct>({
         resource: "product-models",
         pagination: { mode: "off" },
     });
 
-    const { data: locationsData } = useList({
+    const { data: locationsData } = useList<TransferLocation>({
         resource: "locations",
         pagination: { mode: "off" },
     });
@@ -50,24 +51,24 @@ export const TransferCreate = () => {
     const products = productsData?.data || [];
     const locations = locationsData?.data || [];
 
-    const selectedProduct = products.find((p: any) => p.id === productId);
+    const selectedProduct = products.find((p) => p.id === productId);
     const trackingMode = selectedProduct?.tracking_mode;
     const engineType = selectedProduct?.engine_type;
 
     const isBatch = engineType === "bucket" || trackingMode === "BATCH";
     const isIndividual = engineType === "tracker" || trackingMode === "INDIVIDUAL";
 
-    const productOptions = products.map((p: any) => ({
+    const productOptions = products.map((p) => ({
         value: p.id,
         label: p.name,
         description: p.sku,
     }));
 
     const realLocations = locations.filter(
-        (l: any) => l.type === "WAREHOUSE" || l.type === "STORE",
+        (l) => l.type === "WAREHOUSE" || l.type === "STORE",
     );
 
-    const fromLocationOptions = realLocations.map((l: any) => ({
+    const fromLocationOptions = realLocations.map((l) => ({
         value: l.id,
         label: l.name,
         description: l.type,
@@ -75,8 +76,8 @@ export const TransferCreate = () => {
 
     // Filter out source location from destination options
     const toLocationOptions = realLocations
-        .filter((l: any) => l.id !== fromLocationId)
-        .map((l: any) => ({
+        .filter((l) => l.id !== fromLocationId)
+        .map((l) => ({
             value: l.id,
             label: l.name,
             description: l.type,
@@ -90,7 +91,7 @@ export const TransferCreate = () => {
         const qty = parseFloat(quantity);
         if (isNaN(qty) || qty <= 0) return;
 
-        const payload: any = {
+        const payload: TransferPayload = {
             product_id: productId,
             from_id: fromLocationId,
             to_id: toLocationId,
@@ -119,8 +120,8 @@ export const TransferCreate = () => {
 
     const isLoading = mutationResult.isLoading;
 
-    const fromName = realLocations.find((l: any) => l.id === fromLocationId)?.name;
-    const toName = realLocations.find((l: any) => l.id === toLocationId)?.name;
+    const fromName = realLocations.find((l) => l.id === fromLocationId)?.name;
+    const toName = realLocations.find((l) => l.id === toLocationId)?.name;
 
     return (
         <FormPage

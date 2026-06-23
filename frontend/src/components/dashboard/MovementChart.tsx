@@ -20,12 +20,34 @@ const PERIOD_DAYS: Record<Period, number> = {
     "90d": 90,
 };
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+/** Minimal shape of a recharts tooltip series entry that this component reads. */
+interface TooltipPayloadEntry {
+    name?: string | number;
+    value?: string | number;
+    color?: string;
+    dataKey?: string | number;
+}
+
+/** Props recharts injects into a custom `content` element (cloned with extras). */
+interface CustomTooltipProps {
+    active?: boolean;
+    payload?: TooltipPayloadEntry[];
+    label?: string | number;
+}
+
+/** Movement row fields consumed by the chart bucketing logic. */
+interface MovementRow {
+    id?: string;
+    occurred_at?: string;
+    quantity?: number | string;
+}
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     if (!active || !payload?.length) return null;
     return (
         <div className="bg-zinc-800 border border-white/[0.08] rounded-lg shadow-xl px-3 py-2 text-xs">
             <p className="text-zinc-300 mb-1 font-medium">{label}</p>
-            {payload.map((entry: any) => (
+            {payload.map((entry) => (
                 <p key={entry.dataKey} style={{ color: entry.color }}>
                     {entry.name}: {entry.value}
                 </p>
@@ -39,11 +61,11 @@ export const MovementChart = () => {
     const [period, setPeriod] = useState<Period>("7d");
     const days = PERIOD_DAYS[period];
 
-    const { data: movementsData } = useList({
+    const { data: movementsData } = useList<MovementRow>({
         resource: "movements",
         pagination: { pageSize: 1000 },
         sorters: [{ field: "occurred_at", order: "desc" }],
-    }) as any;
+    });
 
     const chartData = useMemo(() => {
         const buckets: {

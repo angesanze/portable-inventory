@@ -94,6 +94,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
 ToastProvider.displayName = "ToastProvider";
 
+// eslint-disable-next-line react-refresh/only-export-components -- the hook is intentionally co-located with its ToastProvider (canonical context+consumer pairing); splitting it to a sibling module would fan out 27 import sites for a dev-only HMR optimization.
 export function useToast(): ToastContextValue {
     const ctx = useContext(ToastContext);
     if (!ctx) {

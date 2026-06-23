@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import {
-    MapPin,
     ArrowRight,
     Activity,
     Edit2,
@@ -20,6 +19,11 @@ import {
     ConfirmDialog,
     useConfirmDialog,
 } from "../../../components/ui/ConfirmDialog";
+import type {
+    LocationRecord,
+    LocationInventoryItem,
+    LocationMovement,
+} from "./types";
 
 function typeVariant(type: string): BadgeVariant {
     switch (type) {
@@ -50,20 +54,20 @@ export const LocationShow = () => {
     const { mutate: deleteLocation } = useDelete();
     const { confirm, dialogProps } = useConfirmDialog();
 
-    const { data: record, isLoading } = useOne({
+    const { data: record, isLoading } = useOne<LocationRecord>({
         resource: "locations",
         id: id as string,
         queryOptions: { enabled: !!id },
     });
 
-    const { data: stockData, isLoading: isLoadingStock } = useList({
+    const { data: stockData, isLoading: isLoadingStock } = useList<LocationInventoryItem>({
         resource: "physical-products",
         filters: [{ field: "location", operator: "eq", value: id }],
         pagination: { mode: "off" },
         queryOptions: { enabled: !!id },
     });
 
-    const { data: movementsData, isLoading: isLoadingMovements } = useList({
+    const { data: movementsData, isLoading: isLoadingMovements } = useList<LocationMovement>({
         resource: "movements",
         filters: [{ field: "location", operator: "eq", value: id }],
         sorters: [{ field: "occurred_at", order: "desc" }],
@@ -71,9 +75,9 @@ export const LocationShow = () => {
         queryOptions: { enabled: !!id },
     });
 
-    const location = record?.data as any;
-    const inventory = Array.isArray(stockData?.data) ? stockData.data : [];
-    const movements = Array.isArray(movementsData?.data)
+    const location = record?.data;
+    const inventory: LocationInventoryItem[] = Array.isArray(stockData?.data) ? stockData.data : [];
+    const movements: LocationMovement[] = Array.isArray(movementsData?.data)
         ? movementsData.data
         : [];
 
@@ -199,7 +203,7 @@ export const LocationShow = () => {
                         </div>
                     ) : (
                         <div className="divide-y divide-white/[0.06]">
-                            {inventory.map((item: any) => (
+                            {inventory.map((item) => (
                                 <div
                                     key={item.id}
                                     className="px-5 py-4 hover:bg-white/5 transition-colors flex items-center justify-between"
@@ -269,7 +273,7 @@ export const LocationShow = () => {
                         </div>
                     ) : (
                         <div className="divide-y divide-white/[0.06]">
-                            {movements.map((m: any) => {
+                            {movements.map((m) => {
                                 const qty = Number(m.quantity);
                                 const isPositive = qty > 0;
                                 return (

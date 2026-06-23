@@ -1,3 +1,5 @@
+import type { CalculatorTemplate } from "../types";
+
 /**
  * Safe arithmetic expression evaluator — replaces `new Function()`/`eval()`.
  * Only supports: numbers, +, -, *, /, parentheses.
@@ -79,17 +81,17 @@ export function safeEvalFormula(expr: string): number {
     return result;
 }
 
-export const getCategoryLabel = (tmpl: any) => {
+export const getCategoryLabel = (tmpl: CalculatorTemplate) => {
     const type = tmpl.engine_type;
-    const conf = tmpl.engine_config || {};
+    const conf: NonNullable<CalculatorTemplate['engine_config']> = tmpl.engine_config || {};
 
     if (type === 'bucket') {
-        if (conf.fields?.some((f: any) => f.key === 'expiry')) return 'EXPIRY';
-        if (conf.fields?.some((f: any) => f.key === 'serial_no')) return 'SERIAL';
+        if (conf.fields?.some(f => f.key === 'expiry')) return 'EXPIRY';
+        if (conf.fields?.some(f => f.key === 'serial_no')) return 'SERIAL';
         return 'BATCH';
     }
     if (type === 'converter') {
-        const unit = conf.stock_unit?.toLowerCase();
+        const unit = conf.stock_unit?.toLowerCase() ?? '';
         if (['min', 'h', 'hour', 's'].includes(unit)) return 'TIME';
         if (['mm', 'cm', 'm', 'in', 'ft'].includes(unit)) return 'LENGTH';
         if (['ml', 'l', 'gal'].includes(unit)) return 'VOLUME';

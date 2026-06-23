@@ -29,11 +29,15 @@ import { API_URL } from "../../../config";
 import { exportToExcel } from "../../../utils/exportToExcel";
 import { fetchAllPages } from "../../../utils/fetchAllPages";
 import { MOVEMENT_EXPORT_COLUMNS, MOVEMENT_EXPORT_FILENAME } from "./exportColumns";
+import type { MovementListRow, ProductModelProbeRow } from "./listTypes";
+
+/** Minimal shape needed to derive a movement's direction (location routing). */
+type MovementDirectionInput = Pick<MovementListRow, "from_location" | "to_location">;
 
 // Language-stable direction key, derived from location types. Used both for
 // the (translated) badge and for client-side filtering, so the filter keeps
 // working regardless of the active language.
-function directionKey(move: any): "TRANSFER" | "OUTBOUND" | "INBOUND" | "MOVEMENT" {
+function directionKey(move: MovementDirectionInput): "TRANSFER" | "OUTBOUND" | "INBOUND" | "MOVEMENT" {
     const fromType = move.from_location?.type;
     const toType = move.to_location?.type;
 
@@ -45,7 +49,7 @@ function directionKey(move: any): "TRANSFER" | "OUTBOUND" | "INBOUND" | "MOVEMEN
     return "MOVEMENT";
 }
 
-function directionBadge(move: any, t: TFunction): { label: string; variant: BadgeVariant } {
+function directionBadge(move: MovementDirectionInput, t: TFunction): { label: string; variant: BadgeVariant } {
     switch (directionKey(move)) {
         case "TRANSFER":
             return { label: t("movements.transfer"), variant: "cyan" };
@@ -77,16 +81,16 @@ export const MovementList = () => {
         return result;
     }, [filters]);
 
-    const { data: listData, isLoading, isError, refetch } = useList({
+    const { data: listData, isLoading, isError, refetch } = useList<MovementListRow>({
         resource: "movements",
         filters: crudFilters,
         sorters: [{ field: "occurred_at", order: "desc" }],
-    }) as any;
+    });
 
-    const { data: productsCheck } = useList({
+    const { data: productsCheck } = useList<ProductModelProbeRow>({
         resource: "product-models",
         pagination: { pageSize: 1 },
-    }) as any;
+    });
     const hasProducts = (productsCheck?.data?.length ?? 0) > 0;
 
     const navigate = useNavigate();
@@ -96,7 +100,7 @@ export const MovementList = () => {
     // Client-side direction filter (direction is derived, not a backend field)
     const movements = useMemo(() => {
         if (!filters.direction) return allMovements;
-        return allMovements.filter((move: any) => directionKey(move) === filters.direction);
+        return allMovements.filter((move) => directionKey(move) === filters.direction);
     }, [allMovements, filters.direction]);
 
     const { mutateAsync: bulkDelete } = useCustomMutation();
@@ -110,10 +114,10 @@ export const MovementList = () => {
         try {
             const params: Record<string, string> = {};
             if (filters.product) params.search = filters.product;
-            let all = await fetchAllPages<any>(`${API_URL}/api/v1/movements/`, params);
+            let all = await fetchAllPages<MovementListRow>(`${API_URL}/api/v1/movements/`, params);
             // Direction is derived client-side, so re-apply it on the full set.
             if (filters.direction) {
-                all = all.filter((move: any) => directionKey(move) === filters.direction);
+                all = all.filter((move) => directionKey(move) === filters.direction);
             }
             exportToExcel(all, MOVEMENT_EXPORT_COLUMNS, `${MOVEMENT_EXPORT_FILENAME}.xlsx`);
         } finally {
@@ -125,8 +129,8 @@ export const MovementList = () => {
     const selectedItems = useMemo(
         () =>
             movements
-                .filter((m: any) => selection.selectedIds.has(m.id))
-                .map((m: any) => {
+                .filter((m) => selection.selectedIds.has(m.id))
+                .map((m) => {
                     const name = m.product_name || m.product_model?.name || t("movements.unknown");
                     const ts = new Date(m.occurred_at).toLocaleString();
                     return { id: String(m.id), label: `${ts} — ${name}` };
@@ -269,7 +273,7 @@ export const MovementList = () => {
                                 icon: Download,
                                 onClick: () =>
                                     exportToExcel(
-                                        movements.filter((m: any) =>
+                                        movements.filter((m) =>
                                             selection.selectedIds.has(m.id),
                                         ),
                                         MOVEMENT_EXPORT_COLUMNS,
@@ -302,7 +306,7 @@ export const MovementList = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {movements.map((move: any) => {
+                            {movements.map((move) => {
                                 const dir = directionBadge(move, t);
                                 const qty = move.quantity ?? move.delta ?? 0;
                                 const isNegative = Number(qty) < 0;
