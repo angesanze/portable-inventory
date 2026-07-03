@@ -14,3 +14,4 @@ whitenoise>=6.12,<7.0
 django-import-export>=4.4,<5.0
 django-admin-rangefilter>=0.13,<1.0
 openpyxl>=3.1,<4.0
+gunicorn>=21.2,<24.0

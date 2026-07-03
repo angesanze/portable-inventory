@@ -36,6 +36,16 @@ CORS_ALLOWED_ORIGINS = (
 )
 CORS_ALLOW_CREDENTIALS = True
 
+# Behind the Cloud Run / Firebase Hosting HTTPS proxy: trust the forwarded proto
+# so Django treats requests as secure (otherwise SECURE_SSL_REDIRECT loops), and
+# trust the deployed origins for CSRF (admin form posts / session auth).
+# CSRF_TRUSTED_ORIGINS is space-separated and must include the scheme, e.g.
+# "https://varasto-prod.web.app https://varasto-api-xxxx.run.app".
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+CSRF_TRUSTED_ORIGINS = [
+    o.strip() for o in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(" ") if o.strip()
+]
+
 # Public, externally-reachable origin used to build absolute links embedded in
 # artifacts that leave the server (e.g. QR codes scanned by phones). Empty in
 # dev → callers fall back to the request origin. Set to e.g.
@@ -125,6 +135,15 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 # Database
 DATABASES = {"default": dj_database_url.config(default="sqlite:///db.sqlite3")}
+
+# Cloud Run + Cloud SQL: connect over the unix socket mounted by
+# `--add-cloudsql-instances`. Setting HOST explicitly avoids depending on
+# DATABASE_URL socket-parsing quirks — DATABASE_URL then carries only
+# user/password/dbname (e.g. postgres://user:pass@/dbname).
+_cloudsql_conn = os.environ.get("CLOUD_SQL_CONNECTION_NAME")
+if _cloudsql_conn:
+    DATABASES["default"]["HOST"] = f"/cloudsql/{_cloudsql_conn}"
+    DATABASES["default"]["PORT"] = ""
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [

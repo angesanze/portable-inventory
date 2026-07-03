@@ -1,0 +1,53 @@
+name: deploy-frontend
+
+# Build the Vite SPA (pointing VITE_API_URL at the live Cloud Run backend,
+# resolved at build time) and deploy it to Firebase Hosting on every push to
+# main that touches the frontend. Auth is keyless via Workload Identity
+# Federation; firebase-tools picks up the resulting ADC credentials.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - "firebase.json"
+      - ".firebaserc"
+      - ".github/workflows/deploy-frontend.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Resolve backend URL
+        run: |
+          URL=$(gcloud run services describe varasto-api \
+            --region europe-west1 --project varasto-prod \
+            --format='value(status.url)')
+          echo "VITE_API_URL=$URL" >> "$GITHUB_ENV"
+
+      - run: npm ci
+        working-directory: frontend
+
+      - run: npm run build
+        working-directory: frontend
+        env:
+          VITE_API_URL: ${{ env.VITE_API_URL }}
+
+      - name: Deploy to Firebase Hosting
+        run: npx -y firebase-tools@latest deploy --only hosting --project varasto-prod --non-interactive

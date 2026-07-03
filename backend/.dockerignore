@@ -1,0 +1,14 @@
+# Keep the Cloud Run image lean and the build context small.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+*.sqlite3
+*.db
+staticfiles/
+venv/
+.venv/
+.env
