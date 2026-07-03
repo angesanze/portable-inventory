@@ -1,0 +1,3 @@
+# Documentation build dependencies (MkDocs site → GitHub Pages).
+# Pinned to the version verified locally so CI builds match.
+mkdocs-material==9.7.6

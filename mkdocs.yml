@@ -1,7 +1,7 @@
 site_name: Varasto
 # Product name is "Varasto"; "portable-inventory" is the technical slug.
-site_url: http://localhost:8002/
-repo_url: https://github.com/my-org/portable-inventory
+site_url: https://angesanze.github.io/portable-inventory/
+repo_url: https://github.com/angesanze/portable-inventory
 theme:
   name: material
   palette:
