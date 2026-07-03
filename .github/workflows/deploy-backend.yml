@@ -46,7 +46,7 @@ jobs:
           if ! gcloud run jobs describe varasto-migrate --region "$REGION" --project "$PROJECT_ID" >/dev/null 2>&1; then
             gcloud run jobs create varasto-migrate --image "$IMAGE" \
               --region "$REGION" --project "$PROJECT_ID" \
-              --add-cloudsql-instances "$INSTANCE" \
+              --set-cloudsql-instances "$INSTANCE" \
               --service-account "varasto-run@${PROJECT_ID}.iam.gserviceaccount.com" \
               --set-secrets "SECRET_KEY=SECRET_KEY:latest,DATABASE_URL=DATABASE_URL:latest" \
               --set-env-vars "CLOUD_SQL_CONNECTION_NAME=${INSTANCE}" \
