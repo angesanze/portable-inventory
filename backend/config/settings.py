@@ -1,5 +1,6 @@
 from pathlib import Path
 import os
+import sys
 import dj_database_url
 from datetime import timedelta
 from django.core.exceptions import ImproperlyConfigured
@@ -13,6 +14,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = int(os.environ.get("DEBUG", 0))
+
+# True under pytest / `manage.py test`. Used to skip prod-only hardening (e.g.
+# the HTTPS redirect) that would otherwise 301 the test client and break tests.
+_TESTING = "pytest" in sys.modules or "test" in sys.argv
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get("SECRET_KEY")
@@ -289,8 +294,9 @@ SIMPLE_JWT = {
 
 AUTH_USER_MODEL = "core.User"
 
-# Security headers (production hardening)
-if not DEBUG:
+# Security headers (production hardening). Skipped under tests so the HTTPS
+# redirect doesn't 301 the test client (CI runs with DEBUG=0).
+if not DEBUG and not _TESTING:
     SECURE_SSL_REDIRECT = os.environ.get("SECURE_SSL_REDIRECT", "True") == "True"
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
@@ -334,9 +340,6 @@ LOGGING = {
 }
 
 # Django Debug Toolbar (development only, disabled during tests)
-import sys
-
-_TESTING = "pytest" in sys.modules or "test" in sys.argv
 if DEBUG and not _TESTING:
     try:
         import debug_toolbar  # noqa: F401
