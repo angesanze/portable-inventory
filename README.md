@@ -1,5 +1,9 @@
 # Varasto
 
+[![Documentation](https://img.shields.io/badge/docs-online-6366f1?logo=materialformkdocs&logoColor=white)](https://angesanze.github.io/portable-inventory/)
+[![CI](https://github.com/angesanze/portable-inventory/actions/workflows/ci.yml/badge.svg)](https://github.com/angesanze/portable-inventory/actions/workflows/ci.yml)
+[![Docs deploy](https://github.com/angesanze/portable-inventory/actions/workflows/docs.yml/badge.svg)](https://github.com/angesanze/portable-inventory/actions/workflows/docs.yml)
+
 > **Naming:** the product is **Varasto**; **`portable-inventory`** is its
 > technical slug (repository, Docker, package names). Both refer to the same
 > project.
@@ -21,7 +25,7 @@ is written to an append-only `Movement` ledger.
 ## Quick start (Docker)
 
 ```bash
-git clone https://github.com/my-org/portable-inventory.git
+git clone https://github.com/angesanze/portable-inventory.git
 cd portable-inventory
 cp .env.example .env          # sensible defaults for local dev
 docker compose up --build
@@ -54,8 +58,10 @@ only `backend/requirements.txt`.
 
 ## Documentation
 
-Full documentation is in [`docs/`](docs/) and served by MkDocs at
-http://localhost:8002. Start with:
+📖 **Live docs: <https://angesanze.github.io/portable-inventory/>** — auto-published
+from [`docs/`](docs/) on every push to `main`.
+
+Locally the docs are served by MkDocs at http://localhost:8002. Start with:
 
 - [Getting Started](docs/getting-started/index.md)
 - [Concepts → Strategies](docs/concepts/strategies.md) and [Theory](docs/concepts/theory.md)

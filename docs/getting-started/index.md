@@ -12,7 +12,7 @@ The easiest way to run the system is via Docker Compose.
 
 1.  **Clone the repository**:
     ```bash
-    git clone https://github.com/my-org/portable-inventory.git
+    git clone https://github.com/angesanze/portable-inventory.git
     cd portable-inventory
     ```
 
