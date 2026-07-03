@@ -23,7 +23,7 @@ const MATRIX: MatrixRow[] = [
     { name: 'SIMPLE_COUNT → QuantityControls',                      profile: 'SIMPLE_COUNT',     hasPreset: false, expectedTestId: 'panel-quantity' },
     { name: 'UNIT_CONVERSION → QuantityControls',                   profile: 'UNIT_CONVERSION',  hasPreset: false, expectedTestId: 'panel-quantity' },
     { name: 'DIMENSIONAL → DimensionForm',                          profile: 'DIMENSIONAL',      hasPreset: false, expectedTestId: 'panel-dimension' },
-    { name: 'BATCH_TRACKED → BatchComposition',                     profile: 'BATCH_TRACKED',    hasPreset: false, expectedTestId: 'panel-batch-composition' },
+    { name: 'BATCH_TRACKED (plain) → BatchTrackedForm',             profile: 'BATCH_TRACKED',    hasPreset: false, expectedTestId: 'panel-batch-tracked' },
     { name: 'PERISHABLE → TimeBasedForm',                           profile: 'PERISHABLE',       hasPreset: false, expectedTestId: 'panel-time-based' },
     { name: 'SERIALIZED (no preset) → TrackerForm',                 profile: 'SERIALIZED',       hasPreset: false, expectedTestId: 'panel-tracker-form' },
     { name: 'SERIALIZED (with status_transitions) → TrackerStatusForm', profile: 'SERIALIZED',   hasPreset: true,  expectedTestId: 'panel-tracker-status' },

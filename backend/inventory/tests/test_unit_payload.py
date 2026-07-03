@@ -6,12 +6,13 @@ append it. Counter engine with `input_label` → unit string; counter without
 preset → None; non-counter engine → None (other engines manage their own
 units inside the numeric formatter).
 """
+
 import uuid
 from decimal import Decimal
 
 import pytest
 
-from core.models import Company, User, ApiKey
+from core.models import Company, User
 from inventory.models import (
     ProductModel,
     Location,
@@ -32,9 +33,7 @@ def company(db):
 
 @pytest.fixture
 def user(company):
-    return User.objects.create_user(
-        username="unit_user", password="pw", company=company
-    )
+    return User.objects.create_user(username="unit_user", password="pw", company=company)
 
 
 @pytest.fixture
@@ -70,9 +69,7 @@ def _stock(product, supplier, warehouse, user, qty):
 
 @pytest.mark.django_db
 class TestWidgetPayloadUnit:
-    def test_counter_with_preset_has_unit(
-        self, company, user, supplier, warehouse, kg_preset
-    ):
+    def test_counter_with_preset_has_unit(self, company, user, supplier, warehouse, kg_preset):
         product = ProductModel.objects.create(
             company=company,
             sku="U-1",
@@ -88,9 +85,7 @@ class TestWidgetPayloadUnit:
         assert item["unit"] == "Kg"
         assert item["stock_display"].endswith("Kg")
 
-    def test_counter_without_preset_unit_none(
-        self, company, user, supplier, warehouse
-    ):
+    def test_counter_without_preset_unit_none(self, company, user, supplier, warehouse):
         product = ProductModel.objects.create(
             company=company,
             sku="U-2",
@@ -103,9 +98,7 @@ class TestWidgetPayloadUnit:
         item = next(i for i in items if i["sku"] == "U-2")
         assert item["unit"] is None
 
-    def test_non_counter_engine_unit_none(
-        self, company, user, supplier, warehouse
-    ):
+    def test_non_counter_engine_unit_none(self, company, user, supplier, warehouse):
         product = ProductModel.objects.create(
             company=company,
             sku="U-3",
@@ -122,9 +115,7 @@ class TestWidgetPayloadUnit:
 
 @pytest.mark.django_db
 class TestStockSummaryUnit:
-    def test_stock_summary_includes_unit_for_counter_with_preset(
-        self, company, kg_preset
-    ):
+    def test_stock_summary_includes_unit_for_counter_with_preset(self, company, kg_preset):
         product = ProductModel.objects.create(
             company=company,
             sku="L-1",
@@ -159,10 +150,9 @@ class TestStockSummaryUnit:
 
 @pytest.mark.django_db
 class TestStockRowUnit:
-    def test_products_poly_list_includes_unit(
-        self, company, user, kg_preset
-    ):
+    def test_products_poly_list_includes_unit(self, company, user, kg_preset):
         from rest_framework.test import APIClient
+
         product_kg = ProductModel.objects.create(
             company=company,
             sku="P-1",

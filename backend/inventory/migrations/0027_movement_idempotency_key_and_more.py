@@ -4,23 +4,26 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inventory', '0026_remove_transaction_product_alter_eventlog_product_and_more'),
+        ("inventory", "0026_remove_transaction_product_alter_eventlog_product_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='movement',
-            name='idempotency_key',
-            field=models.UUIDField(blank=True, help_text='Unique key to prevent duplicate movements.', null=True, unique=True),
+            model_name="movement",
+            name="idempotency_key",
+            field=models.UUIDField(
+                blank=True,
+                help_text="Unique key to prevent duplicate movements.",
+                null=True,
+                unique=True,
+            ),
         ),
         migrations.AddIndex(
-            model_name='movement',
-            index=models.Index(fields=['idempotency_key'], name='inventory_m_idempot_608c09_idx'),
+            model_name="movement",
+            index=models.Index(fields=["idempotency_key"], name="inventory_m_idempot_608c09_idx"),
         ),
         # NOTE: CheckConstraints with cross-table joins are not supported by Django/PostgreSQL.
         # The product_model consistency validation is enforced at the application layer
         # in the LedgerService and TransferStrategy implementations.
     ]
-

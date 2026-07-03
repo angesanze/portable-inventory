@@ -13,23 +13,55 @@ export default {
             },
             colors: {
                 surface: {
-                    primary: "rgb(24 24 27)", // zinc-900
-                    secondary: "rgb(39 39 42 / 0.8)", // zinc-800/80
-                    tertiary: "rgb(39 39 42)", // zinc-800
+                    primary: "rgb(var(--neutral-900) / <alpha-value>)",
+                    secondary: "rgb(var(--neutral-800) / 0.8)",
+                    tertiary: "rgb(var(--neutral-800) / <alpha-value>)",
                 },
                 border: {
                     subtle: "rgb(255 255 255 / 0.06)",
                     DEFAULT: "rgb(255 255 255 / 0.1)",
                 },
                 text: {
-                    primary: "rgb(250 250 250)", // zinc-50
-                    secondary: "rgb(161 161 170)", // zinc-400
-                    tertiary: "rgb(113 113 122)", // zinc-500
+                    primary: "rgb(var(--neutral-50) / <alpha-value>)",
+                    secondary: "rgb(var(--neutral-400) / <alpha-value>)",
+                    tertiary: "rgb(var(--neutral-500) / <alpha-value>)",
                 },
                 accent: {
-                    primary: "rgb(99 102 241)", // indigo-500
-                    hover: "rgb(129 140 248)", // indigo-400
-                    subtle: "rgb(99 102 241 / 0.1)", // indigo-500/10
+                    primary: "rgb(var(--accent-500) / <alpha-value>)",
+                    hover: "rgb(var(--accent-400) / <alpha-value>)",
+                    subtle: "rgb(var(--accent-500) / 0.1)",
+                },
+                // Whole-app theming: the `zinc` (neutral) and `indigo` (accent)
+                // families are redefined to read the `--neutral-*` / `--accent-*`
+                // CSS vars, so selecting a palette (see src/theme) re-themes
+                // every background, surface, text and accent at runtime with no
+                // per-component edits. Defaults live in src/index.css `:root`
+                // (zinc + indigo) as a no-JS fallback.
+                zinc: {
+                    50: "rgb(var(--neutral-50) / <alpha-value>)",
+                    100: "rgb(var(--neutral-100) / <alpha-value>)",
+                    200: "rgb(var(--neutral-200) / <alpha-value>)",
+                    300: "rgb(var(--neutral-300) / <alpha-value>)",
+                    400: "rgb(var(--neutral-400) / <alpha-value>)",
+                    500: "rgb(var(--neutral-500) / <alpha-value>)",
+                    600: "rgb(var(--neutral-600) / <alpha-value>)",
+                    700: "rgb(var(--neutral-700) / <alpha-value>)",
+                    800: "rgb(var(--neutral-800) / <alpha-value>)",
+                    900: "rgb(var(--neutral-900) / <alpha-value>)",
+                    950: "rgb(var(--neutral-950) / <alpha-value>)",
+                },
+                indigo: {
+                    50: "rgb(var(--accent-50) / <alpha-value>)",
+                    100: "rgb(var(--accent-100) / <alpha-value>)",
+                    200: "rgb(var(--accent-200) / <alpha-value>)",
+                    300: "rgb(var(--accent-300) / <alpha-value>)",
+                    400: "rgb(var(--accent-400) / <alpha-value>)",
+                    500: "rgb(var(--accent-500) / <alpha-value>)",
+                    600: "rgb(var(--accent-600) / <alpha-value>)",
+                    700: "rgb(var(--accent-700) / <alpha-value>)",
+                    800: "rgb(var(--accent-800) / <alpha-value>)",
+                    900: "rgb(var(--accent-900) / <alpha-value>)",
+                    950: "rgb(var(--accent-950) / <alpha-value>)",
                 },
             },
             borderRadius: {
@@ -39,8 +71,8 @@ export default {
                 "radius-xl": "16px",
             },
             boxShadow: {
-                "glow-sm": "0 0 12px -3px rgb(99 102 241 / 0.2)",
-                "glow-md": "0 0 20px -5px rgb(99 102 241 / 0.3)",
+                "glow-sm": "0 0 12px -3px rgb(var(--accent-500) / 0.2)",
+                "glow-md": "0 0 20px -5px rgb(var(--accent-500) / 0.3)",
             },
             keyframes: {
                 shake: {

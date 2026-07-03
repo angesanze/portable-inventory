@@ -8,6 +8,7 @@ Confirms that:
 * the ``/api/v1/physical-products/<id>/history/`` endpoint returns those
   rows in reverse chronological order.
 """
+
 import uuid
 from decimal import Decimal
 
@@ -24,7 +25,9 @@ from inventory.tests.helpers import make_company
 def env(db):
     company, user, _ = make_company("HIST")
     warehouse = Location.objects.create(
-        company=company, name="Main Warehouse", type="WAREHOUSE",
+        company=company,
+        name="Main Warehouse",
+        type="WAREHOUSE",
     )
     transitions = {
         "ACTIVE": ["BROKEN"],
@@ -59,12 +62,15 @@ def env(db):
 class TestTrackerStatusHistoryAuditRow:
     def test_status_change_writes_audit_movement(self, env):
         pp = env["physical_product"]
-        TrackerStatusBehavior.execute_status_change(env["engine"], {
-            "physical_product_id": str(pp.id),
-            "new_status": "BROKEN",
-            "notes": "screen cracked",
-            "user": env["user"],
-        })
+        TrackerStatusBehavior.execute_status_change(
+            env["engine"],
+            {
+                "physical_product_id": str(pp.id),
+                "new_status": "BROKEN",
+                "notes": "screen cracked",
+                "user": env["user"],
+            },
+        )
         audit = Movement.objects.get(physical_product=pp)
         assert audit.quantity == Decimal("0")
         assert audit.from_location_id == env["warehouse"].id
@@ -79,10 +85,13 @@ class TestTrackerStatusHistoryAuditRow:
         pp = env["physical_product"]
         PhysicalProduct.objects.filter(id=pp.id).update(location=None)
         pp.refresh_from_db()
-        TrackerStatusBehavior.execute_status_change(env["engine"], {
-            "physical_product_id": str(pp.id),
-            "new_status": "BROKEN",
-        })
+        TrackerStatusBehavior.execute_status_change(
+            env["engine"],
+            {
+                "physical_product_id": str(pp.id),
+                "new_status": "BROKEN",
+            },
+        )
         pp.refresh_from_db()
         assert pp.status == "BROKEN"
         assert Movement.objects.filter(physical_product=pp).count() == 0
@@ -93,21 +102,30 @@ class TestPhysicalProductHistoryEndpoint:
     def _trigger_three_changes(self, env):
         engine = env["engine"]
         pp = env["physical_product"]
-        TrackerStatusBehavior.execute_status_change(engine, {
-            "physical_product_id": str(pp.id),
-            "new_status": "BROKEN",
-            "user": env["user"],
-        })
-        TrackerStatusBehavior.execute_status_change(engine, {
-            "physical_product_id": str(pp.id),
-            "new_status": "REPAIRED",
-            "user": env["user"],
-        })
-        TrackerStatusBehavior.execute_status_change(engine, {
-            "physical_product_id": str(pp.id),
-            "new_status": "ACTIVE",
-            "user": env["user"],
-        })
+        TrackerStatusBehavior.execute_status_change(
+            engine,
+            {
+                "physical_product_id": str(pp.id),
+                "new_status": "BROKEN",
+                "user": env["user"],
+            },
+        )
+        TrackerStatusBehavior.execute_status_change(
+            engine,
+            {
+                "physical_product_id": str(pp.id),
+                "new_status": "REPAIRED",
+                "user": env["user"],
+            },
+        )
+        TrackerStatusBehavior.execute_status_change(
+            engine,
+            {
+                "physical_product_id": str(pp.id),
+                "new_status": "ACTIVE",
+                "user": env["user"],
+            },
+        )
 
     def test_history_returns_rows_reverse_chronological(self, env):
         self._trigger_three_changes(env)

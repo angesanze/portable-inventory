@@ -274,7 +274,7 @@ describe("offlineQueue", () => {
                     metadata: {
                         reason: "Restock",
                         physical_identifier: "SN-001",
-                        calculator_payload: { operation: "add", quantity: 5 },
+                        calc_payload: { operation: "add", quantity: 5 },
                     },
                 })
             );
@@ -302,7 +302,7 @@ describe("offlineQueue", () => {
             expect(body.quantity).toBe(5);
             expect(body.reason).toBe("Restock");
             expect(body.physical_identifier).toBe("SN-001");
-            expect(body.calculator_payload).toEqual({ operation: "add", quantity: 5 });
+            expect(body.calc_payload).toEqual({ operation: "add", quantity: 5 });
             // Idempotency key generated at enqueue time travels with the POST.
             expect(entry.idempotencyKey).toBeTruthy();
             expect(body.idempotency_key).toBe(entry.idempotencyKey);

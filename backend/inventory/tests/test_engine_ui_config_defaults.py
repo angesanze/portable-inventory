@@ -5,6 +5,7 @@ user-configured values. Hardcoded defaults that look like user data
 (TrackerEngine's status_transitions, field lists) must NOT appear unless the
 product explicitly opts in.
 """
+
 import uuid
 import pytest
 from rest_framework.test import APIClient
@@ -32,6 +33,7 @@ def company(db):
 
 
 # ---------- TrackerEngine ----------
+
 
 class TestTrackerEngineDefaults:
     def test_no_config_returns_only_input_type(self):
@@ -68,6 +70,7 @@ class TestTrackerEngineDefaults:
 
 # ---------- CounterEngine ----------
 
+
 class TestCounterEngineDefaults:
     def test_no_config_returns_intrinsic_keys(self):
         engine = CounterEngine(FakeProduct(), {})
@@ -84,6 +87,7 @@ class TestCounterEngineDefaults:
 
 # ---------- ConverterEngine ----------
 
+
 class TestConverterEngineDefaults:
     def test_no_config_returns_intrinsic_keys(self):
         engine = ConverterEngine(FakeProduct(), {})
@@ -99,6 +103,7 @@ class TestConverterEngineDefaults:
 
 
 # ---------- BucketEngine ----------
+
 
 class TestBucketEngineDefaults:
     def test_no_config_returns_intrinsic_keys_with_empty_fields(self):
@@ -117,6 +122,7 @@ class TestBucketEngineDefaults:
 
 # ---------- DimensionEngine ----------
 
+
 class TestDimensionEngineDefaults:
     def test_no_config_returns_empty_derived_fields(self):
         engine = DimensionEngine(FakeProduct(), {})
@@ -126,12 +132,15 @@ class TestDimensionEngineDefaults:
         assert ui["formula"] == ""
 
     def test_user_dimensions_become_fields(self):
-        engine = DimensionEngine(FakeProduct(), {
-            "dimensions": ["length", "width"],
-            "unit": "m",
-            "formula": "length * width",
-            "computed_unit": "m^2",
-        })
+        engine = DimensionEngine(
+            FakeProduct(),
+            {
+                "dimensions": ["length", "width"],
+                "unit": "m",
+                "formula": "length * width",
+                "computed_unit": "m^2",
+            },
+        )
         ui = engine.get_ui_config()
         names = [f["name"] for f in ui["fields"]]
         assert names == ["length", "width"]
@@ -140,6 +149,7 @@ class TestDimensionEngineDefaults:
 
 
 # ---------- TimeBasedEngine ----------
+
 
 class TestTimeBasedEngineDefaults:
     def test_scaffolding_namespaced_under_engine_defaults(self):
@@ -165,6 +175,7 @@ class TestTimeBasedEngineDefaults:
 
 
 # ---------- Integration: widget API ----------
+
 
 @pytest.mark.django_db
 class TestWidgetApiSerializedDefaults:

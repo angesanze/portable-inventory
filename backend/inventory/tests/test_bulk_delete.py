@@ -1,4 +1,5 @@
 """Tests for POST /api/v1/<resource>/bulk-delete/ across viewsets."""
+
 import uuid
 from decimal import Decimal
 
@@ -70,25 +71,19 @@ def _seed_movement(env, product):
 
 
 def test_bulk_delete_missing_ids_returns_409(env):
-    resp = env["client"].post(
-        "/api/v1/product-models/bulk-delete/", {}, format="json"
-    )
+    resp = env["client"].post("/api/v1/product-models/bulk-delete/", {}, format="json")
     assert resp.status_code == status.HTTP_409_CONFLICT
     assert "ids" in resp.json()["detail"].lower()
 
 
 def test_bulk_delete_empty_ids_returns_409(env):
-    resp = env["client"].post(
-        "/api/v1/product-models/bulk-delete/", {"ids": []}, format="json"
-    )
+    resp = env["client"].post("/api/v1/product-models/bulk-delete/", {"ids": []}, format="json")
     assert resp.status_code == status.HTTP_409_CONFLICT
 
 
 def test_bulk_delete_too_many_ids_returns_409(env):
     big = [str(uuid.uuid4()) for _ in range(501)]
-    resp = env["client"].post(
-        "/api/v1/product-models/bulk-delete/", {"ids": big}, format="json"
-    )
+    resp = env["client"].post("/api/v1/product-models/bulk-delete/", {"ids": big}, format="json")
     assert resp.status_code == status.HTTP_409_CONFLICT
     assert "500" in resp.json()["detail"]
 
@@ -465,7 +460,9 @@ def test_bulk_delete_workorder_tenant_isolation(env, other_env):
 
 def test_bulk_delete_calculator_template_rejects_when_assigned(env):
     tpl = CalculatorTemplate.objects.create(
-        company=env["company"], name="Pharma", engine_type="bucket",
+        company=env["company"],
+        name="Pharma",
+        engine_type="bucket",
     )
     ProductModel.objects.create(
         company=env["company"],
@@ -487,7 +484,9 @@ def test_bulk_delete_calculator_template_rejects_when_assigned(env):
 
 def test_bulk_delete_calculator_template_force_detaches(env):
     tpl = CalculatorTemplate.objects.create(
-        company=env["company"], name="Pharma", engine_type="bucket",
+        company=env["company"],
+        name="Pharma",
+        engine_type="bucket",
     )
     user_product = ProductModel.objects.create(
         company=env["company"],
@@ -511,7 +510,9 @@ def test_bulk_delete_calculator_template_force_detaches(env):
 
 def test_bulk_delete_calculator_template_tenant_isolation(env, other_env):
     foreign = CalculatorTemplate.objects.create(
-        company=other_env["company"], name="ForeignTpl", engine_type="counter",
+        company=other_env["company"],
+        name="ForeignTpl",
+        engine_type="counter",
     )
 
     resp = env["client"].post(
@@ -741,9 +742,13 @@ class TestPhysicalProductBulkDelete:
         # 8 movements (4 per deleted item) survive with physical_product nulled,
         # including the 4 status-change audit rows (quantity=0).
         assert Movement.objects.filter(physical_product__isnull=True).count() == 8
-        assert Movement.objects.filter(
-            physical_product__isnull=True, quantity=0,
-        ).count() == 4
+        assert (
+            Movement.objects.filter(
+                physical_product__isnull=True,
+                quantity=0,
+            ).count()
+            == 4
+        )
         # i3's 4 movements are untouched.
         assert Movement.objects.filter(physical_product=i3).count() == 4
 
@@ -847,7 +852,9 @@ class TestSupplierBulkDelete:
 def _make_aux_location(env, name):
     """Spin up a non-warehouse Location row scoped to env's company."""
     return Location.objects.create(
-        company=env["company"], name=name, type="PHYSICAL",
+        company=env["company"],
+        name=name,
+        type="PHYSICAL",
     )
 
 
@@ -876,9 +883,12 @@ class TestLocationBulkDelete:
         body = resp.json()
         assert body["movement_count"] == 1
         # Nothing deleted — the empty ones are spared too.
-        assert Location.objects.filter(
-            id__in=[l_used.id, l_empty1.id, l_empty2.id],
-        ).count() == 3
+        assert (
+            Location.objects.filter(
+                id__in=[l_used.id, l_empty1.id, l_empty2.id],
+            ).count()
+            == 3
+        )
 
     def test_no_preserve_cascades_movements_across_locations(self, env):
         l_used = env["warehouse"]
@@ -962,7 +972,8 @@ class TestWorkOrderBulkDelete:
             child.refresh_from_db()
             assert child.work_order_id is None
         # WO3's children still linked.
-        b3.refresh_from_db(); pp3.refresh_from_db()
+        b3.refresh_from_db()
+        pp3.refresh_from_db()
         assert b3.work_order_id == wo3.id
         assert pp3.work_order_id == wo3.id
 
@@ -1009,7 +1020,9 @@ class TestCalculatorTemplateBulkDelete:
 
     def _make_tpl_with_users(self, env, name, user_count=0):
         tpl = CalculatorTemplate.objects.create(
-            company=env["company"], name=name, engine_type="counter",
+            company=env["company"],
+            name=name,
+            engine_type="counter",
         )
         for i in range(user_count):
             ProductModel.objects.create(
@@ -1034,9 +1047,12 @@ class TestCalculatorTemplateBulkDelete:
         assert resp.status_code == status.HTTP_409_CONFLICT
         assert resp.json()["assigned_count"] == 2
         # No template touched.
-        assert CalculatorTemplate.objects.filter(
-            id__in=[t1.id, t2.id, t3.id],
-        ).count() == 3
+        assert (
+            CalculatorTemplate.objects.filter(
+                id__in=[t1.id, t2.id, t3.id],
+            ).count()
+            == 3
+        )
 
     def test_force_detaches_all_assignments(self, env):
         t1 = self._make_tpl_with_users(env, "F-USED-1", user_count=2)
@@ -1058,17 +1074,25 @@ class TestCalculatorTemplateBulkDelete:
             id__in=[t1.id, t2.id, t3.id],
         ).exists()
         # All 3 ProductModels survive with default_calculator nulled.
-        assert ProductModel.objects.filter(
-            default_calculator__isnull=False,
-        ).count() == 0
-        assert ProductModel.objects.filter(
-            sku__in=["F-USED-1-USER-0", "F-USED-1-USER-1", "F-USED-2-USER-0"],
-        ).count() == 3
+        assert (
+            ProductModel.objects.filter(
+                default_calculator__isnull=False,
+            ).count()
+            == 0
+        )
+        assert (
+            ProductModel.objects.filter(
+                sku__in=["F-USED-1-USER-0", "F-USED-1-USER-1", "F-USED-2-USER-0"],
+            ).count()
+            == 3
+        )
 
     def test_foreign_template_is_silently_ignored(self, env, other_env):
         mine = self._make_tpl_with_users(env, "MINE-TPL", user_count=0)
         theirs = CalculatorTemplate.objects.create(
-            company=other_env["company"], name="THEIRS-TPL", engine_type="counter",
+            company=other_env["company"],
+            name="THEIRS-TPL",
+            engine_type="counter",
         )
 
         resp = env["client"].post(
@@ -1095,9 +1119,7 @@ class TestMovementBulkDelete:
         _seed_mixed_movements(env, p2, count=3)
 
         assert Movement.objects.count() == 6
-        target_ids = list(
-            Movement.objects.filter(product_model=p1).values_list("id", flat=True)
-        )
+        target_ids = list(Movement.objects.filter(product_model=p1).values_list("id", flat=True))
 
         resp = env["client"].post(
             "/api/v1/movements/bulk-delete/",
@@ -1138,9 +1160,7 @@ class TestMovementBulkDelete:
         _seed_mixed_movements(env, p_mine, count=2)
         _seed_mixed_movements(other_env, p_other, count=2)
 
-        mine_ids = list(
-            Movement.objects.filter(product_model=p_mine).values_list("id", flat=True)
-        )
+        mine_ids = list(Movement.objects.filter(product_model=p_mine).values_list("id", flat=True))
         foreign_ids = list(
             Movement.objects.filter(product_model=p_other).values_list("id", flat=True)
         )

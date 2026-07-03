@@ -4,15 +4,23 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inventory', '0015_location_parent'),
+        ("inventory", "0015_location_parent"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='location',
-            name='type',
-            field=models.CharField(choices=[('WAREHOUSE', 'Warehouse'), ('STORE', 'Store'), ('CONTAINER', 'Container'), ('LOSS', 'Loss'), ('VIRTUAL', 'Virtual')], max_length=50),
+            model_name="location",
+            name="type",
+            field=models.CharField(
+                choices=[
+                    ("WAREHOUSE", "Warehouse"),
+                    ("STORE", "Store"),
+                    ("CONTAINER", "Container"),
+                    ("LOSS", "Loss"),
+                    ("VIRTUAL", "Virtual"),
+                ],
+                max_length=50,
+            ),
         ),
     ]

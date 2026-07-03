@@ -1,4 +1,23 @@
 {
+  "appearance": {
+    "title": "Aspetto",
+    "subtitle": "Scegli una palette di colori per l'app.",
+    "description": "Scegli una palette di colori. La scelta viene salvata su questo dispositivo e applicata a tutta l'app — sfondo, superfici, testo, accenti e grafici.",
+    "palettes": {
+      "indigo": "Indaco",
+      "clay": "Argilla",
+      "amber": "Ambra",
+      "lime": "Lime",
+      "emerald": "Smeraldo",
+      "teal": "Verde acqua",
+      "ocean": "Oceano",
+      "sapphire": "Zaffiro",
+      "violet": "Viola",
+      "fuchsia": "Fucsia",
+      "rose": "Rosa",
+      "crimson": "Cremisi"
+    }
+  },
   "apiKeys": {
     "title": "Chiavi API",
     "listTitle": "Chiavi di Accesso",

@@ -6,11 +6,11 @@ Note: True threading concurrency tests require PostgreSQL (SQLite locks on concu
 These tests verify the logical guarantees sequentially and test the concurrency-relevant
 constraints (idempotency, stock validation, movement immutability).
 """
+
 import pytest
 import uuid
 from decimal import Decimal
 from unittest.mock import patch
-from django.db import IntegrityError
 from django.core.exceptions import ValidationError
 from core.models import Company, User
 from inventory.models import ProductModel, Location, Movement, PhysicalProduct
@@ -23,13 +23,17 @@ def concurrent_env(db):
     """Environment for concurrency-relevant tests."""
     company = Company.objects.create(name="Concurrent Corp", license_code="CONC01")
 
-    user = User.objects.create_user(username="concurrent_admin", password="password", company=company)
+    user = User.objects.create_user(
+        username="concurrent_admin", password="password", company=company
+    )
     supplier = Location.objects.create(company=company, name="External", type="VIRTUAL")
     warehouse = Location.objects.create(company=company, name="Warehouse", type="WAREHOUSE")
     store = Location.objects.create(company=company, name="Store", type="STORE")
 
     product = ProductModel.objects.create(
-        company=company, sku="CONC-001", name="Concurrent Widget",
+        company=company,
+        sku="CONC-001",
+        name="Concurrent Widget",
     )
 
     # Seed 100 units
@@ -59,8 +63,12 @@ class TestConcurrentTransactions:
         num_ops = 10
         for i in range(num_ops):
             LedgerService.transfer_stock(
-                product, supplier, warehouse,
-                Decimal("10"), user, f"Rapid add {i}",
+                product,
+                supplier,
+                warehouse,
+                Decimal("10"),
+                user,
+                f"Rapid add {i}",
             )
 
         # 100 initial + (10 * 10) = 200
@@ -77,8 +85,12 @@ class TestConcurrentTransactions:
         num_ops = 10
         for i in range(num_ops):
             LedgerService.transfer_stock(
-                product, warehouse, store,
-                Decimal("5"), user, f"Transfer {i}",
+                product,
+                warehouse,
+                store,
+                Decimal("5"),
+                user,
+                f"Transfer {i}",
             )
 
         # Warehouse: 100 - 50 = 50, Store: 50
@@ -100,15 +112,23 @@ class TestConcurrentTransactions:
 
         # Transfer 60 successfully
         LedgerService.transfer_stock(
-            product, warehouse, store,
-            Decimal("60"), user, "First big transfer",
+            product,
+            warehouse,
+            store,
+            Decimal("60"),
+            user,
+            "First big transfer",
         )
 
         # Now only 40 left — trying 60 again should fail
         with pytest.raises(InsufficientStockError):
             LedgerService.transfer_stock(
-                product, warehouse, store,
-                Decimal("60"), user, "Should fail",
+                product,
+                warehouse,
+                store,
+                Decimal("60"),
+                user,
+                "Should fail",
             )
 
         # Stock should remain consistent
@@ -118,6 +138,7 @@ class TestConcurrentTransactions:
     def test_idempotency_key_prevents_duplicate(self, concurrent_env):
         """Same idempotency key cannot create two movements (prevents double-submit)."""
         import uuid
+
         product = concurrent_env["product"]
         supplier = concurrent_env["supplier"]
         warehouse = concurrent_env["warehouse"]
@@ -127,15 +148,25 @@ class TestConcurrentTransactions:
 
         # First call succeeds
         first = LedgerService.transfer_stock(
-            product, supplier, warehouse,
-            Decimal("10"), user, "First", idempotency_key=key,
+            product,
+            supplier,
+            warehouse,
+            Decimal("10"),
+            user,
+            "First",
+            idempotency_key=key,
         )
 
         # Second call with same key is an idempotent replay: the original
         # Movement comes back, no duplicate row, no error.
         second = LedgerService.transfer_stock(
-            product, supplier, warehouse,
-            Decimal("10"), user, "Duplicate", idempotency_key=key,
+            product,
+            supplier,
+            warehouse,
+            Decimal("10"),
+            user,
+            "Duplicate",
+            idempotency_key=key,
         )
 
         assert second.id == first.id
@@ -153,8 +184,12 @@ class TestConcurrentTransactions:
         num_ops = 10
         for i in range(num_ops):
             LedgerService.transfer_stock(
-                product, supplier, warehouse,
-                Decimal("1"), user, f"Count op {i}",
+                product,
+                supplier,
+                warehouse,
+                Decimal("1"),
+                user,
+                f"Count op {i}",
             )
 
         final_count = Movement.objects.filter(product_model=product).count()
@@ -169,8 +204,12 @@ class TestConcurrentTransactions:
 
         with pytest.raises(InventoryError):
             LedgerService.transfer_stock(
-                product, warehouse, store,
-                Decimal("0"), user, "Zero qty",
+                product,
+                warehouse,
+                store,
+                Decimal("0"),
+                user,
+                "Zero qty",
             )
 
     def test_negative_quantity_rejected(self, concurrent_env):
@@ -182,8 +221,12 @@ class TestConcurrentTransactions:
 
         with pytest.raises(InventoryError):
             LedgerService.transfer_stock(
-                product, warehouse, store,
-                Decimal("-5"), user, "Negative qty",
+                product,
+                warehouse,
+                store,
+                Decimal("-5"),
+                user,
+                "Negative qty",
             )
 
     def test_stock_never_goes_negative(self, concurrent_env):
@@ -195,8 +238,12 @@ class TestConcurrentTransactions:
 
         # Drain all 100
         LedgerService.transfer_stock(
-            product, warehouse, store,
-            Decimal("100"), user, "Drain all",
+            product,
+            warehouse,
+            store,
+            Decimal("100"),
+            user,
+            "Drain all",
         )
 
         wh_stock = StockService.get_stock_for_location(product, warehouse)
@@ -205,8 +252,12 @@ class TestConcurrentTransactions:
         # One more unit should fail
         with pytest.raises(InsufficientStockError):
             LedgerService.transfer_stock(
-                product, warehouse, store,
-                Decimal("1"), user, "Over-drain",
+                product,
+                warehouse,
+                store,
+                Decimal("1"),
+                user,
+                "Over-drain",
             )
 
 
@@ -215,24 +266,35 @@ def individual_env(db):
     """Environment for individual (serialized) product transfer tests."""
     company = Company.objects.create(name="Individual Corp", license_code="INDV01")
 
-    user = User.objects.create_user(username="individual_admin", password="password", company=company)
+    user = User.objects.create_user(
+        username="individual_admin", password="password", company=company
+    )
     supplier = Location.objects.create(company=company, name="Supplier", type="VIRTUAL")
     warehouse = Location.objects.create(company=company, name="Warehouse A", type="WAREHOUSE")
     store = Location.objects.create(company=company, name="Store B", type="STORE")
 
     product = ProductModel.objects.create(
-        company=company, sku=f"IND-{uuid.uuid4().hex[:8]}", name="Serialized Widget",
+        company=company,
+        sku=f"IND-{uuid.uuid4().hex[:8]}",
+        name="Serialized Widget",
         profile="SERIALIZED",
     )
 
     pp = PhysicalProduct.objects.create(
-        product_model=product, identifier=f"SN-{uuid.uuid4().hex[:8]}",
-        location=supplier, status="ACTIVE",
+        product_model=product,
+        identifier=f"SN-{uuid.uuid4().hex[:8]}",
+        location=supplier,
+        status="ACTIVE",
     )
 
     # Move item from supplier (VIRTUAL) to warehouse
     LedgerService.transfer_stock(
-        product, supplier, warehouse, Decimal("1"), user, "Initial receive",
+        product,
+        supplier,
+        warehouse,
+        Decimal("1"),
+        user,
+        "Initial receive",
         physical_product=pp,
     )
     pp.refresh_from_db()
@@ -278,7 +340,12 @@ class TestIndividualTransferRaceCondition:
 
         # First transfer: warehouse -> store (succeeds)
         LedgerService.transfer_stock(
-            product, warehouse, store, Decimal("1"), user, "Transfer 1",
+            product,
+            warehouse,
+            store,
+            Decimal("1"),
+            user,
+            "Transfer 1",
             physical_product=pp,
         )
         pp.refresh_from_db()
@@ -288,7 +355,12 @@ class TestIndividualTransferRaceCondition:
         # StockMovementValidator raises Django ValidationError (not DRF)
         with pytest.raises(ValidationError, match="not at"):
             LedgerService.transfer_stock(
-                product, warehouse, store, Decimal("1"), user, "Transfer 2",
+                product,
+                warehouse,
+                store,
+                Decimal("1"),
+                user,
+                "Transfer 2",
                 physical_product=pp,
             )
 
@@ -301,7 +373,12 @@ class TestIndividualTransferRaceCondition:
         user = individual_env["user"]
 
         LedgerService.transfer_stock(
-            product, warehouse, store, Decimal("1"), user, "Move to store",
+            product,
+            warehouse,
+            store,
+            Decimal("1"),
+            user,
+            "Move to store",
             physical_product=pp,
         )
 
@@ -318,7 +395,12 @@ class TestIndividualTransferRaceCondition:
         user = individual_env["user"]
 
         movement = LedgerService.transfer_stock(
-            product, warehouse, store, Decimal("1"), user, "Tracked transfer",
+            product,
+            warehouse,
+            store,
+            Decimal("1"),
+            user,
+            "Tracked transfer",
             physical_product=pp,
         )
 
@@ -378,6 +460,7 @@ class TestIndividualTransferRaceCondition:
 
         # Verify execute() uses select_for_update by inspecting source
         import inspect
+
         source = inspect.getsource(SerializedBehavior.execute)
         assert "select_for_update" in source
 
@@ -391,7 +474,12 @@ class TestIndividualTransferRaceCondition:
 
         with pytest.raises(ValidationError, match="one at a time"):
             LedgerService.transfer_stock(
-                product, warehouse, store, Decimal("2"), user, "Bad qty",
+                product,
+                warehouse,
+                store,
+                Decimal("2"),
+                user,
+                "Bad qty",
                 physical_product=pp,
             )
 
@@ -404,7 +492,12 @@ class TestIndividualTransferRaceCondition:
 
         with pytest.raises(ValidationError, match="Physical Product"):
             LedgerService.transfer_stock(
-                product, warehouse, store, Decimal("1"), user, "No PP",
+                product,
+                warehouse,
+                store,
+                Decimal("1"),
+                user,
+                "No PP",
             )
 
     def test_execute_uses_select_for_update_locking(self, individual_env):
@@ -423,11 +516,17 @@ class TestIndividualTransferRaceCondition:
         user = individual_env["user"]
 
         with patch.object(
-            PhysicalProduct.objects, 'select_for_update',
+            PhysicalProduct.objects,
+            "select_for_update",
             wraps=PhysicalProduct.objects.select_for_update,
         ) as mock_sfu:
             LedgerService.transfer_stock(
-                product, warehouse, store, Decimal("1"), user, "Locked transfer",
+                product,
+                warehouse,
+                store,
+                Decimal("1"),
+                user,
+                "Locked transfer",
                 physical_product=pp,
             )
             mock_sfu.assert_called_once()
@@ -462,9 +561,8 @@ class TestIndividualTransferRaceCondition:
         # After select_for_update().get(), the code should check pp.location == ctx.from_location
         # but currently does not
         lines_after_lock = source.split("select_for_update")[1]
-        has_location_recheck = (
-            "from_location" in lines_after_lock
-            and ("pp.location" in lines_after_lock or "location !=" in lines_after_lock)
+        has_location_recheck = "from_location" in lines_after_lock and (
+            "pp.location" in lines_after_lock or "location !=" in lines_after_lock
         )
 
         if has_location_recheck:

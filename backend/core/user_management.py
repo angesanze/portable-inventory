@@ -14,6 +14,7 @@ Guard rails:
   deactivated — a company always keeps at least one OWNER.
 * Privilege fields (``is_superuser``/``is_staff``) are never writable here.
 """
+
 from rest_framework import permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -36,11 +37,11 @@ class CanManageCompanyUsers(permissions.BasePermission):
     message = "User management requires owner or developer privileges."
 
     def has_permission(self, request, view):
-        user = getattr(request, 'user', None)
-        if not (user and getattr(user, 'is_authenticated', False)):
+        user = getattr(request, "user", None)
+        if not (user and getattr(user, "is_authenticated", False)):
             return False
         caps = company_capabilities(user)
-        return bool(caps.get('manage_users') or caps.get('create_users'))
+        return bool(caps.get("manage_users") or caps.get("create_users"))
 
 
 class CompanyUserSerializer(serializers.ModelSerializer):
@@ -48,11 +49,11 @@ class CompanyUserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'role', 'is_active', 'date_joined']
+        fields = ["id", "username", "email", "role", "is_active", "date_joined"]
         read_only_fields = fields
 
     def get_role(self, obj):
-        return normalize_role(getattr(obj, 'role', None))
+        return normalize_role(getattr(obj, "role", None))
 
 
 class CompanyUserViewSet(viewsets.ReadOnlyModelViewSet):
@@ -71,7 +72,7 @@ class CompanyUserViewSet(viewsets.ReadOnlyModelViewSet):
         company = resolve_effective_company(self.request)
         if company is None:
             return User.objects.none()
-        return User.objects.filter(company=company).order_by('username')
+        return User.objects.filter(company=company).order_by("username")
 
     def _owner_count(self, company, exclude_id=None):
         qs = User.objects.filter(company=company, is_active=True)
@@ -79,57 +80,54 @@ class CompanyUserViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.exclude(id=exclude_id)
         return sum(1 for u in qs if normalize_role(u.role) == ROLE_OWNER)
 
-    @action(detail=True, methods=['patch'], url_path='role')
+    @action(detail=True, methods=["patch"], url_path="role")
     def set_role(self, request, pk=None):
         """Change a member's role. Cannot demote the company's last active OWNER."""
         company = self._effective_company()
         target = User.objects.filter(company=company, pk=pk).first()
         if target is None:
-            return Response({'detail': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        new_role = request.data.get('role')
+        new_role = request.data.get("role")
         valid = {choice.value for choice in User.Role}
         if new_role not in valid:
-            raise ValidationError({'role': f'Role must be one of {sorted(valid)}.'})
+            raise ValidationError({"role": f"Role must be one of {sorted(valid)}."})
 
         currently_owner = normalize_role(target.role) == ROLE_OWNER
         if currently_owner and new_role != ROLE_OWNER:
             # Demoting an owner: refuse if it would leave the company ownerless.
             if self._owner_count(company, exclude_id=target.id) == 0:
-                raise ValidationError(
-                    {'role': 'Cannot demote the last owner of the company.'}
-                )
+                raise ValidationError({"role": "Cannot demote the last owner of the company."})
 
         target.role = new_role
-        target.save(update_fields=['role'])
+        target.save(update_fields=["role"])
         return Response(CompanyUserSerializer(target).data)
 
-    @action(detail=True, methods=['post'], url_path='deactivate')
+    @action(detail=True, methods=["post"], url_path="deactivate")
     def deactivate(self, request, pk=None):
         """Offboard a member (``is_active=False``). Cannot disable the last OWNER."""
         company = self._effective_company()
         target = User.objects.filter(company=company, pk=pk).first()
         if target is None:
-            return Response({'detail': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        if normalize_role(target.role) == ROLE_OWNER and self._owner_count(
-            company, exclude_id=target.id
-        ) == 0:
-            raise ValidationError(
-                {'detail': 'Cannot deactivate the last owner of the company.'}
-            )
+        if (
+            normalize_role(target.role) == ROLE_OWNER
+            and self._owner_count(company, exclude_id=target.id) == 0
+        ):
+            raise ValidationError({"detail": "Cannot deactivate the last owner of the company."})
 
         target.is_active = False
-        target.save(update_fields=['is_active'])
+        target.save(update_fields=["is_active"])
         return Response(CompanyUserSerializer(target).data)
 
-    @action(detail=True, methods=['post'], url_path='activate')
+    @action(detail=True, methods=["post"], url_path="activate")
     def activate(self, request, pk=None):
         """Re-enable a previously offboarded member."""
         company = self._effective_company()
         target = User.objects.filter(company=company, pk=pk).first()
         if target is None:
-            return Response({'detail': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
         target.is_active = True
-        target.save(update_fields=['is_active'])
+        target.save(update_fields=["is_active"])
         return Response(CompanyUserSerializer(target).data)

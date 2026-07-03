@@ -33,6 +33,7 @@ nav:
     - Polymorphism: concepts/polymorphism.md
     - Math Theory: concepts/theory.md
   - Guides:
+    - Overview: guides/index.md
     - Admin Manual: guides/admin.md
     - Operator Manual: guides/daily-usage.md
   - Reference:
@@ -50,6 +51,11 @@ nav:
     - Troubleshooting: operations/troubleshooting.md
     - Scaling: operations/scaling.md
     - Data Retention: operations/data-retention.md
+  - SDK:
+    - Getting Started: sdk/getting-started.md
+    - Web Component: sdk/web-component.md
+    - API Reference: sdk/api-reference.md
+    - Security: sdk/security.md
   - Development:
     - Overview: development/index.md
     - Testing: development/testing.md

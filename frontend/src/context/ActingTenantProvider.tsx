@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { ACTING_TENANT_STORAGE_KEY } from "../providers/axios-client";
 
@@ -28,16 +29,23 @@ function readPersistedTenant(): string | null {
 
 export const ActingTenantProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [actingTenantId, setActingTenantId] = useState<string | null>(readPersistedTenant);
+    const queryClient = useQueryClient();
 
     const setActingTenant = useCallback((id: string) => {
         localStorage.setItem(ACTING_TENANT_STORAGE_KEY, id);
         setActingTenantId(id);
-    }, []);
+        // Every cached list/detail was fetched under the previous tenant scope.
+        // Invalidate so mounted screens refetch with the new X-Acting-Company
+        // header instead of rendering the prior tenant's rows until a manual
+        // navigation happens to refetch (FE-03).
+        queryClient.invalidateQueries();
+    }, [queryClient]);
 
     const clearActingTenant = useCallback(() => {
         localStorage.removeItem(ACTING_TENANT_STORAGE_KEY);
         setActingTenantId(null);
-    }, []);
+        queryClient.invalidateQueries();
+    }, [queryClient]);
 
     const value = useMemo<ActingTenantContextValue>(
         () => ({ actingTenantId, setActingTenant, clearActingTenant }),

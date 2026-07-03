@@ -17,6 +17,7 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'rec
 import { QuickAdjust } from "../../../components/strategy-views/QuickAdjust";
 import { BatchManager } from "../../../components/strategy-views/BatchManager";
 import { MonitoringPanel } from "../../../components/strategy-views/MonitoringPanel";
+import { useAccent } from "../../../theme/useTheme";
 import { useState, useMemo } from "react";
 
 function formatTimeAgo(date: Date, t: TFunction): string {
@@ -34,6 +35,7 @@ function formatTimeAgo(date: Date, t: TFunction): string {
 
 export const ProductPolyShow = () => {
     const { t } = useTranslation(["products", "common"]);
+    const { accentSoft, secondary } = useAccent();
     const { id } = useParams();
     const [activeTab, setActiveTab] = useState<'overview' | 'manage' | 'batches' | 'settings'>('overview');
 
@@ -186,12 +188,12 @@ export const ProductPolyShow = () => {
                                             <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                                                 <defs>
                                                     <linearGradient id="polyColorInbound" x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="5%" stopColor="#818cf8" stopOpacity={0.8} />
-                                                        <stop offset="95%" stopColor="#818cf8" stopOpacity={0} />
+                                                        <stop offset="5%" stopColor={accentSoft} stopOpacity={0.8} />
+                                                        <stop offset="95%" stopColor={accentSoft} stopOpacity={0} />
                                                     </linearGradient>
                                                     <linearGradient id="polyColorOutbound" x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="5%" stopColor="#c084fc" stopOpacity={0.8} />
-                                                        <stop offset="95%" stopColor="#c084fc" stopOpacity={0} />
+                                                        <stop offset="5%" stopColor={secondary} stopOpacity={0.8} />
+                                                        <stop offset="95%" stopColor={secondary} stopOpacity={0} />
                                                     </linearGradient>
                                                 </defs>
                                                 <XAxis dataKey="name" stroke="#64748b" tick={{ fill: '#94a3b8' }} axisLine={false} tickLine={false} />
@@ -200,8 +202,8 @@ export const ProductPolyShow = () => {
                                                     contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc', borderRadius: '0.5rem' }}
                                                     itemStyle={{ color: '#e2e8f0' }}
                                                 />
-                                                <Area type="monotone" dataKey="inbound" stroke="#818cf8" strokeWidth={3} fillOpacity={1} fill="url(#polyColorInbound)" />
-                                                <Area type="monotone" dataKey="outbound" stroke="#c084fc" strokeWidth={3} fillOpacity={1} fill="url(#polyColorOutbound)" />
+                                                <Area type="monotone" dataKey="inbound" stroke={accentSoft} strokeWidth={3} fillOpacity={1} fill="url(#polyColorInbound)" />
+                                                <Area type="monotone" dataKey="outbound" stroke={secondary} strokeWidth={3} fillOpacity={1} fill="url(#polyColorOutbound)" />
                                             </AreaChart>
                                         </ResponsiveContainer>
                                     </div>

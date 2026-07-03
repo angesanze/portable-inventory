@@ -6,6 +6,7 @@ Tests for API key granular permissions:
 - Rate limit tier enforcement
 - Domain whitelist blocking
 """
+
 import datetime
 import secrets
 
@@ -31,49 +32,51 @@ class TestReadOnlyKeyCannotWrite:
             key=secrets.token_hex(32),
             label="Read Only",
             permissions={
-                'read': True,
-                'write': False,
-                'delete': False,
-                'manage_qr': False,
-                'scan': False,
+                "read": True,
+                "write": False,
+                "delete": False,
+                "manage_qr": False,
+                "scan": False,
             },
         )
         # Ensure locations exist for widget
         Location.objects.get_or_create(
-            company=self.company, name="External Vendor",
-            defaults={'type': 'VIRTUAL'},
+            company=self.company,
+            name="External Vendor",
+            defaults={"type": "VIRTUAL"},
         )
         Location.objects.get_or_create(
-            company=self.company, name="Warehouse",
-            defaults={'type': 'WAREHOUSE'},
+            company=self.company,
+            name="Warehouse",
+            defaults={"type": "WAREHOUSE"},
         )
         self.product = ProductModel.objects.create(
-            company=self.company, sku="RO-PROD", name="RO Product",
+            company=self.company,
+            sku="RO-PROD",
+            name="RO Product",
         )
         self.client = APIClient()
 
     def test_read_only_key_can_list_products(self):
-        response = self.client.get(
-            f'/api/v1/widget/?api_key={self.read_only_key.key}'
-        )
+        response = self.client.get(f"/api/v1/widget/?api_key={self.read_only_key.key}")
         assert response.status_code == status.HTTP_200_OK
 
     def test_read_only_key_cannot_create_location(self):
         response = self.client.post(
-            '/api/v1/widget/create_location/',
-            {'api_key': self.read_only_key.key, 'name': 'Blocked Loc'},
+            "/api/v1/widget/create_location/",
+            {"api_key": self.read_only_key.key, "name": "Blocked Loc"},
         )
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_read_only_key_cannot_post_transaction(self):
         response = self.client.post(
-            f'/api/v1/widget/{self.product.id}/transaction/',
+            f"/api/v1/widget/{self.product.id}/transaction/",
             {
-                'api_key': self.read_only_key.key,
-                'quantity': 5,
-                'transaction_type': 'IN',
+                "api_key": self.read_only_key.key,
+                "quantity": 5,
+                "transaction_type": "IN",
             },
-            format='json',
+            format="json",
         )
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -83,16 +86,16 @@ class TestReadOnlyKeyCannotWrite:
             key=secrets.token_hex(32),
             label="Full Access",
             permissions={
-                'read': True,
-                'write': True,
-                'delete': True,
-                'manage_qr': True,
-                'scan': True,
+                "read": True,
+                "write": True,
+                "delete": True,
+                "manage_qr": True,
+                "scan": True,
             },
         )
         response = self.client.post(
-            '/api/v1/widget/create_location/',
-            {'api_key': full_key.key, 'name': 'Allowed Loc', 'type': 'WAREHOUSE'},
+            "/api/v1/widget/create_location/",
+            {"api_key": full_key.key, "name": "Allowed Loc", "type": "WAREHOUSE"},
         )
         assert response.status_code in (
             status.HTTP_200_OK,
@@ -115,9 +118,7 @@ class TestExpiredKeyRejected:
             label="Expired Key",
             expires_at=timezone.now() - datetime.timedelta(hours=1),
         )
-        response = self.client.get(
-            f'/api/v1/widget/?api_key={expired_key.key}'
-        )
+        response = self.client.get(f"/api/v1/widget/?api_key={expired_key.key}")
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_non_expired_key_accepted(self):
@@ -127,9 +128,7 @@ class TestExpiredKeyRejected:
             label="Valid Key",
             expires_at=timezone.now() + datetime.timedelta(days=30),
         )
-        response = self.client.get(
-            f'/api/v1/widget/?api_key={valid_key.key}'
-        )
+        response = self.client.get(f"/api/v1/widget/?api_key={valid_key.key}")
         assert response.status_code == status.HTTP_200_OK
 
     def test_key_without_expiry_accepted(self):
@@ -139,9 +138,7 @@ class TestExpiredKeyRejected:
             label="No Expiry Key",
             expires_at=None,
         )
-        response = self.client.get(
-            f'/api/v1/widget/?api_key={no_expiry_key.key}'
-        )
+        response = self.client.get(f"/api/v1/widget/?api_key={no_expiry_key.key}")
         assert response.status_code == status.HTTP_200_OK
 
 
@@ -166,11 +163,11 @@ class TestUsageTracking:
     def test_usage_count_increments(self):
         assert self.api_key.usage_count == 0
 
-        self.client.get(f'/api/v1/widget/?api_key={self.raw_key}')
+        self.client.get(f"/api/v1/widget/?api_key={self.raw_key}")
         self.api_key.refresh_from_db()
         assert self.api_key.usage_count == 1
 
-        self.client.get(f'/api/v1/widget/?api_key={self.raw_key}')
+        self.client.get(f"/api/v1/widget/?api_key={self.raw_key}")
         self.api_key.refresh_from_db()
         assert self.api_key.usage_count == 2
 
@@ -178,7 +175,7 @@ class TestUsageTracking:
         assert self.api_key.last_used_at is None
 
         before = timezone.now()
-        self.client.get(f'/api/v1/widget/?api_key={self.raw_key}')
+        self.client.get(f"/api/v1/widget/?api_key={self.raw_key}")
         after = timezone.now()
 
         self.api_key.refresh_from_db()
@@ -201,16 +198,14 @@ class TestRateLimitTierEnforcement:
             company=self.company,
             key=secrets.token_hex(32),
             label="Free Tier Key",
-            rate_limit_tier='free',
+            rate_limit_tier="free",
         )
         cache.clear()
 
         # Burst limit is 100/minute for free tier
         throttled = False
         for i in range(105):
-            response = self.client.get(
-                f'/api/v1/widget/?api_key={free_key.key}'
-            )
+            response = self.client.get(f"/api/v1/widget/?api_key={free_key.key}")
             if response.status_code == status.HTTP_429_TOO_MANY_REQUESTS:
                 throttled = True
                 break
@@ -223,14 +218,12 @@ class TestRateLimitTierEnforcement:
             company=self.company,
             key=secrets.token_hex(32),
             label="Premium Tier Key",
-            rate_limit_tier='premium',
+            rate_limit_tier="premium",
         )
         cache.clear()
 
         for i in range(105):
-            response = self.client.get(
-                f'/api/v1/widget/?api_key={premium_key.key}'
-            )
+            response = self.client.get(f"/api/v1/widget/?api_key={premium_key.key}")
             assert response.status_code == status.HTTP_200_OK, (
                 f"Premium tier throttled at request {i + 1}"
             )
@@ -252,8 +245,8 @@ class TestDomainWhitelistBlocking:
             allowed_domains="myapp.com, trusted.org",
         )
         response = self.client.get(
-            f'/api/v1/widget/?api_key={restricted_key.key}',
-            HTTP_ORIGIN='https://evil.com',
+            f"/api/v1/widget/?api_key={restricted_key.key}",
+            HTTP_ORIGIN="https://evil.com",
         )
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -265,8 +258,8 @@ class TestDomainWhitelistBlocking:
             allowed_domains="myapp.com, trusted.org",
         )
         response = self.client.get(
-            f'/api/v1/widget/?api_key={restricted_key.key}',
-            HTTP_ORIGIN='https://myapp.com',
+            f"/api/v1/widget/?api_key={restricted_key.key}",
+            HTTP_ORIGIN="https://myapp.com",
         )
         assert response.status_code == status.HTTP_200_OK
 
@@ -278,8 +271,8 @@ class TestDomainWhitelistBlocking:
             allowed_domains="example.com",
         )
         response = self.client.get(
-            f'/api/v1/widget/?api_key={restricted_key.key}',
-            HTTP_ORIGIN='https://app.example.com',
+            f"/api/v1/widget/?api_key={restricted_key.key}",
+            HTTP_ORIGIN="https://app.example.com",
         )
         assert response.status_code == status.HTTP_200_OK
 
@@ -291,7 +284,7 @@ class TestDomainWhitelistBlocking:
             allowed_domains="",
         )
         response = self.client.get(
-            f'/api/v1/widget/?api_key={open_key.key}',
-            HTTP_ORIGIN='https://anything.com',
+            f"/api/v1/widget/?api_key={open_key.key}",
+            HTTP_ORIGIN="https://anything.com",
         )
         assert response.status_code == status.HTTP_200_OK

@@ -12,11 +12,11 @@ docker-compose exec backend pytest inventory/tests/
 ### Local Environment
 Assuming you have a virtual environment active:
 ```bash
-# 1. Install dependencies
-pip install -r backend/requirements.txt
+# 1. Install dependencies (pytest lives in the dev requirements)
+pip install -r backend/requirements-dev.txt
 
-# 2. Run tests
-pytest backend/inventory/tests/
+# 2. Run tests (from the backend/ directory, with settings on the path)
+cd backend && python -m pytest inventory/tests/
 ```
 
 ## Test Categories

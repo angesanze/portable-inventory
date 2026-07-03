@@ -5,15 +5,21 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inventory', '0022_add_api_key_to_dynamic_qr'),
+        ("inventory", "0022_add_api_key_to_dynamic_qr"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='dynamicqrcode',
-            name='location',
-            field=models.ForeignKey(blank=True, help_text='Location context for this QR', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='qr_codes', to='inventory.location'),
+            model_name="dynamicqrcode",
+            name="location",
+            field=models.ForeignKey(
+                blank=True,
+                help_text="Location context for this QR",
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="qr_codes",
+                to="inventory.location",
+            ),
         ),
     ]

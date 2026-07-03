@@ -1,4 +1,5 @@
 """Tests for BATCH_TRACKED profile validation."""
+
 from django.test import TestCase
 from rest_framework.test import APIClient
 from rest_framework import status
@@ -44,7 +45,9 @@ class BatchProfileAPITest(TestCase):
 
     def setUp(self):
         self.company = Company.objects.create(name="BatchAPICo", license_code="BAPI01")
-        self.user = User.objects.create_user(username="batchapi", password="password", company=self.company)
+        self.user = User.objects.create_user(
+            username="batchapi", password="password", company=self.company
+        )
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
 
@@ -67,6 +70,7 @@ class BatchProfileValidationTest(TestCase):
     def test_batch_tracked_derives_batch(self):
         """BATCH_TRACKED profile maps to BATCH tracking mode."""
         from inventory.profiles import profile_to_legacy
+
         tm, et, _ = profile_to_legacy("BATCH_TRACKED")
         self.assertEqual(tm, "BATCH")
         self.assertEqual(et, "bucket")

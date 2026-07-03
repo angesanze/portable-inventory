@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0005_apikey_default_location'),
+        ("core", "0005_apikey_default_location"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='apikey',
-            name='is_active',
+            model_name="apikey",
+            name="is_active",
             field=models.BooleanField(default=True),
         ),
     ]

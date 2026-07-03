@@ -1,5 +1,6 @@
 import type { AuthProvider } from "@refinedev/core";
 import axios from "axios";
+import { axiosInstance } from "./axios-client";
 
 import { API_URL } from "../config";
 
@@ -73,12 +74,11 @@ export const authProvider: AuthProvider = {
             return null;
         }
         try {
-            const sanitizedApiUrl = API_URL.endsWith("/") ? API_URL.slice(0, -1) : API_URL;
-            const { data } = await axios.get(`${sanitizedApiUrl}/api/v1/users/me/`, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-                },
-            });
+            // Use the shared axiosInstance so a 401 here goes through the
+            // token-refresh interceptor instead of silently falling through to a
+            // fabricated "Guest" identity (FE-12). Its request interceptor
+            // attaches the bearer token.
+            const { data } = await axiosInstance.get(`/api/v1/users/me/`);
             return {
                 id: data.id,
                 name: data.username,

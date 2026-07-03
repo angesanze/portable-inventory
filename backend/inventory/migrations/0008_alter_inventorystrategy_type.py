@@ -4,15 +4,25 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inventory', '0007_productbatch_inventorystrategy_movement_batch_and_more'),
+        ("inventory", "0007_productbatch_inventorystrategy_movement_batch_and_more"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='inventorystrategy',
-            name='type',
-            field=models.CharField(choices=[('BUCKET', 'Bucket / Batch Tracking'), ('ASSEMBLY', 'Assembly / Kit'), ('CONVERTER', 'Converter / Continuous'), ('TIME', 'Time-Based (Rental/Booking)'), ('DIMENSION', 'Dimension (Area/Linear)'), ('IOT', 'IoT Threshold / Trigger'), ('MULTI_CURVE', 'Multi-Curve Converter')], max_length=50),
+            model_name="inventorystrategy",
+            name="type",
+            field=models.CharField(
+                choices=[
+                    ("BUCKET", "Bucket / Batch Tracking"),
+                    ("ASSEMBLY", "Assembly / Kit"),
+                    ("CONVERTER", "Converter / Continuous"),
+                    ("TIME", "Time-Based (Rental/Booking)"),
+                    ("DIMENSION", "Dimension (Area/Linear)"),
+                    ("IOT", "IoT Threshold / Trigger"),
+                    ("MULTI_CURVE", "Multi-Curve Converter"),
+                ],
+                max_length=50,
+            ),
         ),
     ]

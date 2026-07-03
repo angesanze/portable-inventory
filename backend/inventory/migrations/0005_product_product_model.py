@@ -5,15 +5,20 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inventory', '0004_calculatortemplate_productmodel_default_calculator'),
+        ("inventory", "0004_calculatortemplate_productmodel_default_calculator"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='product',
-            name='product_model',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='polymorphic_products', to='inventory.productmodel'),
+            model_name="product",
+            name="product_model",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="polymorphic_products",
+                to="inventory.productmodel",
+            ),
         ),
     ]

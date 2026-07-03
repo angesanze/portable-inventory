@@ -20,6 +20,7 @@ restore tool.
 Idempotent: rows with a non-empty `engine_config` are left untouched, so
 re-running is safe.
 """
+
 import copy
 import logging
 
@@ -30,20 +31,20 @@ logger = logging.getLogger(__name__)
 
 # Profile → engine_type map (inlined; migrations must not import app code).
 _PROFILE_ENGINE_TYPE = {
-    'SIMPLE_COUNT':    'counter',
-    'UNIT_CONVERSION': 'converter',
-    'DIMENSIONAL':     'dimension',
-    'BATCH_TRACKED':   'bucket',
-    'PERISHABLE':      'time_based',
-    'SERIALIZED':      'tracker',
-    'ASSEMBLED':       'counter',
+    "SIMPLE_COUNT": "counter",
+    "UNIT_CONVERSION": "converter",
+    "DIMENSIONAL": "dimension",
+    "BATCH_TRACKED": "bucket",
+    "PERISHABLE": "time_based",
+    "SERIALIZED": "tracker",
+    "ASSEMBLED": "counter",
 }
 
 
 def backfill_engine_config(apps, schema_editor):
-    ProductModel = apps.get_model('inventory', 'ProductModel')
+    ProductModel = apps.get_model("inventory", "ProductModel")
 
-    qs = ProductModel.objects.select_related('default_calculator').filter(
+    qs = ProductModel.objects.select_related("default_calculator").filter(
         default_calculator__isnull=False,
     )
 
@@ -60,8 +61,10 @@ def backfill_engine_config(apps, schema_editor):
         product_engine_type = _PROFILE_ENGINE_TYPE.get(pm.profile)
         if product_engine_type is None:
             logger.warning(
-                "Skipping engine_config backfill for ProductModel %s (%s): "
-                "unknown profile %r", pm.pk, pm.sku, pm.profile,
+                "Skipping engine_config backfill for ProductModel %s (%s): unknown profile %r",
+                pm.pk,
+                pm.sku,
+                pm.profile,
             )
             skipped_unknown_profile += 1
             continue
@@ -71,13 +74,16 @@ def backfill_engine_config(apps, schema_editor):
             logger.warning(
                 "Skipping engine_config backfill for ProductModel %s (%s): "
                 "preset engine_type=%s != product engine_type=%s",
-                pm.pk, pm.sku, preset.engine_type, product_engine_type,
+                pm.pk,
+                pm.sku,
+                preset.engine_type,
+                product_engine_type,
             )
             skipped_mismatch += 1
             continue
 
         pm.engine_config = copy.deepcopy(preset.engine_config or {})
-        pm.save(update_fields=['engine_config'])
+        pm.save(update_fields=["engine_config"])
         copied += 1
 
     if copied or skipped_mismatch or skipped_unknown_profile:
@@ -95,9 +101,8 @@ def reverse_noop(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inventory', '0051_add_threshold_fields'),
+        ("inventory", "0051_add_threshold_fields"),
     ]
 
     operations = [

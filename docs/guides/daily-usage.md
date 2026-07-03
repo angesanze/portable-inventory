@@ -3,7 +3,7 @@
 This guide is for warehouse workers and managers using the Varasto dashboard.
 
 ## Logging In
-1. Navigate to the main dashboard at `http://localhost`.
+1. Navigate to the main dashboard at `http://localhost:5173`.
 2. Enter your **Username** and **Password**.
    - *Note: If your company provided a License Code, ensure you have your specific credentials.*
 

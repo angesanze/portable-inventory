@@ -1,4 +1,5 @@
 """Numeric-delta engines: Counter, Converter, Dimension."""
+
 from typing import Any, Dict, Optional
 
 from .base import BaseEngine
@@ -9,13 +10,14 @@ class CounterEngine(BaseEngine):
     """
     Engine for simple numeric counting (Incremental/Decremental).
     """
+
     CONFIG_SCHEMA = {
         "required": [],
         "properties": {
             "allow_negative": {"type": "boolean"},
             "step": {"type": "number"},
             "input_label": {"type": "string"},
-        }
+        },
     }
 
     def get_ui_config(self) -> Dict[str, Any]:
@@ -24,7 +26,7 @@ class CounterEngine(BaseEngine):
             "input_type": "number",
             "allow_negative": self.config.get("allow_negative", False),
             "step": float(self.config.get("step", 1)),
-            "input_label": self.config.get("input_label", "Quantity")
+            "input_label": self.config.get("input_label", "Quantity"),
         }
 
     def calculate_delta(self, delta_payload: Dict[str, Any]) -> float:
@@ -39,12 +41,12 @@ class CounterEngine(BaseEngine):
             current_stock = float(current_stock) if current_stock is not None else 0.0
         except (ValueError, TypeError):
             current_stock = 0.0
-            
+
         delta = float(self.calculate_delta(delta_payload))
         new_stock = current_stock + delta
 
         if not self.config.get("allow_negative", False) and new_stock < 0:
-             raise ValueError("Stock cannot be negative")
+            raise ValueError("Stock cannot be negative")
 
         return new_stock
 
@@ -69,12 +71,12 @@ class CounterEngine(BaseEngine):
         return None
 
 
-
 class ConverterEngine(BaseEngine):
     """
     Engine that converts input units to stock units using a ratio.
     Useful for products consumed in different units (e.g., liters vs bottles).
     """
+
     CONFIG_SCHEMA = {
         "required": [],
         "properties": {
@@ -83,7 +85,7 @@ class ConverterEngine(BaseEngine):
             "input_label": {"type": "string"},
             "stock_unit": {"type": "string"},
             "allow_negative": {"type": "boolean"},
-        }
+        },
     }
 
     def get_ui_config(self) -> Dict[str, Any]:
@@ -91,21 +93,23 @@ class ConverterEngine(BaseEngine):
         return {
             "input_type": "number",
             "input_label": self.config.get("input_label", "Consumed"),
-            "step": self.config.get("precision", 0.01)
+            "step": self.config.get("precision", 0.01),
         }
 
     def calculate_delta(self, delta_payload: Dict[str, Any]) -> float:
         """Calculates delta by multiplying input quantity with a conversion ratio."""
         input_quantity = float(delta_payload.get("quantity", 0.0))
-        operation = delta_payload.get("operation", "subtract") # Default to subtract for consumption
-        
+        operation = delta_payload.get(
+            "operation", "subtract"
+        )  # Default to subtract for consumption
+
         # Calculate Ratio
         ratio = 1.0
         ratio_source = self.config.get("ratio_source")
         if ratio_source and ratio_source.startswith("attribute:"):
-             attr_key = ratio_source.split(":")[1]
-             # Assuming product.attributes is a flat dict for now
-             ratio = float(self.product.attributes.get(attr_key, 1.0))
+            attr_key = ratio_source.split(":")[1]
+            # Assuming product.attributes is a flat dict for now
+            ratio = float(self.product.attributes.get(attr_key, 1.0))
 
         delta_real = input_quantity * ratio
         return self._signed(delta_real, operation)
@@ -132,7 +136,6 @@ class ConverterEngine(BaseEngine):
         return f"{val:.2f} {unit}".strip()
 
 
-
 class DimensionEngine(BaseEngine):
     """
     Engine for products measured by multiple dimensions (length × width, area, volume).
@@ -146,6 +149,7 @@ class DimensionEngine(BaseEngine):
             "computed_unit": "m²"
         }
     """
+
     CONFIG_SCHEMA = {
         "required": ["dimensions", "unit", "formula"],
         "properties": {
@@ -153,7 +157,7 @@ class DimensionEngine(BaseEngine):
             "unit": {"type": "string"},
             "formula": {"type": "string"},
             "computed_unit": {"type": "string"},
-        }
+        },
     }
 
     def get_ui_config(self) -> Dict[str, Any]:
@@ -188,9 +192,15 @@ class DimensionEngine(BaseEngine):
     def calculate_delta(self, delta_payload: Dict[str, Any]) -> float:
         """Evaluates the formula with provided dimension values to compute delta."""
         dimensions = self.config.get("dimensions", [])
+        # Dimension values arrive nested under `dimension_values` (the widget
+        # wire format, shared by both the /move/ and /transaction/ paths) or,
+        # for legacy callers and unit tests, flat at the payload top level.
+        source = delta_payload.get("dimension_values")
+        if not isinstance(source, dict):
+            source = delta_payload
         dimension_values = {}
         for dim in dimensions:
-            val = delta_payload.get(dim)
+            val = source.get(dim)
             if val is None:
                 raise ValueError(f"Missing dimension value: {dim}")
             dimension_values[dim] = float(val)
@@ -218,5 +228,3 @@ class DimensionEngine(BaseEngine):
         if val == int(val):
             return f"{int(val)} {computed_unit}".strip()
         return f"{val:.2f} {computed_unit}".strip()
-
-

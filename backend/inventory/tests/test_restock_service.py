@@ -1,4 +1,5 @@
 """RestockService scoring + RestockBoardView endpoint tests."""
+
 from datetime import timedelta
 from decimal import Decimal
 
@@ -135,12 +136,18 @@ class RestockBoardEndpointTests(TestCase):
         self.company_b, self.user_b, _ = make_company_full("EB")
 
         ProductModel.objects.create(
-            company=self.company_a, sku="MINE", name="Mine",
-            profile="SIMPLE_COUNT", reorder_threshold=Decimal("5"),
+            company=self.company_a,
+            sku="MINE",
+            name="Mine",
+            profile="SIMPLE_COUNT",
+            reorder_threshold=Decimal("5"),
         )
         ProductModel.objects.create(
-            company=self.company_b, sku="OTHER", name="Other",
-            profile="SIMPLE_COUNT", reorder_threshold=Decimal("5"),
+            company=self.company_b,
+            sku="OTHER",
+            name="Other",
+            profile="SIMPLE_COUNT",
+            reorder_threshold=Decimal("5"),
         )
 
     def test_endpoint_returns_board_with_five_columns(self):
@@ -159,11 +166,7 @@ class RestockBoardEndpointTests(TestCase):
         client.force_authenticate(user=self.user_a)
         resp = client.get("/api/v1/restock/board/")
         body = resp.json()
-        skus = [
-            card["sku"]
-            for col in body["columns"].values()
-            for card in col["products"]
-        ]
+        skus = [card["sku"] for col in body["columns"].values() for card in col["products"]]
         self.assertIn("MINE", skus)
         self.assertNotIn("OTHER", skus)
 

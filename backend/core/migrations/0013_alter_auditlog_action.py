@@ -4,15 +4,27 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0012_auditlog'),
+        ("core", "0012_auditlog"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='auditlog',
-            name='action',
-            field=models.CharField(choices=[('COMPANY_PROVISIONED', 'Company provisioned'), ('TIER_CHANGED', 'Tier changed'), ('COMPANY_SUSPENDED', 'Company suspended'), ('COMPANY_REACTIVATED', 'Company reactivated'), ('USER_INVITED', 'User invited'), ('LOGIN', 'Login'), ('COMPANY_EXPORTED', 'Company data exported'), ('COMPANY_DELETED', 'Company deleted')], db_index=True, max_length=32),
+            model_name="auditlog",
+            name="action",
+            field=models.CharField(
+                choices=[
+                    ("COMPANY_PROVISIONED", "Company provisioned"),
+                    ("TIER_CHANGED", "Tier changed"),
+                    ("COMPANY_SUSPENDED", "Company suspended"),
+                    ("COMPANY_REACTIVATED", "Company reactivated"),
+                    ("USER_INVITED", "User invited"),
+                    ("LOGIN", "Login"),
+                    ("COMPANY_EXPORTED", "Company data exported"),
+                    ("COMPANY_DELETED", "Company deleted"),
+                ],
+                db_index=True,
+                max_length=32,
+            ),
         ),
     ]

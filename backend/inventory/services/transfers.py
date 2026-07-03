@@ -12,6 +12,7 @@ residuals. The invariant per line is::
 ``quantity_sent`` / ``quantity_received`` / ``quantity_shortage`` are
 denormalized and only mutated here, under ``select_for_update``.
 """
+
 from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
@@ -20,10 +21,13 @@ from django.utils import timezone
 from core.models import Company
 from .. import constants
 from ..exceptions import InventoryError
-from ..models import Location, ProductBatch, TransferOrder, TransferOrderLine
+from ..models import Location, TransferOrder, TransferOrderLine
 from ..models.transfers import (
-    TR_STATUS_CANCELLED, TR_STATUS_DRAFT, TR_STATUS_IN_TRANSIT,
-    TR_STATUS_PARTIALLY_RECEIVED, TR_STATUS_RECEIVED,
+    TR_STATUS_CANCELLED,
+    TR_STATUS_DRAFT,
+    TR_STATUS_IN_TRANSIT,
+    TR_STATUS_PARTIALLY_RECEIVED,
+    TR_STATUS_RECEIVED,
 )
 from .counterparty import CounterpartyService
 from .ledger import LedgerService
@@ -32,7 +36,6 @@ RECEIVABLE_STATUSES = (TR_STATUS_IN_TRANSIT, TR_STATUS_PARTIALLY_RECEIVED)
 
 
 class TransferService:
-
     # ── Numbering ────────────────────────────────────────────────────
 
     @staticmethod
@@ -47,20 +50,23 @@ class TransferService:
         year = timezone.now().year
         prefix = f"TR-{year}-"
         last = (
-            TransferOrder.objects
-            .filter(company=company, number__startswith=prefix)
-            .order_by('-number')
-            .values_list('number', flat=True)
+            TransferOrder.objects.filter(company=company, number__startswith=prefix)
+            .order_by("-number")
+            .values_list("number", flat=True)
             .first()
         )
         progressive = 1
         if last:
             try:
-                progressive = int(last.rsplit('-', 1)[1]) + 1
+                progressive = int(last.rsplit("-", 1)[1]) + 1
             except (ValueError, IndexError):
-                progressive = TransferOrder.objects.filter(
-                    company=company, number__startswith=prefix,
-                ).count() + 1
+                progressive = (
+                    TransferOrder.objects.filter(
+                        company=company,
+                        number__startswith=prefix,
+                    ).count()
+                    + 1
+                )
         return f"{prefix}{progressive:04d}"
 
     # ── Helpers ──────────────────────────────────────────────────────
@@ -98,8 +104,10 @@ class TransferService:
         """
         order = TransferOrder.objects.select_for_update().get(pk=order.pk)
         if order.status != TR_STATUS_DRAFT:
-            raise InventoryError(detail=f"Only DRAFT transfers can be shipped (current: {order.status}).")
-        lines = list(order.lines.select_related('product_model', 'batch', 'physical_product').all())
+            raise InventoryError(
+                detail=f"Only DRAFT transfers can be shipped (current: {order.status})."
+            )
+        lines = list(order.lines.select_related("product_model", "batch", "physical_product").all())
         if not lines:
             raise InventoryError(detail="Cannot ship a transfer without lines.")
 
@@ -110,32 +118,32 @@ class TransferService:
         for line in lines:
             product = line.product_model
             kwargs = {}
-            if product.tracking_mode == 'INDIVIDUAL':
+            if product.tracking_mode == "INDIVIDUAL":
                 if line.physical_product_id is None:
                     raise InventoryError(
                         detail=f"Serialized line {line.id} needs a physical_product to ship."
                     )
-                kwargs['physical_product'] = line.physical_product
-            elif product.tracking_mode == 'BATCH':
+                kwargs["physical_product"] = line.physical_product
+            elif product.tracking_mode == "BATCH":
                 if line.batch_id is None:
-                    raise InventoryError(
-                        detail=f"Batch line {line.id} needs a batch to ship."
-                    )
-                kwargs['batch_id'] = str(line.batch_id)
+                    raise InventoryError(detail=f"Batch line {line.id} needs a batch to ship.")
+                kwargs["batch_id"] = str(line.batch_id)
 
-            movements.append(LedgerService.transfer_stock(
-                product_model=product,
-                from_location=order.from_location,
-                to_location=transit,
-                quantity=line.quantity_sent,
-                user=user,
-                reason=reason,
-                **kwargs,
-            ))
+            movements.append(
+                LedgerService.transfer_stock(
+                    product_model=product,
+                    from_location=order.from_location,
+                    to_location=transit,
+                    quantity=line.quantity_sent,
+                    user=user,
+                    reason=reason,
+                    **kwargs,
+                )
+            )
 
         order.status = TR_STATUS_IN_TRANSIT
         order.shipped_at = timezone.now()
-        order.save(update_fields=['status', 'shipped_at', 'updated_at'])
+        order.save(update_fields=["status", "shipped_at", "updated_at"])
         return movements
 
     @staticmethod
@@ -149,7 +157,9 @@ class TransferService:
         """
         order = TransferOrder.objects.select_for_update().get(pk=order.pk)
         if order.status not in RECEIVABLE_STATUSES:
-            raise InventoryError(detail=f"Transfer {order.number} is not receivable (status: {order.status}).")
+            raise InventoryError(
+                detail=f"Transfer {order.number} is not receivable (status: {order.status})."
+            )
         if not receipts:
             raise InventoryError(detail="At least one receipt line is required.")
 
@@ -158,8 +168,8 @@ class TransferService:
         movements = []
 
         for receipt in receipts:
-            line = TransferService._lock_line(order, receipt.get('line_id'))
-            quantity = TransferService._coerce_qty(receipt.get('quantity'))
+            line = TransferService._lock_line(order, receipt.get("line_id"))
+            quantity = TransferService._coerce_qty(receipt.get("quantity"))
 
             residual = line.quantity_in_transit
             if quantity > residual:
@@ -170,11 +180,18 @@ class TransferService:
                     )
                 )
 
-            movements.extend(TransferService._land(
-                line, transit, order.to_location, quantity, user, reason,
-            ))
+            movements.extend(
+                TransferService._land(
+                    line,
+                    transit,
+                    order.to_location,
+                    quantity,
+                    user,
+                    reason,
+                )
+            )
             line.quantity_received += quantity
-            line.save(update_fields=['quantity_received'])
+            line.save(update_fields=["quantity_received"])
 
         TransferService._refresh_status(order)
         return movements
@@ -189,7 +206,9 @@ class TransferService:
         """
         order = TransferOrder.objects.select_for_update().get(pk=order.pk)
         if order.status not in RECEIVABLE_STATUSES:
-            raise InventoryError(detail=f"Transfer {order.number} is not in transit (status: {order.status}).")
+            raise InventoryError(
+                detail=f"Transfer {order.number} is not in transit (status: {order.status})."
+            )
 
         line = TransferService._lock_line(order, line_id)
         quantity = TransferService._coerce_qty(qty)
@@ -208,7 +227,7 @@ class TransferService:
         movements = TransferService._land(line, transit, loss, quantity, user, reason)
 
         line.quantity_shortage += quantity
-        line.save(update_fields=['quantity_shortage'])
+        line.save(update_fields=["quantity_shortage"])
 
         TransferService._refresh_status(order)
         return movements
@@ -222,10 +241,10 @@ class TransferService:
         if order.status != TR_STATUS_DRAFT:
             raise InventoryError(
                 detail=f"Only DRAFT transfers can be cancelled (current: {order.status}). "
-                       "An in-transit transfer is closed via receive + shortage."
+                "An in-transit transfer is closed via receive + shortage."
             )
         order.status = TR_STATUS_CANCELLED
-        order.save(update_fields=['status', 'updated_at'])
+        order.save(update_fields=["status", "updated_at"])
         return order
 
     # ── Internals ────────────────────────────────────────────────────
@@ -236,9 +255,15 @@ class TransferService:
             # of=('self',) locks only the line row — select_related across the
             # nullable batch/physical_product FKs would make Postgres reject
             # FOR UPDATE on the nullable side of the outer join.
-            return TransferOrderLine.objects.select_for_update(of=('self',)).select_related(
-                'product_model', 'batch', 'physical_product',
-            ).get(id=line_id, transfer_order=order)
+            return (
+                TransferOrderLine.objects.select_for_update(of=("self",))
+                .select_related(
+                    "product_model",
+                    "batch",
+                    "physical_product",
+                )
+                .get(id=line_id, transfer_order=order)
+            )
         except (TransferOrderLine.DoesNotExist, ValueError, TypeError):
             raise InventoryError(detail=f"Transfer line {line_id} not found on {order.number}.")
 
@@ -252,26 +277,28 @@ class TransferService:
         """
         product = line.product_model
         kwargs = {}
-        if product.tracking_mode == 'INDIVIDUAL':
-            kwargs['physical_product'] = line.physical_product
-        elif product.tracking_mode == 'BATCH':
+        if product.tracking_mode == "INDIVIDUAL":
+            kwargs["physical_product"] = line.physical_product
+        elif product.tracking_mode == "BATCH":
             identifier = None
             data = {}
             if line.batch_id is not None:
                 identifier = line.batch.batch_identifier
                 data = line.batch.data
             if identifier:
-                kwargs['batch_data'] = {'batch_identifier': identifier, 'data': data}
+                kwargs["batch_data"] = {"batch_identifier": identifier, "data": data}
 
-        return [LedgerService.transfer_stock(
-            product_model=product,
-            from_location=from_location,
-            to_location=to_location,
-            quantity=quantity,
-            user=user,
-            reason=reason,
-            **kwargs,
-        )]
+        return [
+            LedgerService.transfer_stock(
+                product_model=product,
+                from_location=from_location,
+                to_location=to_location,
+                quantity=quantity,
+                user=user,
+                reason=reason,
+                **kwargs,
+            )
+        ]
 
     @staticmethod
     def _refresh_status(order: TransferOrder):
@@ -288,11 +315,11 @@ class TransferService:
         else:
             new_status = order.status
 
-        fields = ['status', 'updated_at']
+        fields = ["status", "updated_at"]
         order.status = new_status
         if new_status == TR_STATUS_RECEIVED and order.received_at is None:
             order.received_at = timezone.now()
-            fields.append('received_at')
+            fields.append("received_at")
         order.save(update_fields=fields)
 
     # ── In-transit stock exposure ────────────────────────────────────
@@ -312,11 +339,11 @@ class TransferService:
         from collections import OrderedDict
 
         rows = OrderedDict()
-        total = Decimal('0')
+        total = Decimal("0")
         lines = TransferOrderLine.objects.filter(
             transfer_order__company=company,
             transfer_order__status__in=RECEIVABLE_STATUSES,
-        ).select_related('product_model')
+        ).select_related("product_model")
         for line in lines:
             qty = line.quantity_in_transit
             if qty <= 0:
@@ -325,11 +352,11 @@ class TransferService:
             key = str(pm.id)
             if key not in rows:
                 rows[key] = {
-                    'product_id': key,
-                    'sku': pm.sku,
-                    'name': pm.name,
-                    'quantity': Decimal('0'),
+                    "product_id": key,
+                    "sku": pm.sku,
+                    "name": pm.name,
+                    "quantity": Decimal("0"),
                 }
-            rows[key]['quantity'] += qty
+            rows[key]["quantity"] += qty
             total += qty
-        return {'total': total, 'by_product': list(rows.values())}
+        return {"total": total, "by_product": list(rows.values())}

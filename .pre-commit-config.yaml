@@ -11,7 +11,9 @@ repos:
     -   id: detect-private-key
 
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.0
+    # Keep in sync with backend/requirements-dev.txt (ruff formatting can differ
+    # between versions); config lives in backend/ruff.toml (auto-discovered).
+    rev: v0.15.20
     hooks:
     -   id: ruff
         args: ["--fix", "--exit-non-zero-on-fix"]

@@ -102,10 +102,14 @@
 
             <div class="card">
                 <h2 style="font-size: 1.1rem; margin-bottom: 1rem;">Quick Stock Adjustment</h2>
-                <!-- WIDGET EMBED -->
+                <!-- WIDGET EMBED
+                     Demo only. Replace YOUR_API_KEY with a real key. Production
+                     embeds should prefer the SDK (sdk/) or a short-lived signed
+                     token over a raw key in the URL (which lands in history /
+                     Referer / proxy logs). The dev widget is served on :5173. -->
                 <iframe
-                    src="http://localhost/widget?api_key=2e63217af7a64a37eb72156a7cde2b588761f9ec1f426a5611b5b48de9a9df96"
-                    className="widget-frame" style="width: 100%; border: none;" title="Inventory Widget"></iframe>
+                    src="http://localhost:5173/widget?api_key=YOUR_API_KEY"
+                    class="widget-frame" style="width: 100%; border: none;" title="Inventory Widget"></iframe>
             </div>
 
             <div class="card">

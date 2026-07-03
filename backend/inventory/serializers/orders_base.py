@@ -12,10 +12,11 @@ class CompanyScopedOrderSerializerMixin:
     """Provides ``_resolve_company`` for order serializers."""
 
     def _resolve_company(self):
-        company = self.context.get('company')
+        company = self.context.get("company")
         if company is None:
-            request = self.context.get('request')
+            request = self.context.get("request")
             if request is not None:
                 from core.scope import resolve_effective_company
+
                 company = resolve_effective_company(request)
         return company

@@ -5,6 +5,7 @@ formula / unit / expiry_tracking / status_transitions) round-trip through
 the API intact, and ``default_calculator_detail`` must surface name +
 engine_type when a preset is bound.
 """
+
 import pytest
 from rest_framework.test import APIClient
 

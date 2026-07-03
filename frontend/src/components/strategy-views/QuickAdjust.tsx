@@ -13,22 +13,6 @@ interface StrategyProduct {
     stock_value?: number | unknown[];
 }
 
-/** DRF error body surfaced via axios: either a field map or a bare message list. */
-interface ApiErrorBody {
-    detail?: string;
-    [field: string]: unknown;
-}
-
-/** First human-readable message from an axios-shaped error, if any. */
-function readApiError(err: unknown): string | undefined {
-    const data = (err as { response?: { data?: ApiErrorBody | string[] } } | undefined)?.response
-        ?.data;
-    if (!data) return undefined;
-    if (Array.isArray(data)) return typeof data[0] === "string" ? data[0] : undefined;
-    if (typeof data.detail === "string") return data.detail;
-    return undefined;
-}
-
 export const QuickAdjust = ({ product, onUpdate }: { product: StrategyProduct, onUpdate: () => void }) => {
     const [delta, setDelta] = useState<number>(1);
     const [identifier, setIdentifier] = useState("");
@@ -81,11 +65,8 @@ export const QuickAdjust = ({ product, onUpdate }: { product: StrategyProduct, o
             setIdentifier(""); // Reset
             onUpdate?.();
         } catch (err: unknown) {
-            open?.({
-                message: "Error",
-                description: readApiError(err) || "Adjustment failed",
-                type: "error"
-            });
+            // The API-error toast (with the backend reason) is raised globally by
+            // AxiosErrorHandler; here we just reset state.
             console.error(err);
         } finally {
             setLoading(false);

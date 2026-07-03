@@ -4,22 +4,23 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inventory', '0034_add_time_based_engine_type'),
+        ("inventory", "0034_add_time_based_engine_type"),
     ]
 
     operations = [
         migrations.AddIndex(
-            model_name='movement',
-            index=models.Index(fields=['from_location'], name='inventory_m_from_lo_cb0cb8_idx'),
+            model_name="movement",
+            index=models.Index(fields=["from_location"], name="inventory_m_from_lo_cb0cb8_idx"),
         ),
         migrations.AddIndex(
-            model_name='movement',
-            index=models.Index(fields=['to_location'], name='inventory_m_to_loca_6f40d2_idx'),
+            model_name="movement",
+            index=models.Index(fields=["to_location"], name="inventory_m_to_loca_6f40d2_idx"),
         ),
         migrations.AddIndex(
-            model_name='movement',
-            index=models.Index(fields=['product_model', '-occurred_at'], name='inventory_m_product_5b6d6d_idx'),
+            model_name="movement",
+            index=models.Index(
+                fields=["product_model", "-occurred_at"], name="inventory_m_product_5b6d6d_idx"
+            ),
         ),
     ]

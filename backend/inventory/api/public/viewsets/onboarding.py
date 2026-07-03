@@ -43,17 +43,24 @@ class _RegistrationResponseSerializer(drf_serializers.Serializer):
 
 class OnboardingViewSet(GenericViewSet):
     """Self-service company registration endpoint."""
+
     permission_classes = [AllowAny]
-    throttle_scope = 'login'
+    throttle_scope = "login"
 
     @extend_schema(
         summary="Register new company",
         description="Self-service company registration. Creates company, admin user, default API key, and seeds default strategies and locations. Returns JWT tokens for immediate authentication.",
         tags=["Onboarding"],
         request=CompanyRegistrationSerializer,
-        responses={201: _RegistrationResponseSerializer, 400: OpenApiResponse(description="Validation error (duplicate email, weak password, etc.)"), 429: OpenApiResponse(description="Rate limit exceeded")},
+        responses={
+            201: _RegistrationResponseSerializer,
+            400: OpenApiResponse(
+                description="Validation error (duplicate email, weak password, etc.)"
+            ),
+            429: OpenApiResponse(description="Rate limit exceeded"),
+        },
     )
-    @action(detail=False, methods=['post'], url_path='register')
+    @action(detail=False, methods=["post"], url_path="register")
     def register(self, request):
         serializer = CompanyRegistrationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -63,17 +70,17 @@ class OnboardingViewSet(GenericViewSet):
             # Self-service registration always creates a leaf manager company,
             # seeded with a default API key + locations (shared with tenant mgmt).
             company, api_key, api_key_value = provision_manager_company(
-                name=data['company_name'],
-                settings={'industry_type': data['industry_type']},
+                name=data["company_name"],
+                settings={"industry_type": data["industry_type"]},
             )
-            company.vat = data['vat']
-            company.save(update_fields=['vat'])
+            company.vat = data["vat"]
+            company.save(update_fields=["vat"])
 
             # Create admin user (email as username for self-service)
             user = User.objects.create_user(
-                username=data['admin_email'],
-                email=data['admin_email'],
-                password=data['admin_password'],
+                username=data["admin_email"],
+                email=data["admin_email"],
+                password=data["admin_password"],
                 is_staff=True,
             )
             user.company = company
@@ -85,27 +92,30 @@ class OnboardingViewSet(GenericViewSet):
         # Generate JWT tokens
         refresh = RefreshToken.for_user(user)
 
-        return Response({
-            'tokens': {
-                'access': str(refresh.access_token),
-                'refresh': str(refresh),
+        return Response(
+            {
+                "tokens": {
+                    "access": str(refresh.access_token),
+                    "refresh": str(refresh),
+                },
+                "company": {
+                    "id": str(company.id),
+                    "name": company.name,
+                    "license_code": company.license_code,
+                    "vat": company.vat,
+                    "industry_type": data["industry_type"],
+                },
+                "user": {
+                    "id": str(user.id),
+                    "email": user.email,
+                    "username": user.username,
+                    "role": user.role,
+                },
+                "api_key": {
+                    "id": str(api_key.id),
+                    "key": api_key_value,
+                    "label": api_key.label,
+                },
             },
-            'company': {
-                'id': str(company.id),
-                'name': company.name,
-                'license_code': company.license_code,
-                'vat': company.vat,
-                'industry_type': data['industry_type'],
-            },
-            'user': {
-                'id': str(user.id),
-                'email': user.email,
-                'username': user.username,
-                'role': user.role,
-            },
-            'api_key': {
-                'id': str(api_key.id),
-                'key': api_key_value,
-                'label': api_key.label,
-            },
-        }, status=status.HTTP_201_CREATED)
+            status=status.HTTP_201_CREATED,
+        )

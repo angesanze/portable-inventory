@@ -1,0 +1,20 @@
+# Ruff configuration. Keep the version in sync with requirements-dev.txt and
+# .pre-commit-config.yaml so local hooks, `make lint` and CI all agree.
+line-length = 100
+target-version = "py311"
+
+[lint]
+# E402 (module-import-not-at-top): the services deliberately use inline/late
+#   imports to break dependency cycles (documented at each site), and Django
+#   settings/patterns import after code — enforcing it would fight the design.
+# E741 (ambiguous name) / E702 (multiple statements via semicolon): stylistic and
+#   confined to a handful of tests; not worth churning.
+ignore = ["E402", "E741", "E702"]
+
+[lint.per-file-ignores]
+# Re-export packages: the "unused" imports here ARE the public surface.
+"__init__.py" = ["F401"]
+# Auto-generated / data migrations: unused model lookups & imports are noise.
+"**/migrations/**" = ["F401", "F841"]
+# Tests routinely create rows for their side effect without binding the handle.
+"**/tests/**" = ["F841"]

@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import type { SelectOption } from "../../../components/ui/Select";
 import { useConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { API_URL } from "../../../config";
+import { buildBatchUpdatePayload } from "../../widget/payload";
 import type {
     WorkOrderRecord,
     WorkOrderContentItem,
@@ -198,12 +199,11 @@ export function useWorkOrderShow() {
             {
                 url: `${API_URL}/api/v1/widget/${record?.data?.id}/transaction/`,
                 method: "post",
-                values: {
-                    operation: "batch_update_item",
-                    product_model_id: item.product_id,
+                values: buildBatchUpdatePayload({
+                    productModelId: item.product_id,
                     delta,
-                    physical_identifier: item.identifier,
-                },
+                    physicalIdentifier: item.identifier,
+                }),
                 successNotification: () => ({
                     message: t("workOrders.stockUpdated"),
                     type: "success",
@@ -251,14 +251,11 @@ export function useWorkOrderShow() {
             {
                 url: `${API_URL}/api/v1/widget/${record?.data?.id}/transaction/`,
                 method: "post",
-                values: {
-                    operation: "batch_update_item",
-                    product_model_id: selectedModelId,
+                values: buildBatchUpdatePayload({
+                    productModelId: selectedModelId,
                     delta: isIndividual ? 1 : addQuantity,
-                    physical_product_id: isIndividual
-                        ? selectedPhysicalProductId
-                        : undefined,
-                },
+                    physicalProductId: isIndividual ? selectedPhysicalProductId : undefined,
+                }),
                 successNotification: () => ({
                     message: t("workOrders.itemAdded"),
                     type: "success",

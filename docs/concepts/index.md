@@ -16,6 +16,6 @@ Traditional software forces you to choose between an **Asset Manager** (good for
 ### Key Pillars
 1.  **[Polymorphism](polymorphism.md)**: Separating the "Blueprint" from the "Instance".
 2.  **[Strategies](strategies.md)**: Pluggable logic engines that define how stock behaves.
-3.  **[Math Theory](theory.md)**: A ledger-based approach where "Stock" is a calculated derivative of "Movements", ensuring absolute auditability.
+3.  **[Math Theory](theory.md)**: A ledger-based approach where every change is recorded as an immutable `Movement`. For **bulk** products stock is a pure derivative of that ledger (`Σ in − Σ out`); **batch**- and **serial**-tracked products keep their own quantities/rows, with the ledger as a parallel audit trail.
 
 By abstracting "Inventory" into these primitives, the system can adapt to manage almost any physical good without code changes.

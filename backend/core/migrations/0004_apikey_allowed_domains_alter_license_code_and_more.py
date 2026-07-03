@@ -4,26 +4,32 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0003_license_code'),
+        ("core", "0003_license_code"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='apikey',
-            name='allowed_domains',
-            field=models.TextField(blank=True, help_text='Comma-separated list of allowed domains (e.g., example.com). Leave empty for wildcard access.'),
+            model_name="apikey",
+            name="allowed_domains",
+            field=models.TextField(
+                blank=True,
+                help_text="Comma-separated list of allowed domains (e.g., example.com). Leave empty for wildcard access.",
+            ),
         ),
         migrations.AlterField(
-            model_name='license',
-            name='code',
-            field=models.CharField(blank=True, default='TEMP_CODE', max_length=20, unique=True),
+            model_name="license",
+            name="code",
+            field=models.CharField(blank=True, default="TEMP_CODE", max_length=20, unique=True),
             preserve_default=False,
         ),
         migrations.AlterField(
-            model_name='license',
-            name='plan_type',
-            field=models.CharField(choices=[('Basic', 'Basic'), ('Pro', 'Pro'), ('Enterprise', 'Enterprise')], default='Basic', max_length=50),
+            model_name="license",
+            name="plan_type",
+            field=models.CharField(
+                choices=[("Basic", "Basic"), ("Pro", "Pro"), ("Enterprise", "Enterprise")],
+                default="Basic",
+                max_length=50,
+            ),
         ),
     ]

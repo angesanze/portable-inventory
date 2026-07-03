@@ -101,9 +101,9 @@ describe("Layout", () => {
     it("renders navigation groups", () => {
         renderLayout();
         expect(screen.getByText("Overview")).toBeTruthy();
-        expect(screen.getByText("Workspace")).toBeTruthy();
+        expect(screen.getByText("Setup")).toBeTruthy();
         expect(screen.getByText("Inventory")).toBeTruthy();
-        expect(screen.getByText("Operations")).toBeTruthy();
+        expect(screen.getByText("Sales & Purchasing")).toBeTruthy();
         expect(screen.getByText("Settings")).toBeTruthy();
     });
 
@@ -251,49 +251,81 @@ describe("Layout", () => {
         });
     });
 
-    describe("collapsible Settings group", () => {
-        it("starts collapsed — Settings items hidden", () => {
+    describe("collapsible nav groups", () => {
+        it("renders a toggle for every group; everyday groups start expanded", () => {
             renderLayout();
-            expect(screen.getByText("Settings")).toBeTruthy();
-            // Items should not be visible (max-h-0 overflow hidden)
-            expect(screen.getByTestId("settings-group-toggle")).toBeTruthy();
+            expect(screen.getByTestId("nav-group-toggle-setup")).toBeTruthy();
+            expect(screen.getByTestId("nav-group-toggle-inventory")).toBeTruthy();
+            expect(screen.getByTestId("nav-group-toggle-settings")).toBeTruthy();
+            // Setup is expanded by default → an item is visible and no count badge.
+            expect(screen.getByText("Suppliers")).toBeTruthy();
+            expect(
+                screen.getByTestId("nav-group-toggle-setup").textContent,
+            ).not.toMatch(/\(\d+\)/);
         });
 
-        it("shows item count badge when collapsed", () => {
+        it("starts Settings collapsed with an item-count badge", () => {
             renderLayout();
-            const toggle = screen.getByTestId("settings-group-toggle");
-            expect(toggle.textContent).toContain("(7)");
+            const toggle = screen.getByTestId("nav-group-toggle-settings");
+            // Settings (collapsedByDefault) shows api-keys + notifications +
+            // appearance for the developer identity (which lacks manage_users),
+            // so 3 items.
+            expect(toggle.textContent).toContain("(3)");
         });
 
-        it("expands on click and hides count badge", () => {
+        it("collapses a default-expanded group on click and persists the choice", () => {
             renderLayout();
-            const toggle = screen.getByTestId("settings-group-toggle");
+            const toggle = screen.getByTestId("nav-group-toggle-setup");
             fireEvent.click(toggle);
-            expect(toggle.textContent).not.toContain("(7)");
-            expect(localStorage.getItem("nav_settings_expanded")).toBe("true");
+            expect(toggle.textContent).toMatch(/\(\d+\)/);
+            expect(JSON.parse(localStorage.getItem("nav_groups_expanded")!).setup).toBe(false);
         });
 
-        it("collapses again on second click", () => {
+        it("expands Settings on click and hides the count badge", () => {
             renderLayout();
-            const toggle = screen.getByTestId("settings-group-toggle");
+            const toggle = screen.getByTestId("nav-group-toggle-settings");
+            fireEvent.click(toggle);
+            expect(toggle.textContent).not.toMatch(/\(\d+\)/);
+            expect(JSON.parse(localStorage.getItem("nav_groups_expanded")!).settings).toBe(true);
+        });
+
+        it("collapses Settings again on second click", () => {
+            renderLayout();
+            const toggle = screen.getByTestId("nav-group-toggle-settings");
             fireEvent.click(toggle); // expand
             fireEvent.click(toggle); // collapse
-            expect(toggle.textContent).toContain("(7)");
-            expect(localStorage.getItem("nav_settings_expanded")).toBe("false");
+            expect(toggle.textContent).toContain("(3)");
+            expect(JSON.parse(localStorage.getItem("nav_groups_expanded")!).settings).toBe(false);
         });
 
-        it("restores expanded state from localStorage", () => {
-            localStorage.setItem("nav_settings_expanded", "true");
+        it("restores per-group expanded state from localStorage", () => {
+            localStorage.setItem("nav_groups_expanded", JSON.stringify({ settings: true }));
             renderLayout();
-            const toggle = screen.getByTestId("settings-group-toggle");
-            expect(toggle.textContent).not.toContain("(7)");
+            expect(
+                screen.getByTestId("nav-group-toggle-settings").textContent,
+            ).not.toMatch(/\(\d+\)/);
         });
 
-        it("auto-expands when a settings route is active", () => {
-            renderLayout("/widget-generator");
-            const toggle = screen.getByTestId("settings-group-toggle");
-            // Should be auto-expanded (no count badge)
-            expect(toggle.textContent).not.toContain("(7)");
+        it("auto-expands the group that owns the active route", () => {
+            renderLayout("/settings/notifications");
+            // Settings owns the active route → force-expanded, no count badge.
+            expect(
+                screen.getByTestId("nav-group-toggle-settings").textContent,
+            ).not.toMatch(/\(\d+\)/);
+        });
+
+        it("exposes a description info affordance for each group", () => {
+            renderLayout();
+            expect(
+                screen.getAllByRole("button", { name: /more info/i }).length,
+            ).toBeGreaterThanOrEqual(5);
+        });
+
+        it("shows an area description when its info button is clicked", () => {
+            renderLayout();
+            // The first info button belongs to the Overview group (nav order).
+            fireEvent.click(screen.getAllByRole("button", { name: /more info/i })[0]);
+            expect(screen.getByText(/at-a-glance/i)).toBeTruthy();
         });
     });
 
@@ -314,7 +346,7 @@ describe("Layout", () => {
         };
 
         function expandSettings() {
-            const toggle = screen.queryByTestId("settings-group-toggle");
+            const toggle = screen.queryByTestId("nav-group-toggle-settings");
             if (toggle) fireEvent.click(toggle);
         }
 
@@ -349,9 +381,10 @@ describe("Layout", () => {
         it("settings group count badge reflects only visible items for a manager", () => {
             identityState.current = managerIdentity;
             renderLayout();
-            const toggle = screen.getByTestId("settings-group-toggle");
-            // 3 of 8 settings items gated away (api-keys, widget-generator, widget-preview)
-            expect(toggle.textContent).toContain("(5)");
+            const toggle = screen.getByTestId("nav-group-toggle-settings");
+            // Manager lacks manage_api_keys and manage_users, so the Settings
+            // group shows Notifications + Appearance — 2 items.
+            expect(toggle.textContent).toContain("(2)");
         });
 
         // CLEANUP-04: managers gain a dedicated, manager-safe Widget Preview
@@ -552,14 +585,16 @@ describe("Layout", () => {
 
         it("active group label is text-zinc-300", () => {
             renderLayout("/");
-            const overviewLabel = screen.getByText("Overview");
-            expect(overviewLabel.className).toContain("text-zinc-300");
+            // The active/inactive colour lives on the group toggle button so it
+            // tints the label, count badge and chevron together.
+            const overviewToggle = screen.getByText("Overview").closest("button");
+            expect(overviewToggle?.className).toContain("text-zinc-300");
         });
 
         it("inactive group label is text-zinc-500", () => {
             renderLayout("/");
-            const inventoryLabel = screen.getByText("Inventory");
-            expect(inventoryLabel.className).toContain("text-zinc-500");
+            const inventoryToggle = screen.getByText("Inventory").closest("button");
+            expect(inventoryToggle?.className).toContain("text-zinc-500");
         });
 
         it("shows dot indicator under icon when collapsed and active", () => {

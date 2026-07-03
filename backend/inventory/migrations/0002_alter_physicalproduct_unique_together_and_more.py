@@ -5,26 +5,31 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inventory', '0001_initial'),
+        ("inventory", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterUniqueTogether(
-            name='physicalproduct',
-            unique_together={('product_model', 'identifier')},
+            name="physicalproduct",
+            unique_together={("product_model", "identifier")},
         ),
         migrations.AddIndex(
-            model_name='movement',
-            index=models.Index(fields=['product_model', 'to_location'], name='inventory_m_product_90cb00_idx'),
+            model_name="movement",
+            index=models.Index(
+                fields=["product_model", "to_location"], name="inventory_m_product_90cb00_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='movement',
-            index=models.Index(fields=['product_model', 'from_location'], name='inventory_m_product_722c3b_idx'),
+            model_name="movement",
+            index=models.Index(
+                fields=["product_model", "from_location"], name="inventory_m_product_722c3b_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='productmodel',
-            index=django.contrib.postgres.indexes.GinIndex(fields=['attributes'], name='product_model_attr_gin'),
+            model_name="productmodel",
+            index=django.contrib.postgres.indexes.GinIndex(
+                fields=["attributes"], name="product_model_attr_gin"
+            ),
         ),
     ]

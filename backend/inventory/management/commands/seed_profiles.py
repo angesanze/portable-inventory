@@ -1,4 +1,5 @@
 """Seed default locations for a company. Profiles live on products, not as standalone entities."""
+
 from django.core.management.base import BaseCommand
 from core.models import Company
 from inventory.models import Location
@@ -9,21 +10,21 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--company-id',
+            "--company-id",
             type=str,
-            help='Seed only for specific company UUID',
+            help="Seed only for specific company UUID",
         )
 
     def handle(self, *args, **options):
         companies = Company.objects.all()
-        if options['company_id']:
-            companies = companies.filter(id=options['company_id'])
+        if options["company_id"]:
+            companies = companies.filter(id=options["company_id"])
 
         default_locations = [
-            ('Main Warehouse', 'WAREHOUSE'),
-            ('Store', 'STORE'),
-            ('Loss', 'LOSS'),
-            ('External Vendor', 'VIRTUAL'),
+            ("Main Warehouse", "WAREHOUSE"),
+            ("Store", "STORE"),
+            ("Loss", "LOSS"),
+            ("External Vendor", "VIRTUAL"),
         ]
 
         for company in companies:
@@ -31,7 +32,7 @@ class Command(BaseCommand):
                 Location.objects.get_or_create(
                     company=company,
                     name=name,
-                    defaults={'type': loc_type},
+                    defaults={"type": loc_type},
                 )
             self.stdout.write(f"  Seeded locations for {company.name}")
 

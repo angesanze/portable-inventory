@@ -6,6 +6,7 @@ single choke point LedgerService.transfer_stock, which calls CostingService.
 Canonical case (acceptance criterion): buy 10@5 + 10@10 → avg 7.5; sell 5 →
 COGS 37.5, residual value 112.5.
 """
+
 import threading
 from decimal import Decimal
 
@@ -13,7 +14,14 @@ import pytest
 from django.db import connection
 
 from core.models import Company, User
-from inventory.models import Location, Movement, ProductCost, ProductModel, PurchaseOrder, PurchaseOrderLine, Supplier
+from inventory.models import (
+    Location,
+    Movement,
+    ProductCost,
+    PurchaseOrder,
+    PurchaseOrderLine,
+    Supplier,
+)
 from inventory.services import CostingService, LedgerService
 from .helpers import make_simple_product
 
@@ -28,8 +36,13 @@ def env(db):
     supplier = Supplier.objects.create(company=company, name="Acme")
     product = make_simple_product(company)
     return {
-        "company": company, "user": user, "warehouse": warehouse,
-        "vendor": vendor, "loss": loss, "supplier": supplier, "product": product,
+        "company": company,
+        "user": user,
+        "warehouse": warehouse,
+        "vendor": vendor,
+        "loss": loss,
+        "supplier": supplier,
+        "product": product,
     }
 
 
@@ -37,23 +50,34 @@ def _receive(env, qty, unit_cost):
     """Receive `qty` units at `unit_cost`/unit via a PO line so the movement
     carries purchased_cost, then route through the ledger choke point."""
     po = PurchaseOrder.objects.create(
-        company=env["company"], supplier=env["supplier"], number=f"PO-{qty}-{unit_cost}",
+        company=env["company"],
+        supplier=env["supplier"],
+        number=f"PO-{qty}-{unit_cost}",
     )
     line = PurchaseOrderLine.objects.create(
-        purchase_order=po, product_model=env["product"],
-        quantity_ordered=Decimal(qty), unit_cost=Decimal(unit_cost) if unit_cost is not None else None,
+        purchase_order=po,
+        product_model=env["product"],
+        quantity_ordered=Decimal(qty),
+        unit_cost=Decimal(unit_cost) if unit_cost is not None else None,
     )
     return LedgerService.transfer_stock(
-        product_model=env["product"], from_location=env["vendor"],
-        to_location=env["warehouse"], quantity=Decimal(qty), user=env["user"],
-        reason="receipt", purchase_order_line=line if unit_cost is not None else None,
+        product_model=env["product"],
+        from_location=env["vendor"],
+        to_location=env["warehouse"],
+        quantity=Decimal(qty),
+        user=env["user"],
+        reason="receipt",
+        purchase_order_line=line if unit_cost is not None else None,
     )
 
 
 def _ship(env, qty, to=None):
     return LedgerService.transfer_stock(
-        product_model=env["product"], from_location=env["warehouse"],
-        to_location=to or env["vendor"], quantity=Decimal(qty), user=env["user"],
+        product_model=env["product"],
+        from_location=env["warehouse"],
+        to_location=to or env["vendor"],
+        quantity=Decimal(qty),
+        user=env["user"],
         reason="ship",
     )
 
@@ -102,8 +126,12 @@ def test_internal_transfer_no_effect(env):
     _receive(env, 10, "5")
     store = Location.objects.create(company=env["company"], name="Store", type="STORE")
     mv = LedgerService.transfer_stock(
-        product_model=env["product"], from_location=env["warehouse"],
-        to_location=store, quantity=Decimal("4"), user=env["user"], reason="move",
+        product_model=env["product"],
+        from_location=env["warehouse"],
+        to_location=store,
+        quantity=Decimal("4"),
+        user=env["user"],
+        reason="move",
     )
     mv.refresh_from_db()
     assert mv.cogs_unit_cost is None  # not an outbound to a sink
@@ -139,6 +167,7 @@ def test_rebuild_costs_matches_incremental(env):
     # Wipe and rebuild from the ledger.
     ProductCost.objects.all().delete()
     from django.core.management import call_command
+
     call_command("rebuild_costs", company=str(env["company"].id), verbosity=0)
 
     rebuilt = ProductCost.objects.get(product_model=env["product"])
@@ -153,6 +182,7 @@ def test_rebuild_restamps_cogs(env):
     Movement.objects.filter(pk=out.pk).update(cogs_unit_cost=None)
 
     from django.core.management import call_command
+
     call_command("rebuild_costs", company=str(env["company"].id), verbosity=0)
 
     out.refresh_from_db()
@@ -167,8 +197,11 @@ def test_negative_stock_clamps_valued_qty(env):
     # Ship more than on hand is blocked by stock validation, so drive the
     # clamp through the service directly on an outbound movement.
     out = Movement.objects.create(
-        product_model=env["product"], from_location=env["warehouse"],
-        to_location=env["vendor"], quantity=Decimal("99"), performed_by=env["user"],
+        product_model=env["product"],
+        from_location=env["warehouse"],
+        to_location=env["vendor"],
+        quantity=Decimal("99"),
+        performed_by=env["user"],
         reason="oversell",
     )
     CostingService.on_outbound(out)
@@ -203,12 +236,19 @@ def test_concurrent_receipts_serialize():
     def receive(qty, unit_cost, tag):
         po = PurchaseOrder.objects.create(company=company, supplier=supplier, number=f"PO-{tag}")
         line = PurchaseOrderLine.objects.create(
-            purchase_order=po, product_model=product,
-            quantity_ordered=Decimal(qty), unit_cost=Decimal(unit_cost),
+            purchase_order=po,
+            product_model=product,
+            quantity_ordered=Decimal(qty),
+            unit_cost=Decimal(unit_cost),
         )
         LedgerService.transfer_stock(
-            product_model=product, from_location=vendor, to_location=warehouse,
-            quantity=Decimal(qty), user=user, reason="receipt", purchase_order_line=line,
+            product_model=product,
+            from_location=vendor,
+            to_location=warehouse,
+            quantity=Decimal(qty),
+            user=user,
+            reason="receipt",
+            purchase_order_line=line,
         )
 
     receive(10, "5", "seed")
@@ -218,6 +258,7 @@ def test_concurrent_receipts_serialize():
 
     def worker(tag):
         from django.db import connections
+
         try:
             barrier.wait()
             receive(10, "10", tag)

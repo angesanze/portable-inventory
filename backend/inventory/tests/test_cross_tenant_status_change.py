@@ -13,6 +13,7 @@ foreign item is invisible. These tests pin both halves: the attack is rejected
 and the foreign item is untouched, while the legitimate same-tenant direct-id
 path still works.
 """
+
 import uuid
 
 import pytest
@@ -36,9 +37,7 @@ def _make_tenant(suffix):
     api_key = ApiKey.objects.create(
         company=company, label=f"Key {suffix}", key=f"key-{uuid.uuid4().hex[:12]}"
     )
-    warehouse = Location.objects.create(
-        company=company, name=f"WH-{suffix}", type="WAREHOUSE"
-    )
+    warehouse = Location.objects.create(company=company, name=f"WH-{suffix}", type="WAREHOUSE")
     product = ProductModel.objects.create(
         company=company,
         sku=f"SER-{uuid.uuid4().hex[:8]}",
@@ -130,13 +129,13 @@ def test_client_supplied_user_is_ignored_on_widget_status_change(tenants):
         "operation": "status_change",
         "physical_product_id": str(pp.id),
         "new_status": "IN_USE",
-        "user": forged,            # forged attribution — must be ignored
-        "performed_by": forged,    # alternate field name — must also be ignored
+        "user": forged,  # forged attribution — must be ignored
+        "performed_by": forged,  # alternate field name — must also be ignored
     }
     res = client.post(url, payload, format="json")
 
     assert res.status_code == 200, res.content
-    mv = Movement.objects.filter(
-        physical_product=pp, reason__startswith="Status:"
-    ).latest("occurred_at")
+    mv = Movement.objects.filter(physical_product=pp, reason__startswith="Status:").latest(
+        "occurred_at"
+    )
     assert mv.performed_by_id is None, "client-supplied user must not be attributed"

@@ -216,4 +216,4 @@ widget.on('transaction_complete', (data) => {
 widget.mount();
 ```
 
-See [[api-reference]] for the full event system documentation.
+See [API Reference](api-reference.md) for the full event system documentation.

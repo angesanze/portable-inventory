@@ -1,9 +1,11 @@
 """Tests for InventoryProfile mapping and derivation logic."""
+
 from django.test import TestCase
 from inventory.profiles import derive_profile, profile_to_legacy, PROFILE_MAP
 from inventory.constants import (
-    PROFILE_SIMPLE_COUNT, PROFILE_UNIT_CONVERSION, PROFILE_DIMENSIONAL,
-    PROFILE_BATCH_TRACKED, PROFILE_PERISHABLE, PROFILE_SERIALIZED,
+    PROFILE_SIMPLE_COUNT,
+    PROFILE_PERISHABLE,
+    PROFILE_SERIALIZED,
     PROFILE_ASSEMBLED,
 )
 
@@ -26,29 +28,29 @@ class ProfileDerivationFuzzyTest(TestCase):
 
     def test_batch_time_based_with_bucket_strategy(self):
         """time_based engine always → PERISHABLE regardless of strategy."""
-        self.assertEqual(derive_profile('BATCH', 'time_based', 'BUCKET'), PROFILE_PERISHABLE)
+        self.assertEqual(derive_profile("BATCH", "time_based", "BUCKET"), PROFILE_PERISHABLE)
 
     def test_bulk_counter_no_strategy(self):
-        self.assertEqual(derive_profile('BULK', 'counter', None), PROFILE_SIMPLE_COUNT)
+        self.assertEqual(derive_profile("BULK", "counter", None), PROFILE_SIMPLE_COUNT)
 
     def test_bulk_counter_with_random_strategy(self):
         """Non-ASSEMBLY strategy on counter → SIMPLE_COUNT."""
-        self.assertEqual(derive_profile('BULK', 'counter', 'CONVERTER'), PROFILE_SIMPLE_COUNT)
+        self.assertEqual(derive_profile("BULK", "counter", "CONVERTER"), PROFILE_SIMPLE_COUNT)
 
     def test_bulk_counter_with_assembly(self):
-        self.assertEqual(derive_profile('BULK', 'counter', 'ASSEMBLY'), PROFILE_ASSEMBLED)
+        self.assertEqual(derive_profile("BULK", "counter", "ASSEMBLY"), PROFILE_ASSEMBLED)
 
     def test_individual_tracker_with_stale_strategy(self):
         """INDIVIDUAL + tracker always → SERIALIZED."""
-        self.assertEqual(derive_profile('INDIVIDUAL', 'tracker', 'BUCKET'), PROFILE_SERIALIZED)
+        self.assertEqual(derive_profile("INDIVIDUAL", "tracker", "BUCKET"), PROFILE_SERIALIZED)
 
     def test_unknown_combination_returns_none(self):
         """Completely invalid combo → None."""
-        self.assertIsNone(derive_profile('INDIVIDUAL', 'bucket', 'TIME'))
+        self.assertIsNone(derive_profile("INDIVIDUAL", "bucket", "TIME"))
 
     def test_profile_to_legacy_raises_on_unknown(self):
         with self.assertRaises(KeyError):
-            profile_to_legacy('NONEXISTENT')
+            profile_to_legacy("NONEXISTENT")
 
 
 class ProfileDerivedPropertiesTest(TestCase):
@@ -56,10 +58,12 @@ class ProfileDerivedPropertiesTest(TestCase):
 
     def setUp(self):
         from inventory.tests.helpers import make_company
+
         self.company, self.user, self.api_key = make_company("PROF")
 
     def test_serialized_profile_derives_individual_tracker(self):
         from inventory.models import ProductModel
+
         pm = ProductModel(
             company=self.company,
             sku="DER-SER",
@@ -71,6 +75,7 @@ class ProfileDerivedPropertiesTest(TestCase):
 
     def test_simple_count_profile_derives_bulk_counter(self):
         from inventory.models import ProductModel
+
         pm = ProductModel(
             company=self.company,
             sku="DER-SC",
@@ -82,6 +87,7 @@ class ProfileDerivedPropertiesTest(TestCase):
 
     def test_batch_tracked_profile_derives_batch_bucket(self):
         from inventory.models import ProductModel
+
         pm = ProductModel(
             company=self.company,
             sku="DER-BT",
@@ -94,6 +100,7 @@ class ProfileDerivedPropertiesTest(TestCase):
     def test_profile_is_sole_source_of_truth(self):
         """Strategy FK removed — profile alone determines behavior."""
         from inventory.models import ProductModel
+
         pm = ProductModel(
             company=self.company,
             sku="PROF-ONLY",

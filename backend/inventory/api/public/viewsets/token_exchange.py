@@ -5,6 +5,7 @@ history, server logs, Referer leakage). /go/<code>/ now emits a signed,
 expiring token; the widget exchanges it here once and keeps the key in
 memory/sessionStorage.
 """
+
 from django.core import signing
 from django.utils import timezone
 from rest_framework import serializers
@@ -15,7 +16,7 @@ from drf_spectacular.utils import extend_schema, OpenApiResponse
 
 from core.models import ApiKey
 
-QR_TOKEN_SALT = 'qr-widget-token'
+QR_TOKEN_SALT = "qr-widget-token"
 QR_TOKEN_MAX_AGE = 600  # seconds — long enough for a scan+load, short enough to defang leaked URLs
 
 
@@ -25,11 +26,15 @@ def make_qr_token(api_key: ApiKey) -> str:
 
 
 class _TokenExchangeRequestSerializer(serializers.Serializer):
-    token = serializers.CharField(help_text="Short-lived signed token from the /go/<code>/ QR redirect (also accepted as ?token= query param).")
+    token = serializers.CharField(
+        help_text="Short-lived signed token from the /go/<code>/ QR redirect (also accepted as ?token= query param)."
+    )
 
 
 class _TokenExchangeResponseSerializer(serializers.Serializer):
-    api_key = serializers.CharField(help_text="The resolved company API key. Keep in memory/sessionStorage; never put it back in the URL.")
+    api_key = serializers.CharField(
+        help_text="The resolved company API key. Keep in memory/sessionStorage; never put it back in the URL."
+    )
 
 
 class WidgetTokenExchangeView(APIView):
@@ -61,7 +66,7 @@ class WidgetTokenExchangeView(APIView):
         },
     )
     def post(self, request):
-        token = request.data.get('token') or request.query_params.get('token')
+        token = request.data.get("token") or request.query_params.get("token")
         if not token:
             return Response({"detail": "token is required"}, status=400)
 

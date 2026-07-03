@@ -16,10 +16,10 @@ from ..services.notifications import NotificationService
 class NotificationChannelViewSet(CompanyScopedViewSet):
     """CRUD for notification channels + a `test/` action that sends a probe."""
 
-    queryset = NotificationChannel.objects.all().order_by('-created_at')
+    queryset = NotificationChannel.objects.all().order_by("-created_at")
     serializer_class = NotificationChannelSerializer
-    filterset_fields = ['kind', 'is_active']
-    search_fields = ['name', 'url', 'recipients']
+    filterset_fields = ["kind", "is_active"]
+    search_fields = ["name", "url", "recipients"]
 
     def perform_update(self, serializer):
         # Model.save() runs full clean(); surface it as a DRF 400 like
@@ -27,17 +27,15 @@ class NotificationChannelViewSet(CompanyScopedViewSet):
         try:
             serializer.save()
         except DjangoValidationError as e:
-            raise DRFValidationError(
-                e.message_dict if hasattr(e, 'message_dict') else str(e)
-            )
+            raise DRFValidationError(e.message_dict if hasattr(e, "message_dict") else str(e))
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=["post"])
     def test(self, request, pk=None):
         """Send a synthetic TEST notification through this channel."""
         channel = self.get_object()
         ok, error = NotificationService.send_test(channel)
         return Response(
-            {'success': ok, 'error': error},
+            {"success": ok, "error": error},
             status=status.HTTP_200_OK if ok else status.HTTP_502_BAD_GATEWAY,
         )
 
@@ -46,8 +44,10 @@ class NotificationDeliveryViewSet(ReadOnlyCompanyScopedViewSet):
     """Read-only delivery log (status / attempts / last error per channel)."""
 
     queryset = NotificationDelivery.objects.select_related(
-        'channel', 'event_log', 'event_log__product',
-    ).order_by('-created_at')
+        "channel",
+        "event_log",
+        "event_log__product",
+    ).order_by("-created_at")
     serializer_class = NotificationDeliverySerializer
-    company_field = 'channel__company'
-    filterset_fields = ['status', 'channel']
+    company_field = "channel__company"
+    filterset_fields = ["status", "channel"]

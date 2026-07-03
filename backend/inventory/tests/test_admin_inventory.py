@@ -17,7 +17,9 @@ from django.urls import reverse
 from core.admin_site import varasto_admin_site
 from core.models import User
 from inventory.models import (
-    DynamicQRCode, EventLog, MonitoringRule,
+    DynamicQRCode,
+    EventLog,
+    MonitoringRule,
 )
 
 from .helpers import make_company, make_simple_product
@@ -57,6 +59,7 @@ def superclient(db):
 
 # -- changelists reachable ---------------------------------------------------
 
+
 @_plain_static
 @pytest.mark.parametrize("changelist", INVENTORY_MODELS)
 @pytest.mark.django_db
@@ -67,6 +70,7 @@ def test_changelist_returns_200(superclient, changelist):
 
 
 # -- search works (proves search_fields set) ---------------------------------
+
 
 @_plain_static
 @pytest.mark.parametrize("changelist", INVENTORY_MODELS)
@@ -81,13 +85,16 @@ def test_changelist_search_returns_200(superclient, changelist):
 
 # -- EventLog resolve_events bulk action -------------------------------------
 
+
 @_plain_static
 @pytest.mark.django_db
 def test_resolve_events_action_sets_status_and_timestamp(superclient):
     company, _, _ = make_company("EV")
     product = make_simple_product(company)
     rule = MonitoringRule.objects.create(
-        product_model=product, name="Low stock", trigger_type="THRESHOLD",
+        product_model=product,
+        name="Low stock",
+        trigger_type="THRESHOLD",
     )
     event = EventLog.objects.create(rule=rule, product=product, message="below min")
     assert event.status == "OPEN"
@@ -107,6 +114,7 @@ def test_resolve_events_action_sets_status_and_timestamp(superclient):
 
 
 # -- QR lock bulk action respects the VIRGIN state ---------------------------
+
 
 @_plain_static
 @pytest.mark.django_db
@@ -128,6 +136,7 @@ def test_lock_action_skips_virgin_qr(superclient):
 
 
 # -- Movement ledger is immutable (add denied) -------------------------------
+
 
 @_plain_static
 @pytest.mark.django_db

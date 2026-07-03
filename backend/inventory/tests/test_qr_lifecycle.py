@@ -2,6 +2,7 @@
 QR code lifecycle tests:
   generate batch → configure via widget → lock → scan resolves correctly
 """
+
 import pytest
 from django.urls import reverse
 from rest_framework.test import APIClient

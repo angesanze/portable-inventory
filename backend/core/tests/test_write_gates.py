@@ -12,6 +12,7 @@ These exercise the HTTP boundary where companies and users are provisioned:
 
 Complements the unit tests in ``test_permissions.py`` and ``test_user_invite.py``.
 """
+
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework import status
@@ -25,7 +26,7 @@ User = get_user_model()
 
 class WriteGateTests(APITestCase):
     def setUp(self):
-        self.tenant_url = reverse('tenant-list')
+        self.tenant_url = reverse("tenant-list")
 
         self.developer_company = Company.objects.create(
             name="Dev Co", account_type=Company.AccountType.DEVELOPER
@@ -42,34 +43,28 @@ class WriteGateTests(APITestCase):
         )
 
         self.manager_user = User.objects.create_user(
-            username='mgr', password='password123', company=self.manager_company
+            username="mgr", password="password123", company=self.manager_company
         )
         self.developer_user = User.objects.create_user(
-            username='dev', password='password123', company=self.developer_company
+            username="dev", password="password123", company=self.developer_company
         )
-        self.superuser = User.objects.create_superuser(
-            username='root', password='password123'
-        )
+        self.superuser = User.objects.create_superuser(username="root", password="password123")
 
     # (1) manager → 403 on tenant create -------------------------------------
     def test_manager_cannot_create_tenant(self):
         self.client.force_authenticate(user=self.manager_user)
         before = Company.objects.count()
-        response = self.client.post(
-            self.tenant_url, {'name': 'Nope Co'}, format='json'
-        )
+        response = self.client.post(self.tenant_url, {"name": "Nope Co"}, format="json")
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(Company.objects.count(), before)
 
     # (2) developer → seeded manager child parented to itself -----------------
     def test_developer_creates_seeded_manager_child(self):
         self.client.force_authenticate(user=self.developer_user)
-        response = self.client.post(
-            self.tenant_url, {'name': 'New Tenant'}, format='json'
-        )
+        response = self.client.post(self.tenant_url, {"name": "New Tenant"}, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-        company = Company.objects.get(name='New Tenant')
+        company = Company.objects.get(name="New Tenant")
         self.assertEqual(company.account_type, Company.AccountType.MANAGER)
         self.assertEqual(company.parent_id, self.developer_company.id)
         # Seeded exactly like onboarding: default locations + one API key.
@@ -82,8 +77,8 @@ class WriteGateTests(APITestCase):
         before = Company.objects.count()
         response = self.client.post(
             self.tenant_url,
-            {'name': 'Sneaky Dev', 'account_type': 'developer'},
-            format='json',
+            {"name": "Sneaky Dev", "account_type": "developer"},
+            format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(Company.objects.count(), before)
@@ -93,14 +88,14 @@ class WriteGateTests(APITestCase):
         self.client.force_authenticate(user=self.developer_user)
         before = User.objects.count()
         response = self.client.post(
-            reverse('user-invite'),
+            reverse("user-invite"),
             {
-                'username': 'foreign_user',
-                'email': 'foreign@example.com',
-                'password': 'sup3rsecret',
-                'company': str(self.foreign_company.id),
+                "username": "foreign_user",
+                "email": "foreign@example.com",
+                "password": "sup3rsecret",
+                "company": str(self.foreign_company.id),
             },
-            format='json',
+            format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(User.objects.count(), before)
@@ -109,7 +104,7 @@ class WriteGateTests(APITestCase):
     def test_superuser_can_create_developer_company(self):
         self.client.force_authenticate(user=self.superuser)
         company = Company.objects.create(
-            name='Provisioned Dev',
+            name="Provisioned Dev",
             account_type=Company.AccountType.DEVELOPER,
         )
         self.assertTrue(company.is_developer)

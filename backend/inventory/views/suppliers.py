@@ -12,27 +12,28 @@ class SupplierViewSet(CompanyScopedViewSet):
     """
     ViewSet for Supplier (fornitore) registry. Company-scoped CRUD.
     """
+
     queryset = Supplier.objects.all()
     serializer_class = SupplierSerializer
-    filterset_fields = ['is_active']
-    search_fields = ['name', 'vat_number', 'email']
-    ordering_fields = ['name', 'created_at']
-    ordering = ['name']
+    filterset_fields = ["is_active"]
+    search_fields = ["name", "vat_number", "email"]
+    ordering_fields = ["name", "created_at"]
+    ordering = ["name"]
 
-    @action(detail=False, methods=['post'], url_path='bulk-delete')
+    @action(detail=False, methods=["post"], url_path="bulk-delete")
     def bulk_delete(self, request):
         """Bulk-delete Suppliers. Body: {ids, preserve_movements?}."""
         try:
-            ids = parse_bulk_delete_ids(request.data.get('ids'))
+            ids = parse_bulk_delete_ids(request.data.get("ids"))
         except BulkDeleteError as exc:
             return Response({"detail": str(exc.detail)}, status=exc.status_code)
 
-        preserve_movements = request.data.get('preserve_movements', True)
+        preserve_movements = request.data.get("preserve_movements", True)
         company = self.get_effective_company()
         qs = Supplier.objects.filter(id__in=ids)
         if company is not None:
             qs = qs.filter(company=company)
-        scoped_ids = list(qs.values_list('id', flat=True))
+        scoped_ids = list(qs.values_list("id", flat=True))
         if not scoped_ids:
             return bulk_delete_response(deleted=0, preserved_movements=0)
 

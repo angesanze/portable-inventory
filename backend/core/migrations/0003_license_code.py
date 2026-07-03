@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0002_apikey'),
+        ("core", "0002_apikey"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='license',
-            name='code',
+            model_name="license",
+            name="code",
             field=models.CharField(blank=True, max_length=20, null=True),
         ),
     ]

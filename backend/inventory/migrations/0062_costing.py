@@ -7,28 +7,47 @@ import uuid
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inventory', '0061_stocktake'),
+        ("inventory", "0061_stocktake"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='movement',
-            name='cogs_unit_cost',
+            model_name="movement",
+            name="cogs_unit_cost",
             field=models.DecimalField(blank=True, decimal_places=4, max_digits=12, null=True),
         ),
         migrations.CreateModel(
-            name='ProductCost',
+            name="ProductCost",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('avg_unit_cost', models.DecimalField(decimal_places=4, default=Decimal('0'), max_digits=12)),
-                ('valued_qty', models.DecimalField(decimal_places=4, default=Decimal('0'), max_digits=12)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('product_model', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='cost_state', to='inventory.productmodel')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                (
+                    "avg_unit_cost",
+                    models.DecimalField(decimal_places=4, default=Decimal("0"), max_digits=12),
+                ),
+                (
+                    "valued_qty",
+                    models.DecimalField(decimal_places=4, default=Decimal("0"), max_digits=12),
+                ),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "product_model",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="cost_state",
+                        to="inventory.productmodel",
+                    ),
+                ),
             ],
             options={
-                'indexes': [models.Index(fields=['product_model'], name='inventory_p_product_23e2f1_idx')],
+                "indexes": [
+                    models.Index(fields=["product_model"], name="inventory_p_product_23e2f1_idx")
+                ],
             },
         ),
     ]

@@ -5,4 +5,7 @@
 pytest
 pytest-django
 django-debug-toolbar
-ruff
+# Pinned so local `make lint`, the pre-commit hook and CI all format/lint
+# identically (ruff formatting can differ between versions). Keep in sync with
+# .pre-commit-config.yaml and backend/ruff.toml.
+ruff==0.15.20

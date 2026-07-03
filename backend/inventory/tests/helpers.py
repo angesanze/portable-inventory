@@ -1,11 +1,16 @@
 """Shared test helpers for inventory tests."""
+
 import secrets
 import uuid
 
 from core.models import Company, User, ApiKey
 from inventory.constants import (
-    PROFILE_SIMPLE_COUNT, PROFILE_UNIT_CONVERSION, PROFILE_DIMENSIONAL,
-    PROFILE_BATCH_TRACKED, PROFILE_PERISHABLE, PROFILE_SERIALIZED,
+    PROFILE_SIMPLE_COUNT,
+    PROFILE_UNIT_CONVERSION,
+    PROFILE_DIMENSIONAL,
+    PROFILE_BATCH_TRACKED,
+    PROFILE_PERISHABLE,
+    PROFILE_SERIALIZED,
     PROFILE_ASSEMBLED,
 )
 
@@ -44,14 +49,12 @@ def make_company_full(suffix="A"):
 
     # Seed default locations (no strategies to seed anymore)
     for name, loc_type in [
-        ('Main Warehouse', 'WAREHOUSE'),
-        ('Store', 'STORE'),
-        ('Loss', 'LOSS'),
-        ('External Vendor', 'VIRTUAL'),
+        ("Main Warehouse", "WAREHOUSE"),
+        ("Store", "STORE"),
+        ("Loss", "LOSS"),
+        ("External Vendor", "VIRTUAL"),
     ]:
-        Location.objects.get_or_create(
-            company=company, name=name, defaults={'type': loc_type}
-        )
+        Location.objects.get_or_create(company=company, name=name, defaults={"type": loc_type})
 
     return company, user, api_key
 
@@ -101,13 +104,13 @@ def make_assembled_product(company, **kwargs):
 def make_dimensional_product(company, **kwargs):
     """DIMENSIONAL product (fabric m²)."""
     defaults = {
-        'engine_config': {
-            'dimensions': [
-                {'key': 'length', 'label': 'Length', 'unit': 'm'},
-                {'key': 'width', 'label': 'Width', 'unit': 'm'},
+        "engine_config": {
+            "dimensions": [
+                {"key": "length", "label": "Length", "unit": "m"},
+                {"key": "width", "label": "Width", "unit": "m"},
             ],
-            'formula': 'length * width',
-            'computed_unit': 'm²',
+            "formula": "length * width",
+            "computed_unit": "m²",
         }
     }
     defaults.update(kwargs)
@@ -117,12 +120,12 @@ def make_dimensional_product(company, **kwargs):
 def make_converter_product(company, **kwargs):
     """UNIT_CONVERSION product (liters → bottles)."""
     defaults = {
-        'engine_config': {
-            'ratio_source': 'config',
-            'conversion_ratio': '0.75',
-            'precision': 2,
-            'stock_unit': 'bottles',
-            'input_label': 'Liters',
+        "engine_config": {
+            "ratio_source": "config",
+            "conversion_ratio": "0.75",
+            "precision": 2,
+            "stock_unit": "bottles",
+            "input_label": "Liters",
         }
     }
     defaults.update(kwargs)

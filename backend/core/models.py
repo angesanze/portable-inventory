@@ -7,11 +7,10 @@ from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 
 
-
 class Company(models.Model):
     class AccountType(models.TextChoices):
-        MANAGER = 'manager', 'Manager'
-        DEVELOPER = 'developer', 'Developer'
+        MANAGER = "manager", "Manager"
+        DEVELOPER = "developer", "Developer"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
@@ -32,11 +31,11 @@ class Company(models.Model):
         db_index=True,
     )
     parent = models.ForeignKey(
-        'self',
+        "self",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='children',
+        related_name="children",
         help_text="Developer company that owns this tenant. Null for standalone/root companies.",
     )
     created_at = models.DateTimeField(auto_now_add=True, null=True, db_index=True)
@@ -81,6 +80,7 @@ class Company(models.Model):
         if not self.license_expires_at:
             return False
         from django.utils import timezone
+
         return timezone.now() >= self.license_expires_at
 
     def rotate_license(self):
@@ -90,9 +90,10 @@ class Company(models.Model):
         ``license_code``). Stamps ``license_rotated_at``.
         """
         from django.utils import timezone
+
         self.license_code = uuid.uuid4().hex[:6].upper()
         self.license_rotated_at = timezone.now()
-        self.save(update_fields=['license_code', 'license_rotated_at'])
+        self.save(update_fields=["license_code", "license_rotated_at"])
         return self.license_code
 
     @property
@@ -108,8 +109,8 @@ class Company(models.Model):
         """Uppercase, strip spaces and an optional leading IT prefix."""
         if not value:
             return value
-        normalized = value.upper().replace(' ', '')
-        if normalized.startswith('IT'):
+        normalized = value.upper().replace(" ", "")
+        if normalized.startswith("IT"):
             normalized = normalized[2:]
         return normalized
 
@@ -118,14 +119,10 @@ class Company(models.Model):
         self.vat = self.normalize_vat(self.vat)
         # Only developers may own children.
         if self.is_manager and self.pk and self.children.exists():
-            raise ValidationError(
-                {'account_type': "A manager company cannot own child companies."}
-            )
+            raise ValidationError({"account_type": "A manager company cannot own child companies."})
         # A parent must itself be a developer.
         if self.parent_id and not self.parent.is_developer:
-            raise ValidationError(
-                {'parent': "Parent must be a developer company."}
-            )
+            raise ValidationError({"parent": "Parent must be a developer company."})
 
     def save(self, *args, **kwargs):
         if not self.license_code:
@@ -139,13 +136,15 @@ class Company(models.Model):
 
 class User(AbstractUser):
     class Role(models.TextChoices):
-        OWNER = 'OWNER', 'Owner'
-        ADMIN = 'ADMIN', 'Admin'
-        OPERATOR = 'OPERATOR', 'Operator'
-        VIEWER = 'VIEWER', 'Viewer'
+        OWNER = "OWNER", "Owner"
+        ADMIN = "ADMIN", "Admin"
+        OPERATOR = "OPERATOR", "Operator"
+        VIEWER = "VIEWER", "Viewer"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    company = models.ForeignKey(Company, on_delete=models.SET_NULL, null=True, blank=True, related_name='users')
+    company = models.ForeignKey(
+        Company, on_delete=models.SET_NULL, null=True, blank=True, related_name="users"
+    )
     # Kept nullable/blank for backward-compat: legacy rows and any user created
     # without an explicit role resolve to ADMIN (full intra-company powers) at
     # the capability boundary — see ``core.permissions.normalize_role``. This
@@ -161,18 +160,19 @@ class User(AbstractUser):
     def __str__(self):
         return self.username
 
+
 class ApiKey(models.Model):
     class RateLimitTier(models.TextChoices):
-        FREE = 'free', 'Free (1,000/hr)'
-        STANDARD = 'standard', 'Standard (10,000/hr)'
-        PREMIUM = 'premium', 'Premium (100,000/hr)'
+        FREE = "free", "Free (1,000/hr)"
+        STANDARD = "standard", "Standard (10,000/hr)"
+        PREMIUM = "premium", "Premium (100,000/hr)"
 
     DEFAULT_PERMISSIONS = {
-        'read': True,
-        'write': True,
-        'delete': False,
-        'manage_qr': True,
-        'scan': True,
+        "read": True,
+        "write": True,
+        "delete": False,
+        "manage_qr": True,
+        "scan": True,
     }
 
     # SEC-03: API keys are hashed at rest. ``key`` is a transient write field —
@@ -181,32 +181,56 @@ class ApiKey(models.Model):
     # ``key_hash``; the plaintext is shown to the owner exactly once (at creation
     # / rotation). Flows that need a reusable browser credential later (widget /
     # QR / embeds) use a signed token bound to the key id — see ``find_active``.
-    WIDGET_TOKEN_SALT = 'apikey-widget-credential'
+    WIDGET_TOKEN_SALT = "apikey-widget-credential"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='api_keys')
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="api_keys")
     key = models.CharField(
-        max_length=64, blank=True, default='',
+        max_length=64,
+        blank=True,
+        default="",
         help_text="Transient: a plaintext set here is hashed into key_hash on save and not stored.",
     )
     key_hash = models.CharField(
         # `unique=True` already creates the index — adding `db_index=True` too is
         # redundant AND makes the Postgres migration try to create the varchar
         # `_like` index twice (DuplicateTable on a fresh deploy). See 0016.
-        max_length=64, unique=True, null=True, blank=True,
+        max_length=64,
+        unique=True,
+        null=True,
+        blank=True,
         help_text="SHA-256 of the API key. Lookups match on this; the plaintext is shown once at creation.",
     )
     key_prefix = models.CharField(
-        max_length=16, blank=True, default='',
+        max_length=16,
+        blank=True,
+        default="",
         help_text="Non-secret leading characters of the key, for display only.",
     )
     label = models.CharField(max_length=100, default="Default Key")
-    allowed_domains = models.TextField(blank=True, help_text="Comma-separated list of allowed domains (e.g., example.com). Leave empty for wildcard access.")
+    allowed_domains = models.TextField(
+        blank=True,
+        help_text="Comma-separated list of allowed domains (e.g., example.com). Leave empty for wildcard access.",
+    )
     is_active = models.BooleanField(default=True)
-    default_location = models.ForeignKey('inventory.Location', on_delete=models.SET_NULL, null=True, blank=True, help_text="If set, the widget will skip location selection and force this location.")
-    permissions = models.JSONField(default=dict, blank=True, help_text="Granular permissions: read, write, delete, manage_qr, scan")
-    rate_limit_tier = models.CharField(max_length=20, choices=RateLimitTier.choices, default=RateLimitTier.FREE)
-    expires_at = models.DateTimeField(null=True, blank=True, help_text="Key expiration date. Null means no expiration.")
+    default_location = models.ForeignKey(
+        "inventory.Location",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="If set, the widget will skip location selection and force this location.",
+    )
+    permissions = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Granular permissions: read, write, delete, manage_qr, scan",
+    )
+    rate_limit_tier = models.CharField(
+        max_length=20, choices=RateLimitTier.choices, default=RateLimitTier.FREE
+    )
+    expires_at = models.DateTimeField(
+        null=True, blank=True, help_text="Key expiration date. Null means no expiration."
+    )
     last_used_at = models.DateTimeField(null=True, blank=True)
     usage_count = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -264,19 +288,19 @@ class ApiKey(models.Model):
         # plaintext on the instance, blank the column for the write, then restore
         # the attribute in memory so the just-created/rotated object can still be
         # read once (a fresh DB load yields '' — plaintext is unrecoverable).
-        raw = self.key or ''
+        raw = self.key or ""
         if raw:
-            if self.hash_key(raw) != (self.key_hash or ''):
+            if self.hash_key(raw) != (self.key_hash or ""):
                 self.key_hash = self.hash_key(raw)
                 self.key_prefix = self.key_prefix or raw[:12]
-                if not getattr(self, '_full_key', None):
+                if not getattr(self, "_full_key", None):
                     self._full_key = raw
-            update_fields = kwargs.get('update_fields')
+            update_fields = kwargs.get("update_fields")
             if update_fields is not None:
-                kwargs['update_fields'] = list(
-                    set(update_fields) | {'key', 'key_hash', 'key_prefix'}
+                kwargs["update_fields"] = list(
+                    set(update_fields) | {"key", "key_hash", "key_prefix"}
                 )
-        self.key = ''
+        self.key = ""
         super().save(*args, **kwargs)
         if raw:
             self.key = raw
@@ -290,6 +314,7 @@ class ApiKey(models.Model):
         if not self.expires_at:
             return False
         from django.utils import timezone
+
         return timezone.now() >= self.expires_at
 
     def __str__(self):
@@ -298,14 +323,14 @@ class ApiKey(models.Model):
 
 class AuditLog(models.Model):
     class Action(models.TextChoices):
-        COMPANY_PROVISIONED = 'COMPANY_PROVISIONED', 'Company provisioned'
-        TIER_CHANGED = 'TIER_CHANGED', 'Tier changed'
-        COMPANY_SUSPENDED = 'COMPANY_SUSPENDED', 'Company suspended'
-        COMPANY_REACTIVATED = 'COMPANY_REACTIVATED', 'Company reactivated'
-        USER_INVITED = 'USER_INVITED', 'User invited'
-        LOGIN = 'LOGIN', 'Login'
-        COMPANY_EXPORTED = 'COMPANY_EXPORTED', 'Company data exported'
-        COMPANY_DELETED = 'COMPANY_DELETED', 'Company deleted'
+        COMPANY_PROVISIONED = "COMPANY_PROVISIONED", "Company provisioned"
+        TIER_CHANGED = "TIER_CHANGED", "Tier changed"
+        COMPANY_SUSPENDED = "COMPANY_SUSPENDED", "Company suspended"
+        COMPANY_REACTIVATED = "COMPANY_REACTIVATED", "Company reactivated"
+        USER_INVITED = "USER_INVITED", "User invited"
+        LOGIN = "LOGIN", "Login"
+        COMPANY_EXPORTED = "COMPANY_EXPORTED", "Company data exported"
+        COMPANY_DELETED = "COMPANY_DELETED", "Company deleted"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     actor = models.ForeignKey(
@@ -313,7 +338,7 @@ class AuditLog(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='audit_logs',
+        related_name="audit_logs",
         help_text="User who performed the action. Null if the actor was deleted.",
     )
     action = models.CharField(max_length=32, choices=Action.choices, db_index=True)
@@ -322,14 +347,16 @@ class AuditLog(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='audit_logs',
+        related_name="audit_logs",
         help_text="Company the action targeted, if any.",
     )
-    metadata = models.JSONField(default=dict, blank=True, help_text="Action context, e.g. {from, to} tier.")
+    metadata = models.JSONField(
+        default=dict, blank=True, help_text="Action context, e.g. {from, to} tier."
+    )
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
-        ordering = ['-created_at']
+        ordering = ["-created_at"]
 
     def __str__(self):
         return f"{self.action} by {self.actor_id} at {self.created_at}"

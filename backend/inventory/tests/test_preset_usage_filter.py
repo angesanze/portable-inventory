@@ -4,6 +4,7 @@ Regression: filterset_fields previously only included 'profile', so DRF
 silently ignored ?default_calculator=<id>. PresetUsageCount in the UI then
 showed the full company-scoped count for every preset card.
 """
+
 import pytest
 from rest_framework.test import APIClient
 
@@ -53,9 +54,7 @@ class TestPresetUsageFilter:
         )
 
     def test_filter_returns_only_products_with_that_preset(self):
-        response = self.client.get(
-            f"/api/v1/product-models/?default_calculator={self.preset_a.id}"
-        )
+        response = self.client.get(f"/api/v1/product-models/?default_calculator={self.preset_a.id}")
         assert response.status_code == 200
         results = response.data["results"]
         assert response.data["count"] == 1
@@ -63,9 +62,7 @@ class TestPresetUsageFilter:
         assert results[0]["sku"] == "USE-A"
 
     def test_filter_with_unused_preset_returns_empty(self):
-        response = self.client.get(
-            f"/api/v1/product-models/?default_calculator={self.preset_b.id}"
-        )
+        response = self.client.get(f"/api/v1/product-models/?default_calculator={self.preset_b.id}")
         assert response.status_code == 200
         assert response.data["count"] == 0
         assert response.data["results"] == []

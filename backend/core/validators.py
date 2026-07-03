@@ -7,8 +7,8 @@ def normalize_partita_iva(value):
     """Uppercase, strip spaces and an optional leading IT prefix."""
     if not value:
         return value
-    normalized = value.upper().replace(' ', '')
-    if normalized.startswith('IT'):
+    normalized = value.upper().replace(" ", "")
+    if normalized.startswith("IT"):
         normalized = normalized[2:]
     return normalized
 

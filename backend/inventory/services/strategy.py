@@ -14,7 +14,7 @@ class StrategyService:
             name="Main Warehouse",
             defaults={
                 "type": constants.LOCATION_TYPE_WAREHOUSE,
-            }
+            },
         )
         # Canonical LOSS location via the shared resolver (single source).
         CounterpartyService.resolve_loss(company)

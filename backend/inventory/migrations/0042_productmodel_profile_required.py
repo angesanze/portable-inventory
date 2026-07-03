@@ -4,15 +4,27 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inventory', '0041_backfill_profile'),
+        ("inventory", "0041_backfill_profile"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='productmodel',
-            name='profile',
-            field=models.CharField(choices=[('SIMPLE_COUNT', 'Simple Count'), ('UNIT_CONVERSION', 'Unit Conversion'), ('DIMENSIONAL', 'Dimensional (Area/Volume)'), ('BATCH_TRACKED', 'Batch / Lot Tracked'), ('PERISHABLE', 'Perishable / Time-Based'), ('SERIALIZED', 'Serialized / Individual'), ('ASSEMBLED', 'Assembled / Kit')], default='SIMPLE_COUNT', help_text='Inventory profile — determines tracking mode, engine, and behavior', max_length=50),
+            model_name="productmodel",
+            name="profile",
+            field=models.CharField(
+                choices=[
+                    ("SIMPLE_COUNT", "Simple Count"),
+                    ("UNIT_CONVERSION", "Unit Conversion"),
+                    ("DIMENSIONAL", "Dimensional (Area/Volume)"),
+                    ("BATCH_TRACKED", "Batch / Lot Tracked"),
+                    ("PERISHABLE", "Perishable / Time-Based"),
+                    ("SERIALIZED", "Serialized / Individual"),
+                    ("ASSEMBLED", "Assembled / Kit"),
+                ],
+                default="SIMPLE_COUNT",
+                help_text="Inventory profile — determines tracking mode, engine, and behavior",
+                max_length=50,
+            ),
         ),
     ]

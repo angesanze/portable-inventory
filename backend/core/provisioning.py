@@ -7,6 +7,7 @@ company seeded the same way: a default API key plus default locations. This
 module is the single source of that creation logic so the two call sites cannot
 drift apart.
 """
+
 import secrets
 
 from django.db import transaction
@@ -46,7 +47,7 @@ def provision_manager_company(*, name, parent=None, settings=None):
     api_key = ApiKey.objects.create(
         company=company,
         key=api_key_value,
-        label='Default Key',
+        label="Default Key",
     )
 
     StrategyService.seed_default_locations(company)
@@ -89,7 +90,7 @@ def provision_developer_company(*, name, vat=None, admin_email=None, admin_passw
         api_key = ApiKey.objects.create(
             company=company,
             key=api_key_value,
-            label='Default Key',
+            label="Default Key",
         )
 
         StrategyService.seed_default_locations(company)
@@ -103,7 +104,7 @@ def provision_developer_company(*, name, vat=None, admin_email=None, admin_passw
                 is_staff=True,
             )
             admin_user.company = company
-            admin_user.role = 'Admin'
+            admin_user.role = "Admin"
             admin_user.save()
 
     return company, admin_user, api_key, api_key_value

@@ -8,7 +8,7 @@ from ..exceptions import InventoryError
 from ..models import Location, PhysicalProduct, ProductBatch
 from .ledger import LedgerService
 
-logger = logging.getLogger('inventory.widget')
+logger = logging.getLogger("inventory.widget")
 
 
 class WorkOrderFulfillmentService:
@@ -39,15 +39,11 @@ class WorkOrderFulfillmentService:
         Resolve the ``External`` VIRTUAL location for ``company`` using the same
         fallback chain as widget_transaction.py L96-101.
         """
-        external = Location.objects.filter(
-            company=company, type='VIRTUAL', name='External'
-        ).first()
+        external = Location.objects.filter(company=company, type="VIRTUAL", name="External").first()
         if not external:
-            external = Location.objects.filter(company=company, type='VIRTUAL').first()
+            external = Location.objects.filter(company=company, type="VIRTUAL").first()
         if not external:
-            external = Location.objects.create(
-                company=company, name='External', type='VIRTUAL'
-            )
+            external = Location.objects.create(company=company, name="External", type="VIRTUAL")
         return external
 
     @staticmethod
@@ -61,10 +57,8 @@ class WorkOrderFulfillmentService:
         # the closed state and short-circuits. The passed-in ``work_order`` is
         # rebound to the locked instance so every subsequent write/save targets
         # the row we hold.
-        work_order = (
-            type(work_order).objects.select_for_update().get(pk=work_order.pk)
-        )
-        if work_order.status == 'CLOSED':
+        work_order = type(work_order).objects.select_for_update().get(pk=work_order.pk)
+        if work_order.status == "CLOSED":
             raise InventoryError(detail="Work order already fulfilled/closed.")
 
         # If a deterministic idempotency_key was supplied, thread a per-line
@@ -73,18 +67,16 @@ class WorkOrderFulfillmentService:
         idem_base = str(idempotency_key) if idempotency_key else None
 
         # 2. Resolve the External VIRTUAL sink location.
-        external = WorkOrderFulfillmentService._resolve_external_location(
-            work_order.company
-        )
+        external = WorkOrderFulfillmentService._resolve_external_location(work_order.company)
 
         try:
             # 3. Discharge ProductBatch rows (BATCH + BULK engines).
             batches = ProductBatch.objects.filter(
                 work_order=work_order, quantity__gt=0
-            ).select_related('product_model', 'location')
+            ).select_related("product_model", "location")
 
             batches_fulfilled = 0
-            batch_units = Decimal('0')
+            batch_units = Decimal("0")
             for batch in batches:
                 LedgerService.transfer_stock(
                     product_model=batch.product_model,
@@ -97,7 +89,8 @@ class WorkOrderFulfillmentService:
                     work_order=work_order,
                     idempotency_key=(
                         str(uuid.uuid5(uuid.NAMESPACE_OID, f"{idem_base}:batch:{batch.id}"))
-                        if idem_base else None
+                        if idem_base
+                        else None
                     ),
                 )
                 batches_fulfilled += 1
@@ -105,13 +98,13 @@ class WorkOrderFulfillmentService:
                 # Drop the discharged batch out of contents(). BatchBehavior
                 # already zeroed bucket rows; BulkBehavior (counter) did not, so
                 # zero the WO-annotation row explicitly for both engines.
-                batch.quantity = Decimal('0')
-                batch.save(update_fields=['quantity', 'updated_at'])
+                batch.quantity = Decimal("0")
+                batch.save(update_fields=["quantity", "updated_at"])
 
             # 4. Discharge PhysicalProduct rows (SERIAL/INDIVIDUAL).
             items = PhysicalProduct.objects.filter(
-                work_order=work_order, status='ACTIVE'
-            ).select_related('product_model', 'location')
+                work_order=work_order, status="ACTIVE"
+            ).select_related("product_model", "location")
 
             items_fulfilled = 0
             for item in items:
@@ -119,20 +112,21 @@ class WorkOrderFulfillmentService:
                     product_model=item.product_model,
                     from_location=item.location,
                     to_location=external,
-                    quantity=Decimal('1'),
+                    quantity=Decimal("1"),
                     user=user,
                     reason=f"{reason}: item {item.identifier} from WO {work_order.name}",
                     physical_product=item,
                     work_order=work_order,
                     idempotency_key=(
                         str(uuid.uuid5(uuid.NAMESPACE_OID, f"{idem_base}:item:{item.id}"))
-                        if idem_base else None
+                        if idem_base
+                        else None
                     ),
                 )
                 # SerializedBehavior re-binds the WO and leaves status ACTIVE;
                 # detach so the consumed item leaves contents().
                 item.work_order = None
-                item.save(update_fields=['work_order', 'updated_at'])
+                item.save(update_fields=["work_order", "updated_at"])
                 items_fulfilled += 1
 
         except InventoryError:
@@ -143,8 +137,8 @@ class WorkOrderFulfillmentService:
             raise InventoryError(detail=str(e))
 
         # 5. Close the WorkOrder (empty WO is validly closed with zero counts).
-        work_order.status = 'CLOSED'
-        work_order.save(update_fields=['status', 'updated_at'])
+        work_order.status = "CLOSED"
+        work_order.save(update_fields=["status", "updated_at"])
 
         # 6. Summary.
         return {

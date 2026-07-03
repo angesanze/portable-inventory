@@ -8,7 +8,9 @@ from inventory.models import ProductModel
 class TestDefaultPagination:
     def setup_method(self):
         self.company = Company.objects.create(name="TestCo", license_code="TESTPG")
-        self.user = User.objects.create_user(username="test_user", password="testpass123", company=self.company, role="Admin")
+        self.user = User.objects.create_user(
+            username="test_user", password="testpass123", company=self.company, role="Admin"
+        )
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
 

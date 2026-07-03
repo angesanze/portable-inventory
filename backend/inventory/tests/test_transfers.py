@@ -5,16 +5,24 @@ parks goods in In Transit (source down, destination unchanged); partial
 receive; shortage → LOSS; the per-line invariant sent == received + shortage +
 in_transit; serialized and batch end-to-end; cross-company isolation.
 """
+
 import pytest
 from decimal import Decimal
 
 from core.models import Company, User
 from inventory import constants
 from inventory.models import (
-    Location, PhysicalProduct, ProductBatch, TransferOrder, TransferOrderLine,
+    Location,
+    PhysicalProduct,
+    ProductBatch,
+    TransferOrder,
+    TransferOrderLine,
 )
 from inventory.services import (
-    CounterpartyService, LedgerService, StockService, TransferService,
+    CounterpartyService,
+    LedgerService,
+    StockService,
+    TransferService,
 )
 from inventory.exceptions import InventoryError
 from .helpers import make_batch_product, make_serialized_product, make_simple_product
@@ -29,23 +37,35 @@ def env(db):
     external = Location.objects.create(company=company, name="External Vendor", type="VIRTUAL")
     product = make_simple_product(company)
     return {
-        "company": company, "user": user, "src": src, "dst": dst,
-        "external": external, "product": product,
+        "company": company,
+        "user": user,
+        "src": src,
+        "dst": dst,
+        "external": external,
+        "product": product,
     }
 
 
 def seed_bulk(env, product, qty, location=None, **kwargs):
     return LedgerService.transfer_stock(
-        product, env["external"], location or env["src"], Decimal(str(qty)),
-        env["user"], "Seed", **kwargs,
+        product,
+        env["external"],
+        location or env["src"],
+        Decimal(str(qty)),
+        env["user"],
+        "Seed",
+        **kwargs,
     )
 
 
 def make_transfer(env, lines):
     """lines: list of dicts {product_model, quantity_sent, batch?, physical_product?}."""
     order = TransferOrder.objects.create(
-        company=env["company"], from_location=env["src"], to_location=env["dst"],
-        number=TransferService.next_number(env["company"]), created_by=env["user"],
+        company=env["company"],
+        from_location=env["src"],
+        to_location=env["dst"],
+        number=TransferService.next_number(env["company"]),
+        created_by=env["user"],
     )
     for line in lines:
         TransferOrderLine.objects.create(transfer_order=order, **line)
@@ -63,7 +83,7 @@ def test_numbers_are_sequential_per_company(env):
     o1 = make_transfer(env, [{"product_model": env["product"], "quantity_sent": Decimal("1")}])
     o2 = make_transfer(env, [{"product_model": env["product"], "quantity_sent": Decimal("1")}])
     assert o1.number.startswith("TR-")
-    prefix = o1.number.rsplit('-', 1)[0]
+    prefix = o1.number.rsplit("-", 1)[0]
     assert o2.number == f"{prefix}-{int(o1.number.rsplit('-', 1)[1]) + 1:04d}"
 
     other = Company.objects.create(name="Other", license_code="TR0002")
@@ -135,7 +155,8 @@ def test_partial_receive(env):
     transit = CounterpartyService.resolve(env["company"], constants.COUNTERPARTY_TRANSIT)
 
     TransferService.receive(order, [{"line_id": str(line.id), "quantity": "60"}], env["user"])
-    order.refresh_from_db(); line.refresh_from_db()
+    order.refresh_from_db()
+    line.refresh_from_db()
     assert order.status == "PARTIALLY_RECEIVED"
     assert line.quantity_received == Decimal("60")
     assert line.quantity_in_transit == Decimal("40")
@@ -143,7 +164,8 @@ def test_partial_receive(env):
     assert stock_at(env["product"], transit) == Decimal("40")
 
     TransferService.receive(order, [{"line_id": str(line.id), "quantity": "40"}], env["user"])
-    order.refresh_from_db(); line.refresh_from_db()
+    order.refresh_from_db()
+    line.refresh_from_db()
     assert order.status == "RECEIVED"
     assert order.received_at is not None
     assert line.quantity_received == Decimal("100")
@@ -175,13 +197,17 @@ def test_shortage_to_loss_and_invariant(env):
     TransferService.receive(order, [{"line_id": str(line.id), "quantity": "95"}], env["user"])
     TransferService.report_shortage(order, str(line.id), "5", env["user"])
 
-    order.refresh_from_db(); line.refresh_from_db()
+    order.refresh_from_db()
+    line.refresh_from_db()
     assert order.status == "RECEIVED"
     assert line.quantity_received == Decimal("95")
     assert line.quantity_shortage == Decimal("5")
     assert line.quantity_in_transit == Decimal("0")
     # Invariant
-    assert line.quantity_sent == line.quantity_received + line.quantity_shortage + line.quantity_in_transit
+    assert (
+        line.quantity_sent
+        == line.quantity_received + line.quantity_shortage + line.quantity_in_transit
+    )
 
     transit = CounterpartyService.resolve(env["company"], constants.COUNTERPARTY_TRANSIT)
     loss = Location.objects.get(company=env["company"], type=constants.LOCATION_TYPE_LOSS)
@@ -206,11 +232,21 @@ def test_shortage_over_residual_blocked(env):
 def test_serialized_end_to_end(env):
     product = make_serialized_product(env["company"])
     item = PhysicalProduct.objects.create(
-        product_model=product, identifier="SN-1", location=env["src"], status="ACTIVE",
+        product_model=product,
+        identifier="SN-1",
+        location=env["src"],
+        status="ACTIVE",
     )
-    order = make_transfer(env, [{
-        "product_model": product, "quantity_sent": Decimal("1"), "physical_product": item,
-    }])
+    order = make_transfer(
+        env,
+        [
+            {
+                "product_model": product,
+                "quantity_sent": Decimal("1"),
+                "physical_product": item,
+            }
+        ],
+    )
     TransferService.ship(order, env["user"])
     item.refresh_from_db()
     transit = CounterpartyService.resolve(env["company"], constants.COUNTERPARTY_TRANSIT)
@@ -218,7 +254,8 @@ def test_serialized_end_to_end(env):
 
     line = order.lines.first()
     TransferService.receive(order, [{"line_id": str(line.id), "quantity": "1"}], env["user"])
-    item.refresh_from_db(); order.refresh_from_db()
+    item.refresh_from_db()
+    order.refresh_from_db()
     assert item.location_id == env["dst"].id
     assert order.status == "RECEIVED"
 
@@ -229,10 +266,19 @@ def test_serialized_end_to_end(env):
 def test_batch_end_to_end_keeps_identifier(env):
     product = make_batch_product(env["company"])
     seed_bulk(env, product, 50, batch_data={"batch_identifier": "LOT-A"})
-    batch = ProductBatch.objects.get(product_model=product, batch_identifier="LOT-A", location=env["src"])
-    order = make_transfer(env, [{
-        "product_model": product, "quantity_sent": Decimal("50"), "batch": batch,
-    }])
+    batch = ProductBatch.objects.get(
+        product_model=product, batch_identifier="LOT-A", location=env["src"]
+    )
+    order = make_transfer(
+        env,
+        [
+            {
+                "product_model": product,
+                "quantity_sent": Decimal("50"),
+                "batch": batch,
+            }
+        ],
+    )
     TransferService.ship(order, env["user"])
     batch.refresh_from_db()
     assert batch.quantity == Decimal("0")  # left the source
@@ -243,7 +289,9 @@ def test_batch_end_to_end_keeps_identifier(env):
     assert order.status == "RECEIVED"
     # Same identifier reconstituted at destination (continuity)
     dest_batch = ProductBatch.objects.get(
-        product_model=product, batch_identifier="LOT-A", location=env["dst"],
+        product_model=product,
+        batch_identifier="LOT-A",
+        location=env["dst"],
     )
     assert dest_batch.quantity == Decimal("50")
     transit = CounterpartyService.resolve(env["company"], constants.COUNTERPARTY_TRANSIT)
@@ -285,11 +333,16 @@ def test_cross_company_transit_is_isolated(env):
     o_product = make_simple_product(other)
     LedgerService.transfer_stock(o_product, o_ext, o_src, Decimal("5"), other_user, "Seed")
     o_order = TransferOrder.objects.create(
-        company=other, from_location=o_src, to_location=o_dst,
-        number=TransferService.next_number(other), created_by=other_user,
+        company=other,
+        from_location=o_src,
+        to_location=o_dst,
+        number=TransferService.next_number(other),
+        created_by=other_user,
     )
     TransferOrderLine.objects.create(
-        transfer_order=o_order, product_model=o_product, quantity_sent=Decimal("5"),
+        transfer_order=o_order,
+        product_model=o_product,
+        quantity_sent=Decimal("5"),
     )
     TransferService.ship(o_order, other_user)
 

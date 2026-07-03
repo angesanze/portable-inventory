@@ -9,6 +9,7 @@ Auditing is observational — it must never break the request it observes. Any
 failure to write a row is swallowed and logged, so a broken audit path can
 never turn a successful provision into a 500.
 """
+
 import logging
 
 from core.models import AuditLog
@@ -33,7 +34,7 @@ def record_audit(actor, action, target_company=None, **metadata):
     """
     try:
         # AnonymousUser (and anything without a primary key) is not a valid FK.
-        actor_obj = actor if getattr(actor, 'pk', None) else None
+        actor_obj = actor if getattr(actor, "pk", None) else None
         return AuditLog.objects.create(
             actor=actor_obj,
             action=action,

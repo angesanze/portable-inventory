@@ -13,7 +13,7 @@ can translate to their own error shape.
 
 from decimal import Decimal, InvalidOperation
 
-from ..models import Location, Supplier, PhysicalProduct, Movement
+from ..models import Location, PhysicalProduct, Movement
 from .. import constants
 from ..exceptions import InventoryError
 from .ledger import LedgerService
@@ -30,12 +30,10 @@ def _resolve_destination(company, location_id):
     if location_id:
         dest = Location.objects.filter(id=location_id, company=company).first()
     if not dest:
-        dest = Location.objects.filter(company=company, type='WAREHOUSE').first()
+        dest = Location.objects.filter(company=company, type="WAREHOUSE").first()
     if not dest:
         dest = (
-            Location.objects.filter(company=company)
-            .exclude(type__in=['VIRTUAL', 'LOSS'])
-            .first()
+            Location.objects.filter(company=company).exclude(type__in=["VIRTUAL", "LOSS"]).first()
         )
     return dest
 
@@ -71,11 +69,11 @@ def onboard_initial_stock(
 
     # Branch 1 — PERISHABLE / BATCH_TRACKED initial batch.
     if initial_batch:
-        batch_identifier = (initial_batch.get('batch_identifier') or '').strip()
-        qty_raw = initial_batch.get('initial_quantity')
-        batch_loc_id = initial_batch.get('initial_location_id') or location_id
-        expiry_date = initial_batch.get('expiry_date')
-        lot_number = initial_batch.get('lot_number')
+        batch_identifier = (initial_batch.get("batch_identifier") or "").strip()
+        qty_raw = initial_batch.get("initial_quantity")
+        batch_loc_id = initial_batch.get("initial_location_id") or location_id
+        expiry_date = initial_batch.get("expiry_date")
+        lot_number = initial_batch.get("lot_number")
 
         if not batch_identifier:
             raise InventoryError("batch_identifier is required.")
@@ -91,12 +89,14 @@ def onboard_initial_stock(
             raise InventoryError("No usable destination location.")
 
         batch_data_payload = {
-            'batch_identifier': batch_identifier,
-            'data': {
-                k: v for k, v in {
-                    'expiry_date': expiry_date,
-                    'lot_number': lot_number,
-                }.items() if v
+            "batch_identifier": batch_identifier,
+            "data": {
+                k: v
+                for k, v in {
+                    "expiry_date": expiry_date,
+                    "lot_number": lot_number,
+                }.items()
+                if v
             },
         }
         return LedgerService.transfer_stock(
@@ -114,6 +114,7 @@ def onboard_initial_stock(
     # Branch 2 — SERIALIZED initial serials.
     if initial_serials:
         from django.db import IntegrityError
+
         if not isinstance(initial_serials, list):
             raise InventoryError("initial_serials must be a list of identifiers.")
 
@@ -121,7 +122,7 @@ def onboard_initial_stock(
         seen = set()
         duplicates_in_payload = []
         for raw in initial_serials:
-            ident = (str(raw) if raw is not None else '').strip()
+            ident = (str(raw) if raw is not None else "").strip()
             if not ident:
                 continue
             if ident in seen:
@@ -141,8 +142,9 @@ def onboard_initial_stock(
 
         existing = set(
             PhysicalProduct.objects.filter(
-                product_model=product, identifier__in=cleaned,
-            ).values_list('identifier', flat=True)
+                product_model=product,
+                identifier__in=cleaned,
+            ).values_list("identifier", flat=True)
         )
         if existing:
             raise InventoryError(f"Identifier(s) already exist: {sorted(existing)}")
@@ -151,7 +153,7 @@ def onboard_initial_stock(
             PhysicalProduct(
                 product_model=product,
                 identifier=ident,
-                status='ACTIVE',
+                status="ACTIVE",
                 location=dest_loc,
             )
             for ident in cleaned

@@ -7,6 +7,7 @@ location, stamped with supplier, ``purchased_cost`` and the PO line it evades.
 ``PurchaseOrderLine.quantity_received`` is denormalized and only mutated here,
 under ``select_for_update`` so concurrent receipts cannot exceed the order.
 """
+
 from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
@@ -17,8 +18,11 @@ from .. import constants
 from ..exceptions import InventoryError
 from ..models import Location, PurchaseOrder, PurchaseOrderLine
 from ..models.purchasing import (
-    PO_STATUS_CANCELLED, PO_STATUS_CONFIRMED, PO_STATUS_DRAFT,
-    PO_STATUS_PARTIALLY_RECEIVED, PO_STATUS_RECEIVED,
+    PO_STATUS_CANCELLED,
+    PO_STATUS_CONFIRMED,
+    PO_STATUS_DRAFT,
+    PO_STATUS_PARTIALLY_RECEIVED,
+    PO_STATUS_RECEIVED,
 )
 from .counterparty import CounterpartyService
 from .ledger import LedgerService
@@ -27,7 +31,6 @@ RECEIVABLE_STATUSES = (PO_STATUS_CONFIRMED, PO_STATUS_PARTIALLY_RECEIVED)
 
 
 class PurchasingService:
-
     # ── Numbering ────────────────────────────────────────────────────
 
     @staticmethod
@@ -43,20 +46,23 @@ class PurchasingService:
         year = timezone.now().year
         prefix = f"PO-{year}-"
         last = (
-            PurchaseOrder.objects
-            .filter(company=company, number__startswith=prefix)
-            .order_by('-number')
-            .values_list('number', flat=True)
+            PurchaseOrder.objects.filter(company=company, number__startswith=prefix)
+            .order_by("-number")
+            .values_list("number", flat=True)
             .first()
         )
         progressive = 1
         if last:
             try:
-                progressive = int(last.rsplit('-', 1)[1]) + 1
+                progressive = int(last.rsplit("-", 1)[1]) + 1
             except (ValueError, IndexError):
-                progressive = PurchaseOrder.objects.filter(
-                    company=company, number__startswith=prefix,
-                ).count() + 1
+                progressive = (
+                    PurchaseOrder.objects.filter(
+                        company=company,
+                        number__startswith=prefix,
+                    ).count()
+                    + 1
+                )
         return f"{prefix}{progressive:04d}"
 
     # ── Lifecycle ────────────────────────────────────────────────────
@@ -67,11 +73,13 @@ class PurchasingService:
         """DRAFT → CONFIRMED. Requires at least one line (lines validate > 0)."""
         po = PurchaseOrder.objects.select_for_update().get(pk=po.pk)
         if po.status != PO_STATUS_DRAFT:
-            raise InventoryError(detail=f"Only DRAFT orders can be confirmed (current: {po.status}).")
+            raise InventoryError(
+                detail=f"Only DRAFT orders can be confirmed (current: {po.status})."
+            )
         if not po.lines.exists():
             raise InventoryError(detail="Cannot confirm an order without lines.")
         po.status = PO_STATUS_CONFIRMED
-        po.save(update_fields=['status', 'updated_at'])
+        po.save(update_fields=["status", "updated_at"])
         return po
 
     @staticmethod
@@ -80,11 +88,13 @@ class PurchasingService:
         """DRAFT/CONFIRMED → CANCELLED, only when nothing has been received."""
         po = PurchaseOrder.objects.select_for_update().get(pk=po.pk)
         if po.status not in (PO_STATUS_DRAFT, PO_STATUS_CONFIRMED):
-            raise InventoryError(detail=f"Only DRAFT or CONFIRMED orders can be cancelled (current: {po.status}).")
+            raise InventoryError(
+                detail=f"Only DRAFT or CONFIRMED orders can be cancelled (current: {po.status})."
+            )
         if po.lines.filter(quantity_received__gt=0).exists():
             raise InventoryError(detail="Cannot cancel an order with received goods.")
         po.status = PO_STATUS_CANCELLED
-        po.save(update_fields=['status', 'updated_at'])
+        po.save(update_fields=["status", "updated_at"])
         return po
 
     # ── Receiving ────────────────────────────────────────────────────
@@ -107,15 +117,21 @@ class PurchasingService:
         Returns the list of created Movements. Atomic: any failure rolls the
         whole receipt back.
         """
-        from ..orchestrators import InventoryOrchestrator  # inline import: breaks the services↔orchestrators import cycle (orchestrators imports services)
+        from ..orchestrators import (
+            InventoryOrchestrator,
+        )  # inline import: breaks the services↔orchestrators import cycle (orchestrators imports services)
 
         po = PurchaseOrder.objects.select_for_update().get(pk=po.pk)
         if po.status not in RECEIVABLE_STATUSES:
-            raise InventoryError(detail=f"Order {po.number} is not receivable (status: {po.status}).")
+            raise InventoryError(
+                detail=f"Order {po.number} is not receivable (status: {po.status})."
+            )
         if not receipts:
             raise InventoryError(detail="At least one receipt line is required.")
         if location is None or location.company_id != po.company_id:
-            raise InventoryError(detail="A destination location of the order's company is required.")
+            raise InventoryError(
+                detail="A destination location of the order's company is required."
+            )
         if location.type == constants.LOCATION_TYPE_VIRTUAL:
             raise InventoryError(detail="Goods must be received into a real location.")
 
@@ -124,16 +140,17 @@ class PurchasingService:
         movements = []
 
         for receipt in receipts:
-            line_id = receipt.get('line_id')
+            line_id = receipt.get("line_id")
             try:
                 line = PurchaseOrderLine.objects.select_for_update().get(
-                    id=line_id, purchase_order=po,
+                    id=line_id,
+                    purchase_order=po,
                 )
             except (PurchaseOrderLine.DoesNotExist, ValueError, TypeError):
                 raise InventoryError(detail=f"Order line {line_id} not found on {po.number}.")
 
             try:
-                quantity = Decimal(str(receipt.get('quantity')))
+                quantity = Decimal(str(receipt.get("quantity")))
             except (InvalidOperation, TypeError):
                 raise InventoryError(detail="Receipt quantity must be a number.")
             if quantity <= 0:
@@ -150,8 +167,8 @@ class PurchasingService:
 
             product = line.product_model
 
-            if product.tracking_mode == 'INDIVIDUAL':
-                serials = receipt.get('serials') or []
+            if product.tracking_mode == "INDIVIDUAL":
+                serials = receipt.get("serials") or []
                 # Serialized units are indivisible: quantity must be whole, and
                 # there must be exactly one serial per unit.
                 if quantity != quantity.to_integral_value():
@@ -167,40 +184,47 @@ class PurchasingService:
                     )
                 for serial in serials:
                     physical_product = InventoryOrchestrator.resolve_or_create_item(
-                        product, serial, vendor, inbound=True,
+                        product,
+                        serial,
+                        vendor,
+                        inbound=True,
                     )
-                    movements.append(LedgerService.transfer_stock(
+                    movements.append(
+                        LedgerService.transfer_stock(
+                            product_model=product,
+                            from_location=vendor,
+                            to_location=location,
+                            quantity=Decimal("1"),
+                            user=user,
+                            reason=reason,
+                            physical_product=physical_product,
+                            supplier=po.supplier,
+                            source_document="PURCHASE",
+                            purchase_order_line=line,
+                        )
+                    )
+            else:
+                batch_data = receipt.get("batch_data")
+                expiry_date = receipt.get("expiry_date")
+                if expiry_date:
+                    batch_data = {**(batch_data or {}), "expiry_date": expiry_date}
+                movements.append(
+                    LedgerService.transfer_stock(
                         product_model=product,
                         from_location=vendor,
                         to_location=location,
-                        quantity=Decimal('1'),
+                        quantity=quantity,
                         user=user,
                         reason=reason,
-                        physical_product=physical_product,
+                        batch_data=batch_data,
                         supplier=po.supplier,
-                        source_document='PURCHASE',
+                        source_document="PURCHASE",
                         purchase_order_line=line,
-                    ))
-            else:
-                batch_data = receipt.get('batch_data')
-                expiry_date = receipt.get('expiry_date')
-                if expiry_date:
-                    batch_data = {**(batch_data or {}), 'expiry_date': expiry_date}
-                movements.append(LedgerService.transfer_stock(
-                    product_model=product,
-                    from_location=vendor,
-                    to_location=location,
-                    quantity=quantity,
-                    user=user,
-                    reason=reason,
-                    batch_data=batch_data,
-                    supplier=po.supplier,
-                    source_document='PURCHASE',
-                    purchase_order_line=line,
-                ))
+                    )
+                )
 
             line.quantity_received += quantity
-            line.save(update_fields=['quantity_received'])
+            line.save(update_fields=["quantity_received"])
 
         PurchasingService._refresh_status(po)
         return movements
@@ -217,4 +241,4 @@ class PurchasingService:
             new_status = po.status
         if new_status != po.status:
             po.status = new_status
-            po.save(update_fields=['status', 'updated_at'])
+            po.save(update_fields=["status", "updated_at"])

@@ -250,7 +250,7 @@ interface PostMessagePayload {
 | `WIDGET_EVENT` | Widget -> Host | Carries typed events (transaction_complete, error) |
 | `HOST_COMMAND` | Host -> Widget | Sends commands (setProduct, setLocation, setTheme) |
 
-See [[security]] for origin validation details.
+See [Security](security.md) for origin validation details.
 
 ---
 

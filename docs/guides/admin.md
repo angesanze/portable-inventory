@@ -1,22 +1,25 @@
 # Platform Admin Guide
 
-This guide is for administrators responsible for managing tenants, licenses, and system access.
+This guide is for administrators responsible for managing tenants and system access.
 
 ## Accessing the Admin Panel
-1. Navigate to `http://localhost/admin/`.
-2. Login with your superuser credentials (e.g., `admin` / `password`).
+1. Navigate to `http://localhost:8001/admin/` (or through the `:5173` dev proxy).
+2. Login with superuser credentials. Create one with
+   `docker compose run --rm backend python manage.py createsuperuser` (or
+   `make backend-admin`). The dev seed creates a regular company admin
+   (`e2e_admin`) which is **not** a superuser.
 
-## Managing Licenses
-To onboard a new company (Tenant):
-1. Go to the **Licenses** section.
-2. Click **Add License**.
-3. Select a **Plan Type** (e.g., "Enterprise") and a **Valid Until** date.
-4. Click **Save**.
+## Onboarding a Company (Tenant)
+There is no separate "License" object — licensing lives as `license_*` fields on
+the **Company** itself. To onboard a tenant:
+1. Go to the **Companies** section and click **Add Company**.
+2. Set the **Name**, **account type**, and the license fields (`license_code`,
+   plan/limits, expiry).
+3. Save, then create the company's first admin **User** and an **API Key** for
+   integrations (each is its own admin section).
 
-> **Automation**: When you save a License, the system automatically creates:
-> - A **Company** linked to the license.
-> - An **Admin User** for that company.
-> - An **API Key** for integrations.
+> Platform superusers can also manage tenants from the in-app **Platform
+> Console** (metrics, provisioning, data export/deletion).
 
 ## Managing Companies
 You can view the automatically created companies in the **Companies** section.

@@ -1,13 +1,16 @@
-PyYAML
+# Runtime dependencies (production image). Pinned with `>=installed,<next-major`
+# so patch/minor updates flow in but a breaking major can't silently land in a
+# prod/CI build. Dev/test-only tools live in requirements-dev.txt.
+PyYAML>=6.0,<7.0
 Django>=4.2,<5.0
-djangorestframework
-djangorestframework-simplejwt
-psycopg2-binary
-django-cors-headers
-drf-spectacular
-django-filter
-dj-database-url
-whitenoise
-django-import-export
-django-admin-rangefilter
-openpyxl
+djangorestframework>=3.15,<4.0
+djangorestframework-simplejwt>=5.5,<6.0
+psycopg2-binary>=2.9,<3.0
+django-cors-headers>=4.9,<5.0
+drf-spectacular>=0.28,<1.0
+django-filter>=24.0,<26.0
+dj-database-url>=3.1,<4.0
+whitenoise>=6.12,<7.0
+django-import-export>=4.4,<5.0
+django-admin-rangefilter>=0.13,<1.0
+openpyxl>=3.1,<4.0

@@ -8,13 +8,15 @@ from ..api.base import CompanyScopedViewSet, bulk_delete_response, parse_bulk_de
 from ..exceptions import BulkDeleteError
 from ..engines import EngineFactory, SafeFormulaParser
 
+
 class CalculatorTemplateViewSet(CompanyScopedViewSet):
     """ViewSet for pre-defined calculator configurations (Engine Type + Config)."""
+
     serializer_class = CalculatorTemplateSerializer
     queryset = CalculatorTemplate.objects.all()
     permission_classes = [permissions.IsAuthenticated]
 
-    @action(detail=False, methods=['post'], url_path='bulk-delete')
+    @action(detail=False, methods=["post"], url_path="bulk-delete")
     def bulk_delete(self, request):
         """Bulk-delete CalculatorTemplates. Body: {ids, force?}.
 
@@ -23,16 +25,16 @@ class CalculatorTemplateViewSet(CompanyScopedViewSet):
         reference is silently disruptive, so reject unless `force=true`.
         """
         try:
-            ids = parse_bulk_delete_ids(request.data.get('ids'))
+            ids = parse_bulk_delete_ids(request.data.get("ids"))
         except BulkDeleteError as exc:
             return Response({"detail": str(exc.detail)}, status=exc.status_code)
 
-        force = bool(request.data.get('force', False))
+        force = bool(request.data.get("force", False))
         company = self.get_effective_company()
         qs = CalculatorTemplate.objects.filter(id__in=ids)
         if company is not None:
             qs = qs.filter(company=company)
-        scoped_ids = list(qs.values_list('id', flat=True))
+        scoped_ids = list(qs.values_list("id", flat=True))
         if not scoped_ids:
             return bulk_delete_response(deleted=0, preserved_movements=0)
 
@@ -146,8 +148,10 @@ def validate_calculator_config(request):
         sample_input, sample_output = _generate_sample_data(engine_type, engine_config)
         preview = {"sample_input": sample_input, "sample_output": sample_output}
 
-    return Response({
-        "valid": len(errors) == 0,
-        "errors": errors,
-        "preview": preview,
-    })
+    return Response(
+        {
+            "valid": len(errors) == 0,
+            "errors": errors,
+            "preview": preview,
+        }
+    )

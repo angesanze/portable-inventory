@@ -11,6 +11,7 @@ Covers the round trip used by the frontend Kanban board:
   syncs a ``MonitoringRule`` via the post_save signal;
 * a different company's products never appear in the caller's board.
 """
+
 from datetime import timedelta
 from decimal import Decimal
 
@@ -60,54 +61,77 @@ class RestockKanbanE2ETests(TestCase):
 
         # HEALTHY: 50 on hand, reorder=10, no burn.
         self.healthy = ProductModel.objects.create(
-            company=self.company, sku="HEALTHY-1", name="Healthy",
-            profile="SIMPLE_COUNT", reorder_threshold=Decimal("10"),
+            company=self.company,
+            sku="HEALTHY-1",
+            name="Healthy",
+            profile="SIMPLE_COUNT",
+            reorder_threshold=Decimal("10"),
         )
-        _seed_move(self.healthy, self.vendor, self.warehouse, 50,
-                   occurred_at=now - timedelta(days=20))
+        _seed_move(
+            self.healthy, self.vendor, self.warehouse, 50, occurred_at=now - timedelta(days=20)
+        )
 
         # REORDER: 5 on hand, reorder=10, critical=1.
         self.reorder = ProductModel.objects.create(
-            company=self.company, sku="REORDER-1", name="Reorder",
+            company=self.company,
+            sku="REORDER-1",
+            name="Reorder",
             profile="SIMPLE_COUNT",
             reorder_threshold=Decimal("10"),
             critical_threshold=Decimal("1"),
         )
-        _seed_move(self.reorder, self.vendor, self.warehouse, 5,
-                   occurred_at=now - timedelta(days=15))
+        _seed_move(
+            self.reorder, self.vendor, self.warehouse, 5, occurred_at=now - timedelta(days=15)
+        )
 
         # CRITICAL: 1 on hand, reorder=10, critical=2, high outbound burn so
         # projection.days_to_out ≤ 14. Receive 30, then 29 outbound spread
         # across 30 days → daily_burn ≈ 0.97 → days_to_out ≈ 1.0.
         self.critical = ProductModel.objects.create(
-            company=self.company, sku="CRIT-1", name="Critical",
+            company=self.company,
+            sku="CRIT-1",
+            name="Critical",
             profile="SIMPLE_COUNT",
             reorder_threshold=Decimal("10"),
             critical_threshold=Decimal("2"),
         )
-        _seed_move(self.critical, self.vendor, self.warehouse, 30,
-                   occurred_at=now - timedelta(days=29, hours=12))
+        _seed_move(
+            self.critical,
+            self.vendor,
+            self.warehouse,
+            30,
+            occurred_at=now - timedelta(days=29, hours=12),
+        )
         for i in range(29):
             _seed_move(
-                self.critical, self.warehouse, self.loss, 1,
+                self.critical,
+                self.warehouse,
+                self.loss,
+                1,
                 occurred_at=now - timedelta(days=i, hours=1),
             )
 
         # OUT: zero stock.
         self.out = ProductModel.objects.create(
-            company=self.company, sku="OUT-1", name="Out",
-            profile="SIMPLE_COUNT", reorder_threshold=Decimal("10"),
+            company=self.company,
+            sku="OUT-1",
+            name="Out",
+            profile="SIMPLE_COUNT",
+            reorder_threshold=Decimal("10"),
         )
 
         # OVERSTOCK: 200 on hand, max=100.
         self.overstock = ProductModel.objects.create(
-            company=self.company, sku="OVR-1", name="Overstock",
+            company=self.company,
+            sku="OVR-1",
+            name="Overstock",
             profile="SIMPLE_COUNT",
             reorder_threshold=Decimal("10"),
             max_threshold=Decimal("100"),
         )
-        _seed_move(self.overstock, self.vendor, self.warehouse, 200,
-                   occurred_at=now - timedelta(days=25))
+        _seed_move(
+            self.overstock, self.vendor, self.warehouse, 200, occurred_at=now - timedelta(days=25)
+        )
 
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
@@ -144,9 +168,7 @@ class RestockKanbanE2ETests(TestCase):
     # ── /products/<id>/stock-series/ ────────────────────────────────
 
     def test_stock_series_returns_30_points_and_finite_runway(self):
-        resp = self.client.get(
-            f"/api/v1/products/{self.critical.id}/stock-series/?days=30"
-        )
+        resp = self.client.get(f"/api/v1/products/{self.critical.id}/stock-series/?days=30")
         self.assertEqual(resp.status_code, 200)
         body = resp.json()
 
@@ -197,10 +219,6 @@ class RestockKanbanE2ETests(TestCase):
 
     def test_other_company_products_absent_from_board(self):
         body = self.client.get("/api/v1/restock/board/").json()
-        skus = [
-            card["sku"]
-            for col in body["columns"].values()
-            for card in col["products"]
-        ]
+        skus = [card["sku"] for col in body["columns"].values() for card in col["products"]]
         self.assertNotIn("FOREIGN-1", skus)
         self.assertEqual(len(skus), 5)

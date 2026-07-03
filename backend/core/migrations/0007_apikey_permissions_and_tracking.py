@@ -4,35 +4,48 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0006_apikey_is_active'),
+        ("core", "0006_apikey_is_active"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='apikey',
-            name='expires_at',
-            field=models.DateTimeField(blank=True, help_text='Key expiration date. Null means no expiration.', null=True),
+            model_name="apikey",
+            name="expires_at",
+            field=models.DateTimeField(
+                blank=True, help_text="Key expiration date. Null means no expiration.", null=True
+            ),
         ),
         migrations.AddField(
-            model_name='apikey',
-            name='last_used_at',
+            model_name="apikey",
+            name="last_used_at",
             field=models.DateTimeField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='apikey',
-            name='permissions',
-            field=models.JSONField(blank=True, default=dict, help_text='Granular permissions: read, write, delete, manage_qr, scan'),
+            model_name="apikey",
+            name="permissions",
+            field=models.JSONField(
+                blank=True,
+                default=dict,
+                help_text="Granular permissions: read, write, delete, manage_qr, scan",
+            ),
         ),
         migrations.AddField(
-            model_name='apikey',
-            name='rate_limit_tier',
-            field=models.CharField(choices=[('free', 'Free (1,000/hr)'), ('standard', 'Standard (10,000/hr)'), ('premium', 'Premium (100,000/hr)')], default='free', max_length=20),
+            model_name="apikey",
+            name="rate_limit_tier",
+            field=models.CharField(
+                choices=[
+                    ("free", "Free (1,000/hr)"),
+                    ("standard", "Standard (10,000/hr)"),
+                    ("premium", "Premium (100,000/hr)"),
+                ],
+                default="free",
+                max_length=20,
+            ),
         ),
         migrations.AddField(
-            model_name='apikey',
-            name='usage_count',
+            model_name="apikey",
+            name="usage_count",
             field=models.PositiveIntegerField(default=0),
         ),
     ]

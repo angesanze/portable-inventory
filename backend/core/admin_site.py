@@ -15,6 +15,7 @@ patterns already used by :mod:`core.platform_metrics` for the React console.
 This is intentionally UNSCOPED: the superuser cockpit shows every tenant's data.
 ``CompanyScopeMiddleware`` does not gate the admin.
 """
+
 from datetime import timedelta
 
 from django.contrib import admin
@@ -110,9 +111,7 @@ class VarastoAdminSite(admin.AdminSite):
             "users": User.objects.count(),
             "api_keys": key_stats,
             "products": ProductModel.objects.count(),
-            "movements_30d": Movement.objects.filter(
-                occurred_at__gte=movement_cutoff
-            ).count(),
+            "movements_30d": Movement.objects.filter(occurred_at__gte=movement_cutoff).count(),
             "locations": Location.objects.count(),
             "suppliers": Supplier.objects.count(),
             "work_orders": WorkOrder.objects.count(),
@@ -136,13 +135,9 @@ class VarastoAdminSite(admin.AdminSite):
         expiring_cutoff = now + timedelta(days=EXPIRING_KEY_DAYS)
         stale_cutoff = now - timedelta(days=STALE_PRODUCT_DAYS)
 
-        with_key_counts = Company.objects.annotate(
-            key_count=Count("api_keys", distinct=True)
-        )
+        with_key_counts = Company.objects.annotate(key_count=Count("api_keys", distinct=True))
         keyless = with_key_counts.filter(key_count=0).count()
-        multi_key_managers = with_key_counts.filter(
-            account_type=manager, key_count__gt=1
-        ).count()
+        multi_key_managers = with_key_counts.filter(account_type=manager, key_count__gt=1).count()
 
         # Products with no movement in the window: subtract the recently-active
         # set from the whole table. One distinct id query + one exclude count.
@@ -151,9 +146,7 @@ class VarastoAdminSite(admin.AdminSite):
             .values_list("product_model_id", flat=True)
             .distinct()
         )
-        stale_products = ProductModel.objects.exclude(
-            id__in=recent_product_ids
-        ).count()
+        stale_products = ProductModel.objects.exclude(id__in=recent_product_ids).count()
 
         return [
             {

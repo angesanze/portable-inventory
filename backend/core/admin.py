@@ -23,19 +23,19 @@ class CompanyResource(resources.ModelResource):
 
     class Meta:
         model = Company
-        fields = ('id', 'name', 'account_type', 'license_code', 'vat', 'is_active', 'created_at')
+        fields = ("id", "name", "account_type", "license_code", "vat", "is_active", "created_at")
         export_order = fields
-        import_id_fields = ('id',)
+        import_id_fields = ("id",)
 
     def get_import_fields(self):
-        return [f for f in super().get_import_fields() if f.column_name != 'license_code']
+        return [f for f in super().get_import_fields() if f.column_name != "license_code"]
 
 
 class CompanyAdminForm(forms.ModelForm):
     admin_username = forms.CharField(
         label="Initial Operator ID (Username)",
         required=False,
-        help_text="Leave blank to create a Company WITHOUT an initial admin user."
+        help_text="Leave blank to create a Company WITHOUT an initial admin user.",
     )
     admin_email = forms.EmailField(label="Operator Email", required=False)
     admin_first_name = forms.CharField(label="First Name", required=False)
@@ -43,44 +43,72 @@ class CompanyAdminForm(forms.ModelForm):
 
     class Meta:
         model = Company
-        fields = '__all__'
+        fields = "__all__"
 
 
 @admin.register(Company, site=varasto_admin_site)
 class CompanyAdmin(ImportExportModelAdmin):
     form = CompanyAdminForm
     resource_classes = [CompanyResource]
-    list_display = ('name', 'account_type', 'parent', 'license_code', 'is_active', 'created_at', 'id')
-    list_filter = (
-        'account_type',
-        'is_active',
-        ('created_at', DateRangeFilterBuilder()),
+    list_display = (
+        "name",
+        "account_type",
+        "parent",
+        "license_code",
+        "is_active",
+        "created_at",
+        "id",
     )
-    search_fields = ('name', 'license_code', 'vat', 'id')
-    date_hierarchy = 'created_at'
-    list_select_related = ('parent',)
-    autocomplete_fields = ('parent',)
-    ordering = ('-created_at',)
+    list_filter = (
+        "account_type",
+        "is_active",
+        ("created_at", DateRangeFilterBuilder()),
+    )
+    search_fields = ("name", "license_code", "vat", "id")
+    date_hierarchy = "created_at"
+    list_select_related = ("parent",)
+    autocomplete_fields = ("parent",)
+    ordering = ("-created_at",)
     list_per_page = 50
-    actions = ('suspend_companies', 'reactivate_companies', 'rotate_license')
-    readonly_fields = ('license_code', 'id', 'created_at', 'license_rotated_at')
+    actions = ("suspend_companies", "reactivate_companies", "rotate_license")
+    readonly_fields = ("license_code", "id", "created_at", "license_rotated_at")
     fieldsets = (
-        (None, {
-            'fields': ('name', 'account_type', 'parent', 'license_code', 'id', 'is_active', 'created_at', 'settings')
-        }),
-        ('License (GOVERNANCE-11)', {
-            'fields': (
-                'license_expires_at',
-                'max_users', 'max_products', 'max_managed_companies',
-                'license_rotated_at',
-            ),
-            'description': "Expiry (blank = perpetual) gates writes; quotas "
-                           "(blank = unlimited) are checked at create time.",
-        }),
-        ('Initial Admin User (Optional)', {
-            'fields': ('admin_username', 'admin_email', 'admin_first_name', 'admin_last_name'),
-            'description': "If you want to create an initial admin user, fill these in. If left blank, NO user will be created."
-        }),
+        (
+            None,
+            {
+                "fields": (
+                    "name",
+                    "account_type",
+                    "parent",
+                    "license_code",
+                    "id",
+                    "is_active",
+                    "created_at",
+                    "settings",
+                )
+            },
+        ),
+        (
+            "License (GOVERNANCE-11)",
+            {
+                "fields": (
+                    "license_expires_at",
+                    "max_users",
+                    "max_products",
+                    "max_managed_companies",
+                    "license_rotated_at",
+                ),
+                "description": "Expiry (blank = perpetual) gates writes; quotas "
+                "(blank = unlimited) are checked at create time.",
+            },
+        ),
+        (
+            "Initial Admin User (Optional)",
+            {
+                "fields": ("admin_username", "admin_email", "admin_first_name", "admin_last_name"),
+                "description": "If you want to create an initial admin user, fill these in. If left blank, NO user will be created.",
+            },
+        ),
     )
 
     def has_import_permission(self, request):
@@ -90,16 +118,12 @@ class CompanyAdmin(ImportExportModelAdmin):
     @admin.action(description="Suspend selected companies (block login/API)")
     def suspend_companies(self, request, queryset):
         updated = queryset.update(is_active=False)
-        self.message_user(
-            request, f"{updated} company(ies) suspended.", messages.SUCCESS
-        )
+        self.message_user(request, f"{updated} company(ies) suspended.", messages.SUCCESS)
 
     @admin.action(description="Reactivate selected companies")
     def reactivate_companies(self, request, queryset):
         updated = queryset.update(is_active=True)
-        self.message_user(
-            request, f"{updated} company(ies) reactivated.", messages.SUCCESS
-        )
+        self.message_user(request, f"{updated} company(ies) reactivated.", messages.SUCCESS)
 
     @admin.action(description="Rotate license code (invalidate old)")
     def rotate_license(self, request, queryset):
@@ -117,12 +141,12 @@ class CompanyAdmin(ImportExportModelAdmin):
         super().save_model(request, obj, form, change)
 
         if not change:
-            admin_username = form.cleaned_data.get('admin_username')
+            admin_username = form.cleaned_data.get("admin_username")
 
             if admin_username:
-                admin_email = form.cleaned_data.get('admin_email')
-                admin_first_name = form.cleaned_data.get('admin_first_name')
-                admin_last_name = form.cleaned_data.get('admin_last_name')
+                admin_email = form.cleaned_data.get("admin_email")
+                admin_first_name = form.cleaned_data.get("admin_first_name")
+                admin_last_name = form.cleaned_data.get("admin_last_name")
 
                 existing_user = User.objects.filter(username=admin_username).first()
 
@@ -155,15 +179,22 @@ class CompanyAdmin(ImportExportModelAdmin):
                 # Seed default locations
                 from inventory.services import StrategyService
                 from inventory.models import Location
+
                 if Location.objects.filter(company=obj).count() == 0:
                     StrategyService.seed_default_locations(obj)
 
                 if generated_password:
-                    password_html = format_html("<li><strong>Access Key:</strong> {}</li>", generated_password)
+                    password_html = format_html(
+                        "<li><strong>Access Key:</strong> {}</li>", generated_password
+                    )
                     title_html = format_html("<strong>Company & Admin User Created!</strong>")
                 else:
-                    password_html = format_html("<li><strong>Access Key:</strong> (Existing Password)</li>")
-                    title_html = format_html("<strong>Company Created! (Existing User Linked)</strong>")
+                    password_html = format_html(
+                        "<li><strong>Access Key:</strong> (Existing Password)</li>"
+                    )
+                    title_html = format_html(
+                        "<strong>Company Created! (Existing User Linked)</strong>"
+                    )
 
                 msg = format_html(
                     """
@@ -182,13 +213,14 @@ class CompanyAdmin(ImportExportModelAdmin):
                     obj.license_code,
                     obj.name,
                     user.username,
-                    password_html
+                    password_html,
                 )
                 messages.success(request, msg)
             else:
                 # Seed default locations even without user
                 from inventory.services import StrategyService
                 from inventory.models import Location
+
                 if Location.objects.filter(company=obj).count() == 0:
                     StrategyService.seed_default_locations(obj)
 
@@ -204,39 +236,47 @@ class CompanyAdmin(ImportExportModelAdmin):
                     </div>
                     """,
                     obj.license_code,
-                    obj.name
+                    obj.name,
                 )
                 messages.success(request, msg)
 
 
 class CustomUserAdmin(UserAdmin):
-    list_display = ('username', 'email', 'first_name', 'last_name', 'role', 'is_staff', 'is_active', 'company', 'license_code')
-    list_filter = ('is_staff', 'is_superuser', 'is_active', 'company', 'role')
-    search_fields = ('username', 'email', 'first_name', 'last_name', 'company__name')
-    autocomplete_fields = ('company',)
-    list_select_related = ('company',)
-    ordering = ('username',)
-    actions = ('activate_users', 'deactivate_users')
+    list_display = (
+        "username",
+        "email",
+        "first_name",
+        "last_name",
+        "role",
+        "is_staff",
+        "is_active",
+        "company",
+        "license_code",
+    )
+    list_filter = ("is_staff", "is_superuser", "is_active", "company", "role")
+    search_fields = ("username", "email", "first_name", "last_name", "company__name")
+    autocomplete_fields = ("company",)
+    list_select_related = ("company",)
+    ordering = ("username",)
+    actions = ("activate_users", "deactivate_users")
 
     def license_code(self, obj):
         if obj.company:
             return obj.company.license_code
         return "-"
+
     license_code.short_description = "License Code"
 
     @admin.action(description="Activate selected users")
     def activate_users(self, request, queryset):
         updated = queryset.update(is_active=True)
-        self.message_user(
-            request, f"{updated} user(s) activated.", messages.SUCCESS
-        )
+        self.message_user(request, f"{updated} user(s) activated.", messages.SUCCESS)
 
     @admin.action(description="Deactivate selected users (block login)")
     def deactivate_users(self, request, queryset):
         updated = queryset.update(is_active=False)
-        self.message_user(
-            request, f"{updated} user(s) deactivated.", messages.SUCCESS
-        )
+        self.message_user(request, f"{updated} user(s) deactivated.", messages.SUCCESS)
+
 
 varasto_admin_site.register(User, CustomUserAdmin)
 
@@ -244,28 +284,33 @@ varasto_admin_site.register(User, CustomUserAdmin)
 @admin.register(ApiKey, site=varasto_admin_site)
 class ApiKeyAdmin(admin.ModelAdmin):
     list_display = (
-        'label', 'company', 'is_active', 'rate_limit_tier', 'expiry_state',
-        'usage_count', 'last_used_at', 'created_at',
+        "label",
+        "company",
+        "is_active",
+        "rate_limit_tier",
+        "expiry_state",
+        "usage_count",
+        "last_used_at",
+        "created_at",
     )
-    list_filter = ('is_active', 'rate_limit_tier', 'company')
+    list_filter = ("is_active", "rate_limit_tier", "company")
     # Keys are hashed at rest (SEC-03) — the plaintext is unsearchable/undisplayable;
     # only the non-secret prefix is shown.
-    search_fields = ('label', 'company__name', 'key_prefix')
-    autocomplete_fields = ('company',)
-    list_select_related = ('company',)
-    readonly_fields = ('key_prefix', 'key_hash', 'usage_count', 'last_used_at', 'created_at')
-    date_hierarchy = 'created_at'
-    ordering = ('-created_at',)
-    actions = ('revoke_keys', 'activate_keys')
+    search_fields = ("label", "company__name", "key_prefix")
+    autocomplete_fields = ("company",)
+    list_select_related = ("company",)
+    readonly_fields = ("key_prefix", "key_hash", "usage_count", "last_used_at", "created_at")
+    date_hierarchy = "created_at"
+    ordering = ("-created_at",)
+    actions = ("revoke_keys", "activate_keys")
 
     @admin.display(description="Expiry")
     def expiry_state(self, obj):
         from django.utils import timezone
         from datetime import timedelta
+
         if not obj.expires_at:
-            return format_html(
-                '<span style="color:#2e7d32;font-weight:600;">ok</span>'
-            )
+            return format_html('<span style="color:#2e7d32;font-weight:600;">ok</span>')
         now = timezone.now()
         if obj.expires_at <= now:
             return format_html(
@@ -277,23 +322,17 @@ class ApiKeyAdmin(admin.ModelAdmin):
                 '<span style="color:#fff;background:#f9a825;padding:2px 6px;'
                 'border-radius:3px;font-weight:600;">expiring (≤7d)</span>'
             )
-        return format_html(
-            '<span style="color:#2e7d32;font-weight:600;">ok</span>'
-        )
+        return format_html('<span style="color:#2e7d32;font-weight:600;">ok</span>')
 
     @admin.action(description="Revoke selected keys (deactivate)")
     def revoke_keys(self, request, queryset):
         updated = queryset.update(is_active=False)
-        self.message_user(
-            request, f"{updated} API key(s) revoked.", messages.SUCCESS
-        )
+        self.message_user(request, f"{updated} API key(s) revoked.", messages.SUCCESS)
 
     @admin.action(description="Activate selected keys")
     def activate_keys(self, request, queryset):
         updated = queryset.update(is_active=True)
-        self.message_user(
-            request, f"{updated} API key(s) activated.", messages.SUCCESS
-        )
+        self.message_user(request, f"{updated} API key(s) activated.", messages.SUCCESS)
 
 
 @admin.register(AuditLog, site=varasto_admin_site)
@@ -301,17 +340,18 @@ class AuditLogAdmin(admin.ModelAdmin):
     """Append-only forensic view. AuditLog rows are written by the system,
     never edited or deleted from the admin — add/change/delete are all denied.
     """
-    list_display = ('created_at', 'actor', 'action', 'target_company')
+
+    list_display = ("created_at", "actor", "action", "target_company")
     list_filter = (
-        'action',
-        'target_company',
-        ('created_at', DateRangeFilterBuilder()),
+        "action",
+        "target_company",
+        ("created_at", DateRangeFilterBuilder()),
     )
-    search_fields = ('actor__username', 'action', 'target_company__name')
-    date_hierarchy = 'created_at'
-    list_select_related = ('actor', 'target_company')
-    ordering = ('-created_at',)
-    readonly_fields = ('id', 'actor', 'action', 'target_company', 'created_at', 'metadata_pretty')
+    search_fields = ("actor__username", "action", "target_company__name")
+    date_hierarchy = "created_at"
+    list_select_related = ("actor", "target_company")
+    ordering = ("-created_at",)
+    readonly_fields = ("id", "actor", "action", "target_company", "created_at", "metadata_pretty")
 
     def has_add_permission(self, request):
         return False
@@ -325,6 +365,7 @@ class AuditLogAdmin(admin.ModelAdmin):
     @admin.display(description="Metadata")
     def metadata_pretty(self, obj):
         import json
+
         return format_html(
             '<pre style="margin:0;white-space:pre-wrap;">{}</pre>',
             json.dumps(obj.metadata or {}, indent=2, ensure_ascii=False, default=str),

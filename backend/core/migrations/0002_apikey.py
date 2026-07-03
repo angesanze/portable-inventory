@@ -6,20 +6,31 @@ import uuid
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0001_initial'),
+        ("core", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='ApiKey',
+            name="ApiKey",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('key', models.CharField(db_index=True, max_length=64, unique=True)),
-                ('label', models.CharField(default='Default Key', max_length=100)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('company', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='api_keys', to='core.company')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("key", models.CharField(db_index=True, max_length=64, unique=True)),
+                ("label", models.CharField(default="Default Key", max_length=100)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "company",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="api_keys",
+                        to="core.company",
+                    ),
+                ),
             ],
         ),
     ]

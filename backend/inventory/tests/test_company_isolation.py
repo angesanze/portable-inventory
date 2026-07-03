@@ -5,15 +5,19 @@ Tests for company isolation hardening:
 - StockViewSet company-scoped lookups
 - ProductBatchViewSet API key validation
 """
-import secrets
 
 from django.core.exceptions import ValidationError
 from django.test import TestCase, RequestFactory
 from rest_framework.test import APIClient
 from rest_framework import status
 from inventory.models import (
-    ProductModel, Location, Movement, ProductBatch,
-    PhysicalProduct, WorkOrder, ProductComponent, DynamicQRCode,
+    ProductModel,
+    Location,
+    Movement,
+    ProductBatch,
+    WorkOrder,
+    ProductComponent,
+    DynamicQRCode,
 )
 from inventory.middleware.company_scope import CompanyScopeMiddleware
 from inventory.tests.helpers import make_company as _make_company
@@ -83,9 +87,7 @@ class MovementCompanyIsolationTest(TestCase):
         self.assertIn("to_location", str(ctx.exception))
 
     def test_movement_allows_same_company(self):
-        loc_a2 = Location.objects.create(
-            company=self.company_a, name="Store A", type="STORE"
-        )
+        loc_a2 = Location.objects.create(company=self.company_a, name="Store A", type="STORE")
         movement = Movement.objects.create(
             product_model=self.product_a,
             from_location=self.loc_a,
@@ -114,9 +116,7 @@ class ProductComponentCompanyIsolationTest(TestCase):
 
     def test_rejects_cross_company_component(self):
         with self.assertRaises(ValidationError):
-            ProductComponent.objects.create(
-                parent=self.parent, child=self.child_other, quantity=1
-            )
+            ProductComponent.objects.create(parent=self.parent, child=self.child_other, quantity=1)
 
     def test_allows_same_company_component(self):
         comp = ProductComponent.objects.create(
@@ -154,9 +154,7 @@ class DynamicQRCodeCompanyIsolationTest(TestCase):
         self.product_a = ProductModel.objects.create(
             company=self.company_a, sku="QR-PROD", name="QR Product"
         )
-        self.loc_b = Location.objects.create(
-            company=self.company_b, name="Loc B", type="WAREHOUSE"
-        )
+        self.loc_b = Location.objects.create(company=self.company_b, name="Loc B", type="WAREHOUSE")
 
     def test_rejects_cross_company_location(self):
         with self.assertRaises(ValidationError):
@@ -177,12 +175,8 @@ class ProductBatchCompanyIsolationTest(TestCase):
         self.product_a = ProductModel.objects.create(
             company=self.company_a, sku="BATCH-PROD", name="Batch Product"
         )
-        self.loc_a = Location.objects.create(
-            company=self.company_a, name="Loc A", type="WAREHOUSE"
-        )
-        self.loc_b = Location.objects.create(
-            company=self.company_b, name="Loc B", type="WAREHOUSE"
-        )
+        self.loc_a = Location.objects.create(company=self.company_a, name="Loc A", type="WAREHOUSE")
+        self.loc_b = Location.objects.create(company=self.company_b, name="Loc B", type="WAREHOUSE")
 
     def test_rejects_cross_company_location(self):
         with self.assertRaises(ValidationError):
@@ -245,23 +239,15 @@ class ApiKeyCompanyIsolationTest(TestCase):
         self.client = APIClient()
 
     def test_api_key_a_cannot_see_company_b_products(self):
-        response = self.client.get(
-            f'/api/v1/widget/?api_key={self.api_key_a.key}'
-        )
+        response = self.client.get(f"/api/v1/widget/?api_key={self.api_key_a.key}")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        product_names = [
-            p.get('name', '') for p in response.data.get('products', [])
-        ]
+        product_names = [p.get("name", "") for p in response.data.get("products", [])]
         self.assertNotIn("Company B Product", product_names)
 
     def test_api_key_b_can_see_own_products(self):
-        response = self.client.get(
-            f'/api/v1/widget/?api_key={self.api_key_b.key}'
-        )
+        response = self.client.get(f"/api/v1/widget/?api_key={self.api_key_b.key}")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        product_names = [
-            p.get('name', '') for p in response.data.get('products', [])
-        ]
+        product_names = [p.get("name", "") for p in response.data.get("products", [])]
         self.assertIn("Company B Product", product_names)
 
 
@@ -285,14 +271,14 @@ class DeveloperTenantIsolationTest(TestCase):
     def _make_developer(self, suffix):
         company, user, api_key = _make_company(suffix)
         company.account_type = Company.AccountType.DEVELOPER
-        company.save(update_fields=['account_type'])
+        company.save(update_fields=["account_type"])
         return company, user, api_key
 
     def _make_tenant(self, suffix, parent):
         company, user, api_key = _make_company(suffix)
         company.account_type = Company.AccountType.MANAGER
         company.parent = parent
-        company.save(update_fields=['account_type', 'parent'])
+        company.save(update_fields=["account_type", "parent"])
         return company, user, api_key
 
     def setUp(self):
@@ -312,8 +298,12 @@ class DeveloperTenantIsolationTest(TestCase):
         # cross-reads are observable in API payloads.
         self.locations = {}
         for company in (
-            self.dev_a, self.tenant_a1, self.tenant_a2,
-            self.dev_b, self.tenant_b1, self.mgr_solo,
+            self.dev_a,
+            self.tenant_a1,
+            self.tenant_a2,
+            self.dev_b,
+            self.tenant_b1,
+            self.mgr_solo,
         ):
             self.locations[company.id] = Location.objects.create(
                 company=company,
@@ -327,6 +317,7 @@ class DeveloperTenantIsolationTest(TestCase):
     def _client_for(self, user):
         """Return an APIClient authenticated as ``user`` via a real JWT."""
         from rest_framework_simplejwt.tokens import RefreshToken
+
         client = APIClient()
         token = RefreshToken.for_user(user).access_token
         client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
@@ -352,11 +343,11 @@ class DeveloperTenantIsolationTest(TestCase):
         self.assertIsNone(self.mgr_solo.parent_id)
         # DevA owns exactly TenantA1 + TenantA2; DevB owns exactly TenantB1.
         self.assertCountEqual(
-            list(self.dev_a.children.values_list('id', flat=True)),
+            list(self.dev_a.children.values_list("id", flat=True)),
             [self.tenant_a1.id, self.tenant_a2.id],
         )
         self.assertCountEqual(
-            list(self.dev_b.children.values_list('id', flat=True)),
+            list(self.dev_b.children.values_list("id", flat=True)),
             [self.tenant_b1.id],
         )
         # Each company has its own seeded, company-scoped Location.
@@ -371,9 +362,7 @@ class DeveloperTenantIsolationTest(TestCase):
         client = self._client_for(self.user_dev_a)
 
         # List: only TenantA1's location, nothing from DevA/TenantA2/others.
-        response = client.get(
-            self.LOCATIONS_URL, HTTP_X_ACTING_COMPANY=str(self.tenant_a1.id)
-        )
+        response = client.get(self.LOCATIONS_URL, HTTP_X_ACTING_COMPANY=str(self.tenant_a1.id))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(
             self._list_location_ids(response),
@@ -393,9 +382,7 @@ class DeveloperTenantIsolationTest(TestCase):
         """The same DevA user switches header to TenantA2 and sees only A2."""
         client = self._client_for(self.user_dev_a)
 
-        response = client.get(
-            self.LOCATIONS_URL, HTTP_X_ACTING_COMPANY=str(self.tenant_a2.id)
-        )
+        response = client.get(self.LOCATIONS_URL, HTTP_X_ACTING_COMPANY=str(self.tenant_a2.id))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         returned = self._list_location_ids(response)
         self.assertEqual(returned, {str(self.locations[self.tenant_a2.id].id)})
@@ -431,9 +418,7 @@ class DeveloperTenantIsolationTest(TestCase):
         rows of TenantB1.
         """
         client = self._client_for(self.user_dev_a)
-        response = client.get(
-            self.LOCATIONS_URL, HTTP_X_ACTING_COMPANY=str(self.tenant_b1.id)
-        )
+        response = client.get(self.LOCATIONS_URL, HTTP_X_ACTING_COMPANY=str(self.tenant_b1.id))
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         # A list payload, if any, must never contain TenantB1's row.
         rows = response.data
@@ -446,9 +431,7 @@ class DeveloperTenantIsolationTest(TestCase):
     def test_developer_acting_as_unrelated_manager_denied(self):
         """DevA acting as MgrSolo (an unrelated standalone manager) is denied."""
         client = self._client_for(self.user_dev_a)
-        response = client.get(
-            self.LOCATIONS_URL, HTTP_X_ACTING_COMPANY=str(self.mgr_solo.id)
-        )
+        response = client.get(self.LOCATIONS_URL, HTTP_X_ACTING_COMPANY=str(self.mgr_solo.id))
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         rows = response.data
         if isinstance(rows, dict) and "results" in rows:
@@ -467,9 +450,7 @@ class DeveloperTenantIsolationTest(TestCase):
         """
         # Standalone manager pointing at a developer's child tenant -> 403.
         solo_client = self._client_for(self.user_mgr_solo)
-        denied = solo_client.get(
-            self.LOCATIONS_URL, HTTP_X_ACTING_COMPANY=str(self.tenant_a1.id)
-        )
+        denied = solo_client.get(self.LOCATIONS_URL, HTTP_X_ACTING_COMPANY=str(self.tenant_a1.id))
         self.assertEqual(denied.status_code, status.HTTP_403_FORBIDDEN)
 
         # A tenant (itself a manager) pointing at a sibling tenant -> 403.
@@ -503,12 +484,8 @@ class DeveloperTenantIsolationTest(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         # No row leaked into TenantB1 (nor created anywhere).
-        self.assertEqual(
-            Location.objects.filter(company=self.tenant_b1).count(), before
-        )
-        self.assertFalse(
-            Location.objects.filter(name="Smuggled Location").exists()
-        )
+        self.assertEqual(Location.objects.filter(company=self.tenant_b1).count(), before)
+        self.assertFalse(Location.objects.filter(name="Smuggled Location").exists())
 
     # ── Backward compatibility (DUAL-TIER-03) ─────────────────────────
 
@@ -522,19 +499,13 @@ class DeveloperTenantIsolationTest(TestCase):
         """
         # Seed a couple extra rows so "same rows" is a meaningful set, not a
         # single-element coincidence.
-        extra_solo = Location.objects.create(
-            company=self.mgr_solo, name="Solo Extra", type="STORE"
-        )
-        Location.objects.create(
-            company=self.tenant_b1, name="Foreign Noise", type="STORE"
-        )
+        extra_solo = Location.objects.create(company=self.mgr_solo, name="Solo Extra", type="STORE")
+        Location.objects.create(company=self.tenant_b1, name="Foreign Noise", type="STORE")
 
         # Ground truth: exactly what a raw company-scoped query returns.
         expected_ids = {
             str(pk)
-            for pk in Location.objects.filter(
-                company=self.mgr_solo
-            ).values_list("id", flat=True)
+            for pk in Location.objects.filter(company=self.mgr_solo).values_list("id", flat=True)
         }
         self.assertIn(str(self.locations[self.mgr_solo.id].id), expected_ids)
         self.assertIn(str(extra_solo.id), expected_ids)

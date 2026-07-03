@@ -5,6 +5,7 @@ from inventory.models import ProductModel, MonitoringRule, EventLog, Location, P
 from inventory.monitors import RuleEvaluator
 from inventory.services import LedgerService
 
+
 class MonitoringTest(TestCase):
     def setUp(self):
         self.company = Company.objects.create(name="Test Corp", license_code="TSTMON")
@@ -12,15 +13,19 @@ class MonitoringTest(TestCase):
         self.user = User.objects.create(username="tester", company=self.company)
 
         # Locations
-        self.warehouse = Location.objects.create(company=self.company, name="Warehouse", type="WAREHOUSE")
-        self.supplier = Location.objects.create(company=self.company, name="Supplier", type="VIRTUAL")
+        self.warehouse = Location.objects.create(
+            company=self.company, name="Warehouse", type="WAREHOUSE"
+        )
+        self.supplier = Location.objects.create(
+            company=self.company, name="Supplier", type="VIRTUAL"
+        )
 
         # Products
         self.pm_simple = ProductModel.objects.create(
             company=self.company,
             sku="SIMPLE-01",
             name="Screw",
-            profile='SIMPLE_COUNT',
+            profile="SIMPLE_COUNT",
         )
         # Perishable → tracking_mode BATCH, the only mode that owns ProductBatch
         # rows the DateOffsetMonitor can inspect.
@@ -28,7 +33,7 @@ class MonitoringTest(TestCase):
             company=self.company,
             sku="MED-01",
             name="Medicine",
-            profile='PERISHABLE',
+            profile="PERISHABLE",
         )
 
         # Rules linked to product_model
@@ -37,7 +42,7 @@ class MonitoringTest(TestCase):
             name="Low Stock",
             trigger_type="THRESHOLD",
             condition_config={"min": 10},
-            severity="WARNING"
+            severity="WARNING",
         )
 
         # No explicit date_field → exercises the canonical `expiry_date` default.
@@ -46,7 +51,7 @@ class MonitoringTest(TestCase):
             name="Expiring Soon",
             trigger_type="DATE_OFFSET",
             condition_config={"days_offset": 7},
-            severity="CRITICAL"
+            severity="CRITICAL",
         )
 
     def test_threshold_monitor(self):
@@ -58,7 +63,7 @@ class MonitoringTest(TestCase):
             to_location=self.warehouse,
             quantity=5,
             user=self.user,
-            reason="Initial Stock"
+            reason="Initial Stock",
         )
 
         RuleEvaluator.evaluate_product(self.pm_simple)
@@ -78,7 +83,7 @@ class MonitoringTest(TestCase):
             location=self.warehouse,
             quantity=10,
             batch_identifier="BATCH-EXP-01",
-            data={"expiry_date": tomorrow.isoformat()}
+            data={"expiry_date": tomorrow.isoformat()},
         )
 
         RuleEvaluator.evaluate_product(self.pm_pharma)
@@ -95,7 +100,7 @@ class MonitoringTest(TestCase):
             location=self.warehouse,
             quantity=10,
             batch_identifier="BATCH-FRESH-01",
-            data={"expiry_date": far.isoformat()}
+            data={"expiry_date": far.isoformat()},
         )
 
         RuleEvaluator.evaluate_product(self.pm_pharma)
@@ -106,10 +111,7 @@ class MonitoringTest(TestCase):
     def test_no_event_if_healthy(self):
         """Tests that no event is created if stock levels are healthy."""
         pm = ProductModel.objects.create(
-            company=self.company,
-            sku="HEALTHY-01",
-            name="Good Stock",
-            profile='SIMPLE_COUNT'
+            company=self.company, sku="HEALTHY-01", name="Good Stock", profile="SIMPLE_COUNT"
         )
         # Link the low-stock rule to this product too
         MonitoringRule.objects.create(
@@ -117,7 +119,7 @@ class MonitoringTest(TestCase):
             name="Low Stock Check",
             trigger_type="THRESHOLD",
             condition_config={"min": 10},
-            severity="WARNING"
+            severity="WARNING",
         )
 
         # Give it 100 stock
@@ -127,8 +129,11 @@ class MonitoringTest(TestCase):
             to_location=self.warehouse,
             quantity=100,
             user=self.user,
-            reason="Bulk Stock"
+            reason="Bulk Stock",
         )
 
         RuleEvaluator.evaluate_product(pm)
-        self.assertFalse(EventLog.objects.filter(product=pm).exists(), "No EventLog should be created for healthy stock")
+        self.assertFalse(
+            EventLog.objects.filter(product=pm).exists(),
+            "No EventLog should be created for healthy stock",
+        )

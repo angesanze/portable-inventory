@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inventory', '0053_movement_product_model_nullable'),
+        ("inventory", "0053_movement_product_model_nullable"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='movement',
-            name='product_label',
-            field=models.CharField(blank=True, default='', editable=False, max_length=255),
+            model_name="movement",
+            name="product_label",
+            field=models.CharField(blank=True, default="", editable=False, max_length=255),
         ),
     ]

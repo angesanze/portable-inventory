@@ -119,6 +119,10 @@ export const QRScanner: React.FC<QRScannerProps> = ({ apiKey, onScanComplete, on
                 quantity: product?.quantity,
                 locationId: location?.id,
                 locationName: location?.name,
+                // Carry the calculator config through so scanned DIMENSIONAL /
+                // calculator products render their real input instead of a plain
+                // quantity box (WIDGET-04 / F4).
+                calc_config: product?.calc_config,
                 identifier: data.identifier,
             };
         } catch {

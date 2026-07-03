@@ -81,7 +81,7 @@ When widget deployments scale globally:
 2. Upload `dist/` to CDN (CloudFront, Cloudflare R2, etc.)
 3. Update SDK docs with CDN URL:
    ```html
-   <script src="https://cdn.yourdomain.com/sdk/v1/portable-inventory.min.js"></script>
+   <script src="https://cdn.yourdomain.com/sdk/v1/portable-inventory-sdk.umd.js"></script>
    ```
 
 ### Cache Headers

@@ -7,6 +7,7 @@ Two layers:
 * HTTP tests over the ``me`` identity endpoint (APIClient + real JWT) asserting
   ``account_type`` and ``capabilities`` ship the expected booleans per tier.
 """
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -24,37 +25,31 @@ class CompanyCapabilitiesUnitTests(TestCase):
 
     def test_manager_still_gets_view_widget_preview(self):
         company = Company.objects.create(name="Mgr Co")  # defaults to MANAGER
-        user = User.objects.create_user(
-            username='mgr', password='password123', company=company
-        )
+        user = User.objects.create_user(username="mgr", password="password123", company=company)
 
         caps = company_capabilities(user)
 
         self.assertEqual(set(caps), set(CAPABILITY_KEYS))
-        self.assertTrue(caps['manage_own_inventory'])
-        self.assertTrue(caps['view_widget_preview'])
-        self.assertFalse(caps['manage_api_keys'])
-        self.assertFalse(caps['view_widget_generator'])
-        self.assertFalse(caps['create_users'])
-        self.assertFalse(caps['manage_tenants'])
+        self.assertTrue(caps["manage_own_inventory"])
+        self.assertTrue(caps["view_widget_preview"])
+        self.assertFalse(caps["manage_api_keys"])
+        self.assertFalse(caps["view_widget_generator"])
+        self.assertFalse(caps["create_users"])
+        self.assertFalse(caps["manage_tenants"])
 
     def test_developer_does_not_get_view_widget_preview(self):
-        company = Company.objects.create(
-            name="Dev Co", account_type=Company.AccountType.DEVELOPER
-        )
-        user = User.objects.create_user(
-            username='dev', password='password123', company=company
-        )
+        company = Company.objects.create(name="Dev Co", account_type=Company.AccountType.DEVELOPER)
+        user = User.objects.create_user(username="dev", password="password123", company=company)
 
         caps = company_capabilities(user)
 
         self.assertEqual(set(caps), set(CAPABILITY_KEYS))
-        self.assertFalse(caps['view_widget_preview'])
+        self.assertFalse(caps["view_widget_preview"])
         # Every other capability must remain True for the developer tier —
         # EXCEPT manage_users, which is OWNER-only (a developer user created
         # without a role resolves to ADMIN under GOVERNANCE-11).
         for key in CAPABILITY_KEYS:
-            if key in ('view_widget_preview', 'manage_users'):
+            if key in ("view_widget_preview", "manage_users"):
                 continue
             self.assertTrue(caps[key], f"developer should have {key}=True")
 
@@ -62,14 +57,12 @@ class CompanyCapabilitiesUnitTests(TestCase):
         # Superuser without any company still gets every capability true,
         # including view_widget_preview (the developer-tier exception does
         # NOT apply to superusers).
-        user = User.objects.create_superuser(
-            username='root', password='password123'
-        )
+        user = User.objects.create_superuser(username="root", password="password123")
 
         caps = company_capabilities(user)
 
         self.assertEqual(set(caps), set(CAPABILITY_KEYS))
-        self.assertTrue(caps['view_widget_preview'])
+        self.assertTrue(caps["view_widget_preview"])
         self.assertTrue(all(caps.values()))
 
     def test_capability_matrix_snapshot_per_tier(self):
@@ -122,17 +115,15 @@ class CompanyCapabilitiesUnitTests(TestCase):
 
         manager_company = Company.objects.create(name="Snap Mgr Co")
         manager_user = User.objects.create_user(
-            username='snap_mgr', password='password123', company=manager_company
+            username="snap_mgr", password="password123", company=manager_company
         )
         developer_company = Company.objects.create(
             name="Snap Dev Co", account_type=Company.AccountType.DEVELOPER
         )
         developer_user = User.objects.create_user(
-            username='snap_dev', password='password123', company=developer_company
+            username="snap_dev", password="password123", company=developer_company
         )
-        superuser = User.objects.create_superuser(
-            username='snap_root', password='password123'
-        )
+        superuser = User.objects.create_superuser(username="snap_root", password="password123")
 
         users_by_tier = {
             "manager": manager_user,
@@ -153,60 +144,59 @@ class IdentityCapabilitiesEndpointTests(APITestCase):
     """
 
     def setUp(self):
-        self.me_url = reverse('user-me')
-        self.token_url = reverse('token_obtain_pair')
+        self.me_url = reverse("user-me")
+        self.token_url = reverse("token_obtain_pair")
 
-        self.manager_company = Company.objects.create(
-            name="Manager Co", license_code="MGRLICENSE"
-        )
+        self.manager_company = Company.objects.create(name="Manager Co", license_code="MGRLICENSE")
         self.developer_company = Company.objects.create(
-            name="Developer Co", license_code="DEVLICENSE",
+            name="Developer Co",
+            license_code="DEVLICENSE",
             account_type=Company.AccountType.DEVELOPER,
         )
         self.manager_user = User.objects.create_user(
-            username='mgr', password='password123', company=self.manager_company
+            username="mgr", password="password123", company=self.manager_company
         )
         self.developer_user = User.objects.create_user(
-            username='dev', password='password123', company=self.developer_company
+            username="dev", password="password123", company=self.developer_company
         )
 
-    def _authenticate(self, username, license_code, password='password123'):
+    def _authenticate(self, username, license_code, password="password123"):
         response = self.client.post(
             self.token_url,
-            {'username': username, 'password': password, 'license_code': license_code},
-            format='json',
+            {"username": username, "password": password, "license_code": license_code},
+            format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        token = response.data['access']
-        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        token = response.data["access"]
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
 
     def test_me_for_manager_reports_manager_capabilities(self):
-        self._authenticate('mgr', 'MGRLICENSE')
+        self._authenticate("mgr", "MGRLICENSE")
         response = self.client.get(self.me_url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['account_type'], Company.AccountType.MANAGER)
-        caps = response.data['capabilities']
+        self.assertEqual(response.data["account_type"], Company.AccountType.MANAGER)
+        caps = response.data["capabilities"]
         self.assertEqual(set(caps), set(CAPABILITY_KEYS))
-        self.assertTrue(caps['manage_own_inventory'])
-        self.assertTrue(caps['view_widget_preview'])
-        self.assertFalse(caps['manage_api_keys'])
-        self.assertFalse(caps['view_widget_generator'])
-        self.assertFalse(caps['create_users'])
-        self.assertFalse(caps['manage_tenants'])
+        self.assertTrue(caps["manage_own_inventory"])
+        self.assertTrue(caps["view_widget_preview"])
+        self.assertFalse(caps["manage_api_keys"])
+        self.assertFalse(caps["view_widget_generator"])
+        self.assertFalse(caps["create_users"])
+        self.assertFalse(caps["manage_tenants"])
 
     def test_me_for_developer_reports_developer_capabilities(self):
-        self._authenticate('dev', 'DEVLICENSE')
+        self._authenticate("dev", "DEVLICENSE")
         response = self.client.get(self.me_url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['account_type'], Company.AccountType.DEVELOPER)
-        caps = response.data['capabilities']
+        self.assertEqual(response.data["account_type"], Company.AccountType.DEVELOPER)
+        caps = response.data["capabilities"]
         self.assertEqual(set(caps), set(CAPABILITY_KEYS))
         # Developer gets everything EXCEPT the manager-safe widget preview
         # (redundant with the full Widget Generator the developer already has).
-        self.assertFalse(caps['view_widget_preview'])
+        self.assertFalse(caps["view_widget_preview"])
         for key in CAPABILITY_KEYS:
-            if key in ('view_widget_preview', 'manage_users'):
+            if key in ("view_widget_preview", "manage_users"):
                 continue
             self.assertTrue(caps[key], f"developer should have {key}=True")

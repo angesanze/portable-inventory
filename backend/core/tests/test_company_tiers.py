@@ -30,7 +30,7 @@ class CompanyTierTests(TestCase):
 
         with self.assertRaises(ValidationError) as ctx:
             child.clean()
-        self.assertIn('parent', ctx.exception.message_dict)
+        self.assertIn("parent", ctx.exception.message_dict)
 
     def test_clean_rejects_manager_with_children(self):
         """A manager company that owns children fails validation."""
@@ -40,13 +40,11 @@ class CompanyTierTests(TestCase):
         manager = Company.objects.create(name="Manager With Kids")
         # Attach a child to the manager, then demote attempt via clean.
         Company.objects.create(name="Some Child", parent=developer)
-        manager.children.add(
-            Company.objects.create(name="Owned Child")
-        )
+        manager.children.add(Company.objects.create(name="Owned Child"))
 
         with self.assertRaises(ValidationError) as ctx:
             manager.clean()
-        self.assertIn('account_type', ctx.exception.message_dict)
+        self.assertIn("account_type", ctx.exception.message_dict)
 
     def test_clean_allows_developer_parent(self):
         """A child whose parent is a developer passes validation."""

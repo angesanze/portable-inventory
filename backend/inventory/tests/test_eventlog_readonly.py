@@ -89,5 +89,9 @@ class EventLogReadOnlyTest(TestCase):
 
         resp = self.client.get("/api/v1/event-logs/")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        ids = [e["id"] for e in resp.data["results"]] if "results" in resp.data else [e["id"] for e in resp.data]
+        ids = (
+            [e["id"] for e in resp.data["results"]]
+            if "results" in resp.data
+            else [e["id"] for e in resp.data]
+        )
         self.assertNotIn(str(other_product.pk), [str(i) for i in ids])

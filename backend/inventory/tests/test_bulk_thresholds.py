@@ -1,4 +1,5 @@
 """Bulk threshold endpoint: auth, scoping, and field updates."""
+
 from decimal import Decimal
 
 from django.test import TestCase
@@ -37,13 +38,15 @@ class BulkThresholdEndpointTests(TestCase):
     def test_updates_thresholds_for_caller_company(self):
         client = APIClient()
         client.force_authenticate(user=self.user_a)
-        payload = [{
-            "id": str(self.mine.id),
-            "reorder_threshold": 12,
-            "critical_threshold": 4,
-            "max_threshold": 100,
-            "reorder_qty": 25,
-        }]
+        payload = [
+            {
+                "id": str(self.mine.id),
+                "reorder_threshold": 12,
+                "critical_threshold": 4,
+                "max_threshold": 100,
+                "reorder_qty": 25,
+            }
+        ]
         resp = client.post(BULK_URL, payload, format="json")
 
         self.assertEqual(resp.status_code, 200)

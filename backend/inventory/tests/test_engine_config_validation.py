@@ -2,10 +2,16 @@ import pytest
 import uuid
 
 from core.models import Company
-from inventory.models import ProductModel, Location, CalculatorTemplate
+from inventory.models import ProductModel
 from inventory.engines import (
-    BaseEngine, EngineFactory, CounterEngine, ConverterEngine,
-    BucketEngine, DimensionEngine, TimeBasedEngine, TrackerEngine,
+    BaseEngine,
+    EngineFactory,
+    CounterEngine,
+    ConverterEngine,
+    BucketEngine,
+    DimensionEngine,
+    TimeBasedEngine,
+    TrackerEngine,
 )
 from inventory.serializers import ProductModelSerializer, CalculatorTemplateSerializer
 
@@ -17,6 +23,7 @@ def company(db):
 
 
 # --- Engine CONFIG_SCHEMA validation tests ---
+
 
 class TestEngineConfigValidation:
     """Test CONFIG_SCHEMA validation on engine classes."""
@@ -73,11 +80,15 @@ class TestReturnsNumericDelta:
 
     def test_numeric_engines_return_true(self):
         for cls in (CounterEngine, ConverterEngine, BucketEngine, DimensionEngine):
-            assert cls.returns_numeric_delta is True, f"{cls.__name__} should have returns_numeric_delta=True"
+            assert cls.returns_numeric_delta is True, (
+                f"{cls.__name__} should have returns_numeric_delta=True"
+            )
 
     def test_non_numeric_engines_return_false(self):
         for cls in (TrackerEngine, TimeBasedEngine):
-            assert cls.returns_numeric_delta is False, f"{cls.__name__} should have returns_numeric_delta=False"
+            assert cls.returns_numeric_delta is False, (
+                f"{cls.__name__} should have returns_numeric_delta=False"
+            )
 
     def test_base_engine_default_is_true(self):
         assert BaseEngine.returns_numeric_delta is True
@@ -85,7 +96,7 @@ class TestReturnsNumericDelta:
     def test_factory_engines_have_attribute(self):
         """Every engine registered in EngineFactory has returns_numeric_delta."""
         for engine_type, engine_cls in EngineFactory._engines.items():
-            assert hasattr(engine_cls, 'returns_numeric_delta'), (
+            assert hasattr(engine_cls, "returns_numeric_delta"), (
                 f"Engine '{engine_type}' ({engine_cls.__name__}) missing returns_numeric_delta"
             )
 
@@ -94,7 +105,9 @@ class TestEngineFactoryValidation:
     """Test EngineFactory.validate_config dispatch."""
 
     def test_factory_routes_to_engine(self):
-        errors = EngineFactory.validate_config("dimension", {"dimensions": ["l"], "unit": "m", "formula": "l"})
+        errors = EngineFactory.validate_config(
+            "dimension", {"dimensions": ["l"], "unit": "m", "formula": "l"}
+        )
         assert errors == []
 
     def test_factory_unknown_engine(self):
@@ -114,8 +127,11 @@ class TestProfileEngineDispatch:
         """Every profile in _profile_registry produces an engine instance."""
         for profile, expected_cls in EngineFactory._profile_registry.items():
             pm = ProductModel(
-                company=company, sku=f"P-{profile}", name=f"Test {profile}",
-                profile=profile, engine_config={},
+                company=company,
+                sku=f"P-{profile}",
+                name=f"Test {profile}",
+                profile=profile,
+                engine_config={},
             )
             engine = EngineFactory.get_engine_for_profile(pm)
             assert isinstance(engine, expected_cls), (
@@ -130,24 +146,37 @@ class TestProfileEngineDispatch:
     def test_unit_conversion_returns_converter(self, company):
         """UNIT_CONVERSION profile dispatches to ConverterEngine."""
         pm = ProductModel(
-            company=company, sku="CONV", name="Converter",
-            profile="UNIT_CONVERSION", engine_config={},
+            company=company,
+            sku="CONV",
+            name="Converter",
+            profile="UNIT_CONVERSION",
+            engine_config={},
         )
         engine = EngineFactory.get_engine_for_profile(pm)
         assert isinstance(engine, ConverterEngine)
 
     def test_simple_count_returns_counter(self, company):
-        pm = ProductModel(company=company, sku="SC", name="SC", profile="SIMPLE_COUNT", engine_config={})
+        pm = ProductModel(
+            company=company, sku="SC", name="SC", profile="SIMPLE_COUNT", engine_config={}
+        )
         engine = EngineFactory.get_engine_for_profile(pm)
         assert isinstance(engine, CounterEngine)
 
     def test_serialized_returns_tracker(self, company):
-        pm = ProductModel(company=company, sku="SR", name="SR", profile="SERIALIZED", engine_config={})
+        pm = ProductModel(
+            company=company, sku="SR", name="SR", profile="SERIALIZED", engine_config={}
+        )
         engine = EngineFactory.get_engine_for_profile(pm)
         assert isinstance(engine, TrackerEngine)
 
     def test_perishable_returns_time_based(self, company):
-        pm = ProductModel(company=company, sku="PR", name="PR", profile="PERISHABLE", engine_config={"time_unit": "days"})
+        pm = ProductModel(
+            company=company,
+            sku="PR",
+            name="PR",
+            profile="PERISHABLE",
+            engine_config={"time_unit": "days"},
+        )
         engine = EngineFactory.get_engine_for_profile(pm)
         assert isinstance(engine, TimeBasedEngine)
 

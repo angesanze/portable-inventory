@@ -8,69 +8,114 @@ import uuid
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('core', '0005_apikey_default_location'),
-        ('inventory', '0016_alter_location_type'),
+        ("core", "0005_apikey_default_location"),
+        ("inventory", "0016_alter_location_type"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='movement',
-            name='purchased_cost',
+            model_name="movement",
+            name="purchased_cost",
             field=models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True),
         ),
         migrations.AlterField(
-            model_name='movement',
-            name='batch',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='movements', to='inventory.productbatch'),
+            model_name="movement",
+            name="batch",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="movements",
+                to="inventory.productbatch",
+            ),
         ),
         migrations.AlterField(
-            model_name='movement',
-            name='occurred_at',
+            model_name="movement",
+            name="occurred_at",
             field=models.DateTimeField(default=django.utils.timezone.now),
         ),
         migrations.AlterField(
-            model_name='movement',
-            name='performed_by',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='movements', to=settings.AUTH_USER_MODEL),
+            model_name="movement",
+            name="performed_by",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="movements",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AlterField(
-            model_name='movement',
-            name='physical_product',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='movements', to='inventory.physicalproduct'),
+            model_name="movement",
+            name="physical_product",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="movements",
+                to="inventory.physicalproduct",
+            ),
         ),
         migrations.AlterField(
-            model_name='movement',
-            name='product_model',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='movements', to='inventory.productmodel'),
+            model_name="movement",
+            name="product_model",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="movements",
+                to="inventory.productmodel",
+            ),
         ),
         migrations.AlterField(
-            model_name='movement',
-            name='quantity',
+            model_name="movement",
+            name="quantity",
             field=models.DecimalField(decimal_places=4, max_digits=12),
         ),
         migrations.AlterField(
-            model_name='movement',
-            name='reason',
+            model_name="movement",
+            name="reason",
             field=models.CharField(blank=True, max_length=255),
         ),
         migrations.CreateModel(
-            name='WorkOrder',
+            name="WorkOrder",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('name', models.CharField(max_length=255)),
-                ('description', models.TextField(blank=True, null=True)),
-                ('status', models.CharField(choices=[('OPEN', 'Open'), ('CLOSED', 'Closed'), ('ARCHIVED', 'Archived')], default='OPEN', max_length=20)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('company', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='work_orders', to='core.company')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+                ("description", models.TextField(blank=True, null=True)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[("OPEN", "Open"), ("CLOSED", "Closed"), ("ARCHIVED", "Archived")],
+                        default="OPEN",
+                        max_length=20,
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "company",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="work_orders",
+                        to="core.company",
+                    ),
+                ),
             ],
         ),
         migrations.AddField(
-            model_name='movement',
-            name='work_order',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='movements', to='inventory.workorder'),
+            model_name="movement",
+            name="work_order",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="movements",
+                to="inventory.workorder",
+            ),
         ),
     ]

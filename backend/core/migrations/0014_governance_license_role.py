@@ -4,40 +4,70 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0013_alter_auditlog_action'),
+        ("core", "0013_alter_auditlog_action"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='company',
-            name='license_expires_at',
-            field=models.DateTimeField(blank=True, help_text='License expiry. Null = perpetual. Past = writes blocked (read-only grace).', null=True),
+            model_name="company",
+            name="license_expires_at",
+            field=models.DateTimeField(
+                blank=True,
+                help_text="License expiry. Null = perpetual. Past = writes blocked (read-only grace).",
+                null=True,
+            ),
         ),
         migrations.AddField(
-            model_name='company',
-            name='license_rotated_at',
-            field=models.DateTimeField(blank=True, help_text='Timestamp of the last license_code rotation (rotate_license).', null=True),
+            model_name="company",
+            name="license_rotated_at",
+            field=models.DateTimeField(
+                blank=True,
+                help_text="Timestamp of the last license_code rotation (rotate_license).",
+                null=True,
+            ),
         ),
         migrations.AddField(
-            model_name='company',
-            name='max_managed_companies',
-            field=models.PositiveIntegerField(blank=True, help_text='Cap on child tenants a developer may own. Null = unlimited. Checked at onboarding.', null=True),
+            model_name="company",
+            name="max_managed_companies",
+            field=models.PositiveIntegerField(
+                blank=True,
+                help_text="Cap on child tenants a developer may own. Null = unlimited. Checked at onboarding.",
+                null=True,
+            ),
         ),
         migrations.AddField(
-            model_name='company',
-            name='max_products',
-            field=models.PositiveIntegerField(blank=True, help_text='Cap on ProductModels. Null = unlimited. Checked only at product-create time.', null=True),
+            model_name="company",
+            name="max_products",
+            field=models.PositiveIntegerField(
+                blank=True,
+                help_text="Cap on ProductModels. Null = unlimited. Checked only at product-create time.",
+                null=True,
+            ),
         ),
         migrations.AddField(
-            model_name='company',
-            name='max_users',
-            field=models.PositiveIntegerField(blank=True, help_text='Cap on active users in this company. Null = unlimited. Checked only at invite time.', null=True),
+            model_name="company",
+            name="max_users",
+            field=models.PositiveIntegerField(
+                blank=True,
+                help_text="Cap on active users in this company. Null = unlimited. Checked only at invite time.",
+                null=True,
+            ),
         ),
         migrations.AlterField(
-            model_name='user',
-            name='role',
-            field=models.CharField(blank=True, choices=[('OWNER', 'Owner'), ('ADMIN', 'Admin'), ('OPERATOR', 'Operator'), ('VIEWER', 'Viewer')], help_text='Intra-company role. Blank/legacy = treated as ADMIN.', max_length=50, null=True),
+            model_name="user",
+            name="role",
+            field=models.CharField(
+                blank=True,
+                choices=[
+                    ("OWNER", "Owner"),
+                    ("ADMIN", "Admin"),
+                    ("OPERATOR", "Operator"),
+                    ("VIEWER", "Viewer"),
+                ],
+                help_text="Intra-company role. Blank/legacy = treated as ADMIN.",
+                max_length=50,
+                null=True,
+            ),
         ),
     ]

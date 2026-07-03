@@ -31,10 +31,10 @@ Copy `.env.example` to `.env` and configure:
 | `DJANGO_ALLOWED_HOSTS` | Yes | Space-separated hostnames (e.g., `yourdomain.com`) |
 | `CORS_ALLOWED_ORIGINS` | Yes | Comma-separated origins (e.g., `https://yourdomain.com`) |
 | `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `SECURE_SSL_REDIRECT` | Recommended | Set to `1` to enforce HTTPS |
+| `SECURE_SSL_REDIRECT` | Recommended | Set to `True` to enforce HTTPS (parsed `== 'True'`; only applied when `DEBUG=0`). Any other value leaves the redirect disabled. |
 | `PUBLIC_BASE_URL` | Production | Public origin (e.g. `https://app.varasto.example`) baked into scanned QR codes; if unset, codes point at the internal host and lead nowhere |
-| `JWT_ACCESS_TOKEN_LIFETIME_MINUTES` | No | Default: 1440 (1 day) |
-| `JWT_REFRESH_TOKEN_LIFETIME_MINUTES` | No | Default: 10080 (7 days) |
+
+> **JWT token lifetimes are not configurable via environment.** They are hardcoded in `settings.py` (`SIMPLE_JWT`): access tokens expire after **15 minutes**, refresh tokens after **7 days**.
 
 ## Docker Compose Setup
 
@@ -46,8 +46,8 @@ docker compose up -d
 
 # Services available (each published directly on its own port):
 #   http://localhost:5173       — Frontend (proxies /api,/admin,/static,/go -> backend)
-#   http://localhost:8000/api/  — Backend API
-#   http://localhost:8000/admin — Django Admin
+#   http://localhost:8001/api/  — Backend API (host 8001 -> container 8000)
+#   http://localhost:8001/admin — Django Admin
 #   http://localhost:8002       — Documentation (MkDocs)
 #   http://localhost:8081       — Demo Client
 ```
@@ -65,7 +65,7 @@ services:
       - DJANGO_ALLOWED_HOSTS=${ALLOWED_HOSTS}
       - CORS_ALLOWED_ORIGINS=${CORS_ORIGINS}
       - DATABASE_URL=${DATABASE_URL}
-      - SECURE_SSL_REDIRECT=1
+      - SECURE_SSL_REDIRECT=True
     command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 4
 
   db:
@@ -100,7 +100,7 @@ Deploy the single backend and frontend, then apply migrations:
 3. **Verify health:**
    ```bash
    docker compose exec backend python manage.py check --deploy
-   curl -f http://localhost:8000/admin/login/ || echo "Health check failed"
+   curl -f http://localhost:8001/admin/login/ || echo "Health check failed"
    ```
 
 ## Database Migrations

@@ -5,15 +5,21 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inventory', '0029_alter_location_unique_together'),
+        ("inventory", "0029_alter_location_unique_together"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='dynamicqrcode',
-            name='batch',
-            field=models.ForeignKey(blank=True, help_text='Specific batch context', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='qr_codes', to='inventory.productbatch'),
+            model_name="dynamicqrcode",
+            name="batch",
+            field=models.ForeignKey(
+                blank=True,
+                help_text="Specific batch context",
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="qr_codes",
+                to="inventory.productbatch",
+            ),
         ),
     ]

@@ -1,4 +1,5 @@
 """List/expiry engines: Bucket, TimeBased."""
+
 from typing import Any, Dict
 
 from .base import BaseEngine
@@ -9,13 +10,17 @@ class BucketEngine(BaseEngine):
     Engine for complex batch/lot management.
     Stock is stored as a list of dictionaries (buckets).
     """
+
     CONFIG_SCHEMA = {
         "required": [],
         "properties": {
             "fields": {"type": "array", "items": {"type": "object"}},
-            "allocation_strategy": {"type": "string", "enum": ["MANUAL", "FIFO", "LIFO", "WEIGHTED"]},
+            "allocation_strategy": {
+                "type": "string",
+                "enum": ["MANUAL", "FIFO", "LIFO", "WEIGHTED"],
+            },
             "primary_key": {"type": "string"},
-        }
+        },
     }
 
     def get_ui_config(self) -> Dict[str, Any]:
@@ -23,7 +28,7 @@ class BucketEngine(BaseEngine):
         return {
             "input_type": "bucket_form",
             "fields": self.config.get("fields", []),
-            "allocation_strategy": self.config.get("allocation_strategy", "MANUAL")
+            "allocation_strategy": self.config.get("allocation_strategy", "MANUAL"),
         }
 
     def calculate_delta(self, delta_payload: Dict[str, Any]) -> float:
@@ -40,7 +45,7 @@ class BucketEngine(BaseEngine):
         """Updates internal buckets (add/remove from specific batch)."""
         if not isinstance(current_stock, list):
             current_stock = []
-            
+
         operation = delta_payload.get("operation")
         pk_field = self.config.get("primary_key", "id")
 
@@ -48,8 +53,8 @@ class BucketEngine(BaseEngine):
             bucket_data = delta_payload.get("bucket_data", {})
             pk_value = bucket_data.get(pk_field)
             if not pk_value:
-                 raise ValueError(f"Missing primary key: {pk_field}")
-            
+                raise ValueError(f"Missing primary key: {pk_field}")
+
             qty_to_add = float(delta_payload.get("quantity", 0))
 
             # Find existing bucket
@@ -59,39 +64,38 @@ class BucketEngine(BaseEngine):
                     bucket["qty"] = bucket.get("qty", 0) + qty_to_add
                     found = True
                     break
-            
+
             if not found:
                 new_bucket = bucket_data.copy()
                 new_bucket["qty"] = qty_to_add
                 current_stock.append(new_bucket)
 
         elif operation == "subtract":
-             qty_to_remove = float(delta_payload.get("quantity", 0))
-             
-             # Allocation Strategy Logic ( Simplified for now )
-              # Manual removal via bucket_id
-             bucket_pk = delta_payload.get("bucket_id")
-             
-             if bucket_pk:
-                 for bucket in current_stock:
-                      if bucket.get(pk_field) == bucket_pk:
-                           current_qty = bucket.get("qty", 0)
-                           if current_qty < qty_to_remove:
-                                raise ValueError("Insufficient stock in bucket")
-                           bucket["qty"] = current_qty - qty_to_remove
-                           break
-                 else:
-                      raise ValueError("Bucket not found")
+            qty_to_remove = float(delta_payload.get("quantity", 0))
+
+            # Allocation Strategy Logic ( Simplified for now )
+            # Manual removal via bucket_id
+            bucket_pk = delta_payload.get("bucket_id")
+
+            if bucket_pk:
+                for bucket in current_stock:
+                    if bucket.get(pk_field) == bucket_pk:
+                        current_qty = bucket.get("qty", 0)
+                        if current_qty < qty_to_remove:
+                            raise ValueError("Insufficient stock in bucket")
+                        bucket["qty"] = current_qty - qty_to_remove
+                        break
+                else:
+                    raise ValueError("Bucket not found")
 
         return current_stock
 
     def format_stock_display(self, stock_value: Any) -> str:
         """Returns total sum across all buckets."""
         if not isinstance(stock_value, list):
-             return "0 items"
+            return "0 items"
         total_qty = sum(b.get("qty", 0) for b in stock_value)
         return f"{total_qty} (across {len(stock_value)} buckets)"
-
 
 
 class TimeBasedEngine(BaseEngine):
@@ -106,6 +110,7 @@ class TimeBasedEngine(BaseEngine):
             "auto_decrement": false
         }
     """
+
     returns_numeric_delta = False
 
     CONFIG_SCHEMA = {
@@ -114,7 +119,7 @@ class TimeBasedEngine(BaseEngine):
             "time_unit": {"type": "string", "enum": ["days", "hours"]},
             "expiry_tracking": {"type": "boolean"},
             "auto_decrement": {"type": "boolean"},
-        }
+        },
     }
 
     def get_ui_config(self) -> Dict[str, Any]:
@@ -132,9 +137,7 @@ class TimeBasedEngine(BaseEngine):
             {"name": "quantity", "type": "number", "label": "Quantity"},
         ]
         if expiry_tracking:
-            scaffold_fields.append(
-                {"name": "expiry_date", "type": "date", "label": "Expiry Date"}
-            )
+            scaffold_fields.append({"name": "expiry_date", "type": "date", "label": "Expiry Date"})
         scaffold_fields.append(
             {"name": "batch_ref", "type": "text", "label": "Batch Reference", "required": False}
         )
@@ -229,10 +232,15 @@ class TimeBasedEngine(BaseEngine):
 
         from ..models import MonitoringRule
 
-        product_model = getattr(self.product, 'model', self.product)
+        product_model = getattr(self.product, "model", self.product)
 
-        time_unit = self.config.get("time_unit", "days")
-        offset_value = 3 if time_unit == "days" else 72
+        # DateOffsetMonitor reads `date_field` + `days_offset` (in whole days) and
+        # works only in days. The old keys (`field`/`offset_value`/`offset_unit`/
+        # `source`) were never read, so the rule silently degraded to days_offset=0
+        # — firing only once stock was ALREADY expired instead of warning ahead
+        # (COR-17). 72 hours == 3 days, so a plain 3-day advance warning covers
+        # both the days and hours presets.
+        days_offset = int(self.config.get("expiry_alert_days", 3))
 
         rule, created = MonitoringRule.objects.get_or_create(
             product_model=product_model,
@@ -240,14 +248,10 @@ class TimeBasedEngine(BaseEngine):
             defaults={
                 "trigger_type": "DATE_OFFSET",
                 "condition_config": {
-                    "field": "expiry_date",
-                    "offset_value": offset_value,
-                    "offset_unit": time_unit,
-                    "source": "batch_data",
+                    "date_field": "expiry_date",
+                    "days_offset": days_offset,
                 },
                 "severity": "WARNING",
-            }
+            },
         )
         return rule
-
-

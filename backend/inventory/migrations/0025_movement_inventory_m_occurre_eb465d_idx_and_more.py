@@ -4,18 +4,17 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inventory', '0024_workorder_product_model_productcomponent'),
+        ("inventory", "0024_workorder_product_model_productcomponent"),
     ]
 
     operations = [
         migrations.AddIndex(
-            model_name='movement',
-            index=models.Index(fields=['occurred_at'], name='inventory_m_occurre_eb465d_idx'),
+            model_name="movement",
+            index=models.Index(fields=["occurred_at"], name="inventory_m_occurre_eb465d_idx"),
         ),
         migrations.AddIndex(
-            model_name='movement',
-            index=models.Index(fields=['work_order'], name='inventory_m_work_or_33aa48_idx'),
+            model_name="movement",
+            index=models.Index(fields=["work_order"], name="inventory_m_work_or_33aa48_idx"),
         ),
     ]

@@ -4,18 +4,17 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inventory', '0048_remove_inventorystrategy_model'),
+        ("inventory", "0048_remove_inventorystrategy_model"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='productmodel',
-            name='_engine_type',
+            model_name="productmodel",
+            name="_engine_type",
         ),
         migrations.RemoveField(
-            model_name='productmodel',
-            name='_tracking_mode',
+            model_name="productmodel",
+            name="_tracking_mode",
         ),
     ]

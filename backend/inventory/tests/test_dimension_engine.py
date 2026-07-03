@@ -1,13 +1,13 @@
 import pytest
-from decimal import Decimal
 import uuid
 
 from inventory.engines import DimensionEngine, SafeFormulaParser, EngineFactory
-from inventory.models import ProductModel, Location, Movement
+from inventory.models import ProductModel
 from core.models import Company
 
 
 # --- Unit tests for SafeFormulaParser (no DB needed) ---
+
 
 class TestSafeFormulaParser:
     def test_simple_addition(self):
@@ -85,6 +85,7 @@ class TestSafeFormulaParser:
 
 # --- DimensionEngine unit tests (no DB) ---
 
+
 class TestDimensionEngineUnit:
     def _make_engine(self, config=None):
         """Create DimensionEngine with mock product."""
@@ -114,16 +115,12 @@ class TestDimensionEngineUnit:
 
     def test_calculate_delta_add(self):
         engine = self._make_engine()
-        delta = engine.calculate_delta({
-            "length": 10, "width": 5, "operation": "add"
-        })
+        delta = engine.calculate_delta({"length": 10, "width": 5, "operation": "add"})
         assert delta == 50.0
 
     def test_calculate_delta_subtract(self):
         engine = self._make_engine()
-        delta = engine.calculate_delta({
-            "length": 3, "width": 4, "operation": "subtract"
-        })
+        delta = engine.calculate_delta({"length": 3, "width": 4, "operation": "subtract"})
         assert delta == -12.0
 
     def test_calculate_delta_missing_dimension(self):
@@ -134,29 +131,23 @@ class TestDimensionEngineUnit:
     def test_calculate_delta_unknown_operation(self):
         engine = self._make_engine()
         with pytest.raises(ValueError, match="Unknown operation"):
-            engine.calculate_delta({
-                "length": 5, "width": 5, "operation": "multiply"
-            })
+            engine.calculate_delta({"length": 5, "width": 5, "operation": "multiply"})
 
     def test_process_transaction_add(self):
         engine = self._make_engine()
-        result = engine.process_transaction(100.0, {
-            "length": 5, "width": 3, "operation": "add"
-        })
+        result = engine.process_transaction(100.0, {"length": 5, "width": 3, "operation": "add"})
         assert result == 115.0
 
     def test_process_transaction_subtract(self):
         engine = self._make_engine()
-        result = engine.process_transaction(50.0, {
-            "length": 2, "width": 5, "operation": "subtract"
-        })
+        result = engine.process_transaction(
+            50.0, {"length": 2, "width": 5, "operation": "subtract"}
+        )
         assert result == 40.0
 
     def test_process_transaction_none_stock(self):
         engine = self._make_engine()
-        result = engine.process_transaction(None, {
-            "length": 3, "width": 3, "operation": "add"
-        })
+        result = engine.process_transaction(None, {"length": 3, "width": 3, "operation": "add"})
         assert result == 9.0
 
     def test_format_stock_display_integer(self):
@@ -179,9 +170,7 @@ class TestDimensionEngineUnit:
             "computed_unit": "m³",
         }
         engine = self._make_engine(config)
-        delta = engine.calculate_delta({
-            "length": 2, "width": 3, "height": 4, "operation": "add"
-        })
+        delta = engine.calculate_delta({"length": 2, "width": 3, "height": 4, "operation": "add"})
         assert delta == 24.0
         assert engine.format_stock_display(24.0) == "24 m³"
 
@@ -194,9 +183,7 @@ class TestDimensionEngineUnit:
             "computed_unit": "m",
         }
         engine = self._make_engine(config)
-        delta = engine.calculate_delta({
-            "l": 5, "w": 3, "operation": "add"
-        })
+        delta = engine.calculate_delta({"l": 5, "w": 3, "operation": "add"})
         assert delta == 16.0
 
     def test_no_formula_raises(self):
@@ -207,6 +194,7 @@ class TestDimensionEngineUnit:
 
 
 # --- Integration tests with DB ---
+
 
 @pytest.fixture
 def company(db):
@@ -240,15 +228,13 @@ class TestDimensionEngineIntegration:
         engine = EngineFactory.get_engine(dimension_product)
 
         # Start at 0, add 10m x 5m = 50 m²
-        stock = engine.process_transaction(0, {
-            "length": 10, "width": 5, "operation": "add"
-        })
+        stock = engine.process_transaction(0, {"length": 10, "width": 5, "operation": "add"})
         assert stock == 50.0
 
         # Subtract 3m x 2m = 6 m²
-        stock = engine.process_transaction(stock, {
-            "length": 3, "width": 2, "operation": "subtract"
-        })
+        stock = engine.process_transaction(
+            stock, {"length": 3, "width": 2, "operation": "subtract"}
+        )
         assert stock == 44.0
 
         display = engine.format_stock_display(stock)

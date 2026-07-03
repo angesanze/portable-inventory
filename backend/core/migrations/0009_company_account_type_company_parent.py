@@ -5,20 +5,31 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0008_move_license_code_to_company'),
+        ("core", "0008_move_license_code_to_company"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='company',
-            name='account_type',
-            field=models.CharField(choices=[('manager', 'Manager'), ('developer', 'Developer')], db_index=True, default='manager', max_length=20),
+            model_name="company",
+            name="account_type",
+            field=models.CharField(
+                choices=[("manager", "Manager"), ("developer", "Developer")],
+                db_index=True,
+                default="manager",
+                max_length=20,
+            ),
         ),
         migrations.AddField(
-            model_name='company',
-            name='parent',
-            field=models.ForeignKey(blank=True, help_text='Developer company that owns this tenant. Null for standalone/root companies.', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='children', to='core.company'),
+            model_name="company",
+            name="parent",
+            field=models.ForeignKey(
+                blank=True,
+                help_text="Developer company that owns this tenant. Null for standalone/root companies.",
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="children",
+                to="core.company",
+            ),
         ),
     ]

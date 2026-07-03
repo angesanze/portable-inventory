@@ -7,34 +7,121 @@ import uuid
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0012_auditlog'),
+        ("core", "0012_auditlog"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('inventory', '0056_qr_api_key_set_null'),
+        ("inventory", "0056_qr_api_key_set_null"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Reservation',
+            name="Reservation",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('quantity', models.DecimalField(decimal_places=4, max_digits=12)),
-                ('status', models.CharField(choices=[('ACTIVE', 'Active'), ('CONSUMED', 'Consumed'), ('RELEASED', 'Released'), ('EXPIRED', 'Expired')], default='ACTIVE', max_length=20)),
-                ('reference', models.CharField(blank=True, help_text='Free-text purpose (order number, customer, job).', max_length=255)),
-                ('expires_at', models.DateTimeField(blank=True, help_text='Auto-release after this moment.', null=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('batch', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='reservations', to='inventory.productbatch')),
-                ('company', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='reservations', to='core.company')),
-                ('created_by', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='reservations', to=settings.AUTH_USER_MODEL)),
-                ('location', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='reservations', to='inventory.location')),
-                ('physical_product', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='reservations', to='inventory.physicalproduct')),
-                ('product_model', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='reservations', to='inventory.productmodel')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("quantity", models.DecimalField(decimal_places=4, max_digits=12)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("ACTIVE", "Active"),
+                            ("CONSUMED", "Consumed"),
+                            ("RELEASED", "Released"),
+                            ("EXPIRED", "Expired"),
+                        ],
+                        default="ACTIVE",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "reference",
+                    models.CharField(
+                        blank=True,
+                        help_text="Free-text purpose (order number, customer, job).",
+                        max_length=255,
+                    ),
+                ),
+                (
+                    "expires_at",
+                    models.DateTimeField(
+                        blank=True, help_text="Auto-release after this moment.", null=True
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "batch",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="reservations",
+                        to="inventory.productbatch",
+                    ),
+                ),
+                (
+                    "company",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="reservations",
+                        to="core.company",
+                    ),
+                ),
+                (
+                    "created_by",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="reservations",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "location",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="reservations",
+                        to="inventory.location",
+                    ),
+                ),
+                (
+                    "physical_product",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="reservations",
+                        to="inventory.physicalproduct",
+                    ),
+                ),
+                (
+                    "product_model",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="reservations",
+                        to="inventory.productmodel",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-created_at'],
-                'indexes': [models.Index(fields=['product_model', 'status'], name='inventory_r_product_5a978a_idx'), models.Index(fields=['location', 'status'], name='inventory_r_locatio_c0e339_idx'), models.Index(fields=['company', 'status'], name='inventory_r_company_063df9_idx')],
+                "ordering": ["-created_at"],
+                "indexes": [
+                    models.Index(
+                        fields=["product_model", "status"], name="inventory_r_product_5a978a_idx"
+                    ),
+                    models.Index(
+                        fields=["location", "status"], name="inventory_r_locatio_c0e339_idx"
+                    ),
+                    models.Index(
+                        fields=["company", "status"], name="inventory_r_company_063df9_idx"
+                    ),
+                ],
             },
         ),
     ]

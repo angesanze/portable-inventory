@@ -19,7 +19,7 @@ export function MobileNav({ onClose, ...sidebarProps }: MobileNavProps) {
             <aside
                 role="navigation"
                 aria-label="Main navigation"
-                className="w-60 h-full bg-zinc-950 border-r border-white/[0.06] flex flex-col"
+                className="w-60 h-full bg-zinc-900 border-r border-white/[0.06] flex flex-col"
                 onClick={(e) => e.stopPropagation()}
             >
                 <SidebarContent

@@ -145,7 +145,7 @@ describe("Widget Component", () => {
         });
     });
 
-    it("renders Batch Contents section for bucket products", async () => {
+    it("renders a batch check-in form for a plain batch product", async () => {
         window.history.pushState({}, '', '/?api_key=test-key&product_id=p2');
         setupFetchMock([bucketProduct]);
 
@@ -155,6 +155,8 @@ describe("Widget Component", () => {
             </MemoryRouter>
         );
 
-        await waitFor(() => expect(screen.getByText("Batch Contents")).toBeInTheDocument());
+        // A plain BATCH_TRACKED product (no components) must offer a load form so
+        // its stock can be checked in — not an empty composition.
+        await waitFor(() => expect(screen.getByTestId("panel-batch-tracked")).toBeInTheDocument());
     });
 });

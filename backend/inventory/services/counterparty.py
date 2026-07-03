@@ -22,7 +22,7 @@ class CounterpartyService:
         existing = Location.objects.filter(
             company=company,
             type=constants.LOCATION_TYPE_VIRTUAL,
-            name__in=spec['aliases'],
+            name__in=spec["aliases"],
         ).first()
         if existing:
             return existing
@@ -32,8 +32,8 @@ class CounterpartyService:
         # caused adjustments to be mislabeled as vendor receipts.
         location, _ = Location.objects.get_or_create(
             company=company,
-            name=spec['name'],
-            defaults={'type': constants.LOCATION_TYPE_VIRTUAL},
+            name=spec["name"],
+            defaults={"type": constants.LOCATION_TYPE_VIRTUAL},
         )
         return location
 
@@ -45,14 +45,19 @@ class CounterpartyService:
         the location seeder, each hardcoding the ``'Loss'`` name. Prefers any
         existing LOSS-typed location, else creates the canonical one.
         """
-        loss = Location.objects.filter(
-            company=company, type=constants.LOCATION_TYPE_LOSS,
-        ).order_by('name').first()
+        loss = (
+            Location.objects.filter(
+                company=company,
+                type=constants.LOCATION_TYPE_LOSS,
+            )
+            .order_by("name")
+            .first()
+        )
         if loss is not None:
             return loss
         loss, _ = Location.objects.get_or_create(
             company=company,
             name=constants.DEFAULT_LOSS_LOCATION_NAME,
-            defaults={'type': constants.LOCATION_TYPE_LOSS},
+            defaults={"type": constants.LOCATION_TYPE_LOSS},
         )
         return loss

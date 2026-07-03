@@ -11,6 +11,7 @@ runtime: ``EngineFactory.get_engine_for_profile`` silently falls back to legacy
 test keeps the three key-sets identical so a new profile must be wired into all
 three (or none).
 """
+
 from inventory.engines.factory import EngineFactory
 from inventory.strategies import BEHAVIOR_MAP
 from inventory.profiles import PROFILE_MAP

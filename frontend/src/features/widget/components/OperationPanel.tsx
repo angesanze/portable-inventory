@@ -9,6 +9,7 @@ import { TrackerStatusForm } from './TrackerStatusForm';
 import { BatchComposition } from './BatchComposition';
 import { DimensionForm } from './DimensionForm';
 import { TimeBasedForm } from './TimeBasedForm';
+import { BatchTrackedForm } from './BatchTrackedForm';
 
 interface OperationPanelProps {
     companyName: string;
@@ -78,6 +79,8 @@ export const OperationPanel: React.FC<OperationPanelProps> = (props) => {
         identifier,
         setIdentifier,
         identifierLocked,
+        batchIdentifier,
+        setBatchIdentifier,
         availableItems,
         batchData,
         setBatchData,
@@ -218,22 +221,37 @@ export const OperationPanel: React.FC<OperationPanelProps> = (props) => {
             );
         }
 
-        // Batch-tracked: batch contents with component grouping
+        // Batch-tracked: an assembly (has components) shows the component-grouped
+        // composition; a PLAIN batch product gets a real check-in form so it can
+        // be loaded — previously it rendered an empty composition with no way to
+        // add its first (or any) stock.
         if (profile === 'BATCH_TRACKED') {
-            const grouped: Record<string, BatchManagerModel> = {};
-            if (activeProduct?.components) {
-                activeProduct.components.forEach(comp => {
-                    grouped[comp.child_id] = {
-                        model: {
-                            id: comp.child_id,
-                            name: comp.child_name,
-                            sku: comp.child_sku,
-                            tracking_mode: comp.child_tracking_mode,
-                        },
-                        items: [],
-                    };
-                });
+            const components = activeProduct?.components ?? [];
+            if (components.length === 0) {
+                return (
+                    <BatchTrackedForm
+                        quantity={quantity}
+                        setQuantity={setQuantity}
+                        batchIdentifier={batchIdentifier}
+                        setBatchIdentifier={setBatchIdentifier}
+                        uiConfig={uiConfig}
+                        handleMove={handleMove}
+                        actionLoading={actionLoading}
+                    />
+                );
             }
+            const grouped: Record<string, BatchManagerModel> = {};
+            components.forEach(comp => {
+                grouped[comp.child_id] = {
+                    model: {
+                        id: comp.child_id,
+                        name: comp.child_name,
+                        sku: comp.child_sku,
+                        tracking_mode: comp.child_tracking_mode,
+                    },
+                    items: [],
+                };
+            });
             return (
                 <div className="mb-6 p-4 rounded-lg" style={{ backgroundColor: 'var(--pi-surface)', border: '1px solid var(--pi-border)' }}>
                     <h3 className="text-sm font-semibold uppercase tracking-wider mb-3 pb-2 flex items-center gap-2" style={{ color: 'var(--pi-primary, #6366f1)', borderBottom: '1px solid var(--pi-border)' }}>

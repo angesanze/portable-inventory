@@ -5,6 +5,7 @@
 If a new INVENTORY_PROFILES entry is added to one but not the other, dispatch
 silently breaks for that profile. These tests assert both cover every profile.
 """
+
 from inventory.constants import INVENTORY_PROFILES
 from inventory.engines import EngineFactory
 from inventory.strategies import BEHAVIOR_MAP

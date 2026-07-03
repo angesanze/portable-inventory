@@ -13,6 +13,7 @@ Superusers may target any company. Every model is filtered to that one company
 — directly where it carries a ``company`` FK, or through ``product_model``
 where it does not (batches, physical products, movements, event logs).
 """
+
 import io
 import json
 import zipfile
@@ -37,12 +38,12 @@ from core.scope import resolve_effective_company
 class ExportRateThrottle(UserRateThrottle):
     """Severe per-user limit: one full export per hour."""
 
-    scope = 'company_export'
-    rate = '1/hour'
+    scope = "company_export"
+    rate = "1/hour"
 
 
 # Field names never included in the export (signing keys / secrets).
-_SENSITIVE_FIELDS = {'secret'}
+_SENSITIVE_FIELDS = {"secret"}
 
 
 def _json_default(value):
@@ -85,31 +86,31 @@ def _build_exporters(company):
 
     cid = company.id
     return {
-        'products': ProductModel.objects.filter(company_id=cid),
-        'locations': Location.objects.filter(company_id=cid),
-        'suppliers': Supplier.objects.filter(company_id=cid),
-        'customers': Customer.objects.filter(company_id=cid),
-        'movements': Movement.objects.filter(product_model__company_id=cid),
-        'batches': ProductBatch.objects.filter(product_model__company_id=cid),
-        'physical_products': PhysicalProduct.objects.filter(product_model__company_id=cid),
-        'qr_codes': DynamicQRCode.objects.filter(company_id=cid),
-        'event_logs': EventLog.objects.filter(product__company_id=cid),
-        'monitoring_rules': MonitoringRule.objects.filter(product_model__company_id=cid),
-        'reservations': Reservation.objects.filter(company_id=cid),
-        'product_costs': ProductCost.objects.filter(product_model__company_id=cid),
-        'purchase_orders': PurchaseOrder.objects.filter(company_id=cid),
-        'purchase_order_lines': PurchaseOrderLine.objects.filter(purchase_order__company_id=cid),
-        'sales_orders': SalesOrder.objects.filter(company_id=cid),
-        'sales_order_lines': SalesOrderLine.objects.filter(sales_order__company_id=cid),
-        'transfer_orders': TransferOrder.objects.filter(company_id=cid),
-        'transfer_order_lines': TransferOrderLine.objects.filter(transfer_order__company_id=cid),
-        'return_orders': ReturnOrder.objects.filter(company_id=cid),
-        'return_order_lines': ReturnOrderLine.objects.filter(return_order__company_id=cid),
-        'count_sessions': CountSession.objects.filter(company_id=cid),
-        'count_lines': CountLine.objects.filter(session__company_id=cid),
-        'notification_channels': NotificationChannel.objects.filter(company_id=cid),
-        'notification_deliveries': NotificationDelivery.objects.filter(channel__company_id=cid),
-        'work_orders': WorkOrder.objects.filter(company_id=cid),
+        "products": ProductModel.objects.filter(company_id=cid),
+        "locations": Location.objects.filter(company_id=cid),
+        "suppliers": Supplier.objects.filter(company_id=cid),
+        "customers": Customer.objects.filter(company_id=cid),
+        "movements": Movement.objects.filter(product_model__company_id=cid),
+        "batches": ProductBatch.objects.filter(product_model__company_id=cid),
+        "physical_products": PhysicalProduct.objects.filter(product_model__company_id=cid),
+        "qr_codes": DynamicQRCode.objects.filter(company_id=cid),
+        "event_logs": EventLog.objects.filter(product__company_id=cid),
+        "monitoring_rules": MonitoringRule.objects.filter(product_model__company_id=cid),
+        "reservations": Reservation.objects.filter(company_id=cid),
+        "product_costs": ProductCost.objects.filter(product_model__company_id=cid),
+        "purchase_orders": PurchaseOrder.objects.filter(company_id=cid),
+        "purchase_order_lines": PurchaseOrderLine.objects.filter(purchase_order__company_id=cid),
+        "sales_orders": SalesOrder.objects.filter(company_id=cid),
+        "sales_order_lines": SalesOrderLine.objects.filter(sales_order__company_id=cid),
+        "transfer_orders": TransferOrder.objects.filter(company_id=cid),
+        "transfer_order_lines": TransferOrderLine.objects.filter(transfer_order__company_id=cid),
+        "return_orders": ReturnOrder.objects.filter(company_id=cid),
+        "return_order_lines": ReturnOrderLine.objects.filter(return_order__company_id=cid),
+        "count_sessions": CountSession.objects.filter(company_id=cid),
+        "count_lines": CountLine.objects.filter(session__company_id=cid),
+        "notification_channels": NotificationChannel.objects.filter(company_id=cid),
+        "notification_deliveries": NotificationDelivery.objects.filter(channel__company_id=cid),
+        "work_orders": WorkOrder.objects.filter(company_id=cid),
     }
 
 
@@ -139,19 +140,19 @@ def build_export_zip(company):
     """
     exporters = _build_exporters(company)
     manifest = {
-        'company': {'id': str(company.id), 'name': company.name},
-        'exported_at': timezone.now().isoformat(),
-        'format': 'json-per-model',
-        'models': {},
+        "company": {"id": str(company.id), "name": company.name},
+        "exported_at": timezone.now().isoformat(),
+        "format": "json-per-model",
+        "models": {},
     }
 
     buffer = io.BytesIO()
-    with zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED) as archive:
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
         for name, queryset in exporters.items():
             payload = _serialize_queryset(queryset)
-            manifest['models'][name] = queryset.count()
-            archive.writestr(f'{name}.json', payload)
-        archive.writestr('manifest.json', json.dumps(manifest, indent=2))
+            manifest["models"][name] = queryset.count()
+            archive.writestr(f"{name}.json", payload)
+        archive.writestr("manifest.json", json.dumps(manifest, indent=2))
 
     buffer.seek(0)
     return buffer.getvalue()
@@ -188,7 +189,9 @@ class CompanyDataExportView(APIView):
         ),
         tags=["Platform"],
         responses={
-            (200, 'application/zip'): OpenApiResponse(description="ZIP archive of the tenant's data."),
+            (200, "application/zip"): OpenApiResponse(
+                description="ZIP archive of the tenant's data."
+            ),
             403: _ExportErrorSerializer,
             429: _ExportErrorSerializer,
         },
@@ -213,8 +216,8 @@ class CompanyDataExportView(APIView):
         filename = f"export-{company.id}-{timezone.now():%Y%m%d}.zip"
         response = StreamingHttpResponse(
             iter([archive_bytes]),
-            content_type='application/zip',
+            content_type="application/zip",
         )
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        response['Content-Length'] = str(len(archive_bytes))
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        response["Content-Length"] = str(len(archive_bytes))
         return response

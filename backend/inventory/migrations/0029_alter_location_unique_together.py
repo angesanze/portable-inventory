@@ -4,15 +4,14 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0006_apikey_is_active'),
-        ('inventory', '0028_alter_location_type'),
+        ("core", "0006_apikey_is_active"),
+        ("inventory", "0028_alter_location_type"),
     ]
 
     operations = [
         migrations.AlterUniqueTogether(
-            name='location',
-            unique_together={('company', 'name')},
+            name="location",
+            unique_together={("company", "name")},
         ),
     ]

@@ -5,6 +5,7 @@ The QR encodes `/go/<code>`; in Docker/dev `request.build_absolute_uri` resolves
 to an internal host unreachable from a phone. `get_qr_url` must prefer
 settings.PUBLIC_BASE_URL when set, and fall back to the request origin otherwise.
 """
+
 import pytest
 from django.test import Client, override_settings
 from rest_framework.test import APIRequestFactory

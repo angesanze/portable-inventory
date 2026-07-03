@@ -6,6 +6,7 @@ Behavior under test:
 - Explicit non-empty engine_config in payload wins over preset.
 - engine_type mismatch between preset and product → skipped (no crash, no copy).
 """
+
 import uuid
 import pytest
 
@@ -95,7 +96,10 @@ class TestPresetEngineConfigSeed:
         assert product.engine_config == explicit
 
     def test_update_changing_preset_replaces_engine_config(
-        self, company, counter_preset, counter_preset_pcs,
+        self,
+        company,
+        counter_preset,
+        counter_preset_pcs,
     ):
         product = ProductModel.objects.create(
             company=company,
@@ -112,7 +116,10 @@ class TestPresetEngineConfigSeed:
         assert updated.engine_config == {"input_label": "pcs", "step": 5}
 
     def test_update_explicit_engine_config_wins_over_preset(
-        self, company, counter_preset, counter_preset_pcs,
+        self,
+        company,
+        counter_preset,
+        counter_preset_pcs,
     ):
         product = ProductModel.objects.create(
             company=company,

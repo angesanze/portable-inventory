@@ -18,6 +18,7 @@ the UI hiding a button is never the only protection. See
 ``core.scope.resolve_effective_company`` for the read-side scoping that
 complements them.
 """
+
 from rest_framework import permissions
 
 from .scope import company_capabilities
@@ -34,56 +35,56 @@ from .scope import company_capabilities
 # (full intra-company powers minus the new in-app user management), so no
 # pre-existing user loses access when this ships.
 
-ROLE_OWNER = 'OWNER'
-ROLE_ADMIN = 'ADMIN'
-ROLE_OPERATOR = 'OPERATOR'
-ROLE_VIEWER = 'VIEWER'
+ROLE_OWNER = "OWNER"
+ROLE_ADMIN = "ADMIN"
+ROLE_OPERATOR = "OPERATOR"
+ROLE_VIEWER = "VIEWER"
 
 #: Canonical role used when a user's role is blank / legacy / unrecognized.
 DEFAULT_ROLE = ROLE_ADMIN
 
 # Legacy free-text role strings seen in the wild map onto the enum.
 _LEGACY_ROLE_ALIASES = {
-    'admin': ROLE_ADMIN,
-    'owner': ROLE_OWNER,
-    'operator': ROLE_OPERATOR,
-    'worker': ROLE_OPERATOR,
-    'viewer': ROLE_VIEWER,
+    "admin": ROLE_ADMIN,
+    "owner": ROLE_OWNER,
+    "operator": ROLE_OPERATOR,
+    "worker": ROLE_OPERATOR,
+    "viewer": ROLE_VIEWER,
 }
 
 ROLE_CAPABILITY_MATRIX = {
     # Owner: the whole company including in-app user/license management.
     ROLE_OWNER: {
-        'manage_own_inventory': True,
-        'delete_inventory': True,
-        'manage_thresholds': True,
-        'manage_settings': True,
-        'manage_users': True,
+        "manage_own_inventory": True,
+        "delete_inventory": True,
+        "manage_thresholds": True,
+        "manage_settings": True,
+        "manage_users": True,
     },
     # Admin: everything operational, but NOT in-app user/license management.
     ROLE_ADMIN: {
-        'manage_own_inventory': True,
-        'delete_inventory': True,
-        'manage_thresholds': True,
-        'manage_settings': True,
-        'manage_users': False,
+        "manage_own_inventory": True,
+        "delete_inventory": True,
+        "manage_thresholds": True,
+        "manage_settings": True,
+        "manage_users": False,
     },
     # Operator: day-to-day floor work (movements, receipts, counts, widget) —
     # but no destructive ops, no thresholds, no settings, no user management.
     ROLE_OPERATOR: {
-        'manage_own_inventory': True,
-        'delete_inventory': False,
-        'manage_thresholds': False,
-        'manage_settings': False,
-        'manage_users': False,
+        "manage_own_inventory": True,
+        "delete_inventory": False,
+        "manage_thresholds": False,
+        "manage_settings": False,
+        "manage_users": False,
     },
     # Viewer: read-only. Loses even base inventory writes.
     ROLE_VIEWER: {
-        'manage_own_inventory': False,
-        'delete_inventory': False,
-        'manage_thresholds': False,
-        'manage_settings': False,
-        'manage_users': False,
+        "manage_own_inventory": False,
+        "delete_inventory": False,
+        "manage_thresholds": False,
+        "manage_settings": False,
+        "manage_users": False,
     },
 }
 
@@ -130,8 +131,8 @@ class HasCapability(permissions.BasePermission):
     message = "You do not have permission to perform this action."
 
     def has_permission(self, request, view):
-        user = getattr(request, 'user', None)
-        if not (user and getattr(user, 'is_authenticated', False)):
+        user = getattr(request, "user", None)
+        if not (user and getattr(user, "is_authenticated", False)):
             return False
         if not self.required_capability:
             return False
@@ -145,10 +146,10 @@ def require_capability(capability, message=None):
     (e.g. ``require_capability('manage_tenants')``) while still routing the
     decision through :func:`core.scope.company_capabilities`.
     """
-    attrs = {'required_capability': capability}
+    attrs = {"required_capability": capability}
     if message:
-        attrs['message'] = message
-    return type(f'HasCapability_{capability}', (HasCapability,), attrs)
+        attrs["message"] = message
+    return type(f"HasCapability_{capability}", (HasCapability,), attrs)
 
 
 class LicenseNotExpired(permissions.BasePermission):
@@ -169,23 +170,25 @@ class LicenseNotExpired(permissions.BasePermission):
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
             return True
-        user = getattr(request, 'user', None)
-        if not (user and getattr(user, 'is_authenticated', False)):
+        user = getattr(request, "user", None)
+        if not (user and getattr(user, "is_authenticated", False)):
             return True  # let authentication layer reject; nothing to gate yet
-        if getattr(user, 'is_superuser', False):
+        if getattr(user, "is_superuser", False):
             return True
 
         from core.scope import resolve_effective_company
+
         try:
             company = resolve_effective_company(request)
         except Exception:
-            company = getattr(user, 'company', None)
+            company = getattr(user, "company", None)
         if company is None:
-            company = getattr(user, 'company', None)
-        if company is not None and bool(getattr(company, 'is_license_expired', False)):
+            company = getattr(user, "company", None)
+        if company is not None and bool(getattr(company, "is_license_expired", False)):
             # Raise (not return False) so the structured `code: license_expired`
             # body is emitted through the project error handler.
             from core.license_limits import LicenseExpiredError
+
             raise LicenseExpiredError()
         return True
 
@@ -203,7 +206,7 @@ class IsSuperuser(permissions.BasePermission):
     message = "Superuser privileges are required for this operation."
 
     def has_permission(self, request, view):
-        user = getattr(request, 'user', None)
+        user = getattr(request, "user", None)
         return bool(user and user.is_superuser)
 
 
@@ -220,8 +223,8 @@ class IsDeveloperOrSuperuser(permissions.BasePermission):
     message = "Developer or superuser privileges are required for this operation."
 
     def has_permission(self, request, view):
-        user = getattr(request, 'user', None)
-        if not (user and getattr(user, 'is_authenticated', False)):
+        user = getattr(request, "user", None)
+        if not (user and getattr(user, "is_authenticated", False)):
             return False
         caps = company_capabilities(user)
-        return bool(caps.get('manage_tenants') or caps.get('create_users'))
+        return bool(caps.get("manage_tenants") or caps.get("create_users"))

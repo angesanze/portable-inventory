@@ -7,7 +7,7 @@ This represents the **Class** or **Definition** of an item.
 
 *   **Role**: Defines *what* the item is.
 *   **Attributes**: `SKU`, `Name`, `Description`, `Category`.
-*   **Behavior**: Defined by the `strategy_id`.
+*   **Behavior**: Defined by the `profile` (which derives the tracking mode + engine).
 *   **Example**: "MacBook Pro M1 (2020)"
 
 ## 2. The Physical Product (`PhysicalProduct`)

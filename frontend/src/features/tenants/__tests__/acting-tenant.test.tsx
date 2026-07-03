@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import MockAdapter from "axios-mock-adapter";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { axiosInstance, ACTING_TENANT_STORAGE_KEY } from "../../../providers/axios-client";
 import { ActingTenantProvider, useActingTenant } from "../../../context/ActingTenantProvider";
@@ -32,7 +33,9 @@ describe("DUAL-TIER-07 acting-tenant header + resource visibility", () => {
     });
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
-        <ActingTenantProvider>{children}</ActingTenantProvider>
+        <QueryClientProvider client={new QueryClient()}>
+            <ActingTenantProvider>{children}</ActingTenantProvider>
+        </QueryClientProvider>
     );
 
     function lastRequestHeader() {

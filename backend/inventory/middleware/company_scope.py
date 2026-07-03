@@ -5,7 +5,7 @@ from rest_framework.exceptions import PermissionDenied
 from core.models import ApiKey
 from core.scope import resolve_effective_company
 
-logger = logging.getLogger('inventory.security')
+logger = logging.getLogger("inventory.security")
 
 
 class CompanyScopeMiddleware:
@@ -42,9 +42,9 @@ class CompanyScopeMiddleware:
 
         # 1. Try API key (header or query param)
         api_key_val = (
-            request.META.get('HTTP_X_API_KEY')
-            or request.META.get('HTTP_API_KEY')
-            or request.GET.get('api_key')
+            request.META.get("HTTP_X_API_KEY")
+            or request.META.get("HTTP_API_KEY")
+            or request.GET.get("api_key")
         )
         if api_key_val:
             # Resolves a raw key (by hash) or a signed widget token (by id) — SEC-03.
@@ -56,9 +56,9 @@ class CompanyScopeMiddleware:
 
         # 2. Fall back to authenticated user
         if not request.company:
-            user = getattr(request, 'user', None)
-            if user and getattr(user, 'is_authenticated', False):
-                company = getattr(user, 'company', None)
+            user = getattr(request, "user", None)
+            if user and getattr(user, "is_authenticated", False):
+                company = getattr(user, "company", None)
                 if company:
                     request.company = company
                     request.is_company_scoped = True

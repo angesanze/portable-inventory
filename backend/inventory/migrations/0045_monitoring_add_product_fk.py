@@ -5,20 +5,30 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inventory', '0044_merge_strategy_into_engine_config'),
+        ("inventory", "0044_merge_strategy_into_engine_config"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='monitoringrule',
-            name='product_model',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='monitoring_rules', to='inventory.productmodel'),
+            model_name="monitoringrule",
+            name="product_model",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="monitoring_rules",
+                to="inventory.productmodel",
+            ),
         ),
         migrations.AlterField(
-            model_name='monitoringrule',
-            name='strategy',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='monitoring_rules_legacy', to='inventory.inventorystrategy'),
+            model_name="monitoringrule",
+            name="strategy",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="monitoring_rules_legacy",
+                to="inventory.inventorystrategy",
+            ),
         ),
     ]

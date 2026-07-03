@@ -21,6 +21,10 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -r requirements.txt -r requirements-dev.txt
+      - name: ruff lint
+        run: ruff check .
+      - name: ruff format check
+        run: ruff format --check .
       - name: pytest
         env:
           # DEBUG stays off so the e2e seed endpoint is correctly not routable;
@@ -47,3 +51,24 @@ jobs:
         run: npx eslint .
       - name: unit tests
         run: npm test -- --run
+
+  sdk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sdk
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: sdk/package-lock.json
+      - run: npm ci
+      # `build` runs vite build + `tsc --emitDeclarationOnly` (the SDK's type
+      # gate); `test` runs the vitest suite. Previously the embeddable SDK — the
+      # least-gated artifact in the repo — had no CI at all.
+      - name: build (+ type-check)
+        run: npm run build
+      - name: unit tests
+        run: npm test

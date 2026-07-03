@@ -8,13 +8,13 @@ from core.validators import validate_partita_iva
 User = get_user_model()
 
 INDUSTRY_CHOICES = [
-    ('manufacturing', 'Manufacturing'),
-    ('retail', 'Retail'),
-    ('food_beverage', 'Food & Beverage'),
-    ('electronics', 'Electronics'),
-    ('logistics', 'Logistics'),
-    ('healthcare', 'Healthcare'),
-    ('other', 'Other'),
+    ("manufacturing", "Manufacturing"),
+    ("retail", "Retail"),
+    ("food_beverage", "Food & Beverage"),
+    ("electronics", "Electronics"),
+    ("logistics", "Logistics"),
+    ("healthcare", "Healthcare"),
+    ("other", "Other"),
 ]
 
 
@@ -22,7 +22,7 @@ class CompanyRegistrationSerializer(serializers.Serializer):
     company_name = serializers.CharField(max_length=255, min_length=2)
     admin_email = serializers.EmailField()
     admin_password = serializers.CharField(min_length=8, write_only=True)
-    industry_type = serializers.ChoiceField(choices=INDUSTRY_CHOICES, default='other')
+    industry_type = serializers.ChoiceField(choices=INDUSTRY_CHOICES, default="other")
     vat = serializers.CharField(required=True)
 
     def validate_admin_email(self, value):

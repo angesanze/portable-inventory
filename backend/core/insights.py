@@ -6,16 +6,17 @@ Django, the ORM, and request context — so it can be exercised directly in unit
 tests and reused by any caller. :class:`core.platform_metrics.PlatformHealthView`
 gathers the signals with DB aggregation and feeds them in.
 """
+
 from dataclasses import dataclass
 
 # Each signal contributes up to this many points; the weights sum to 100 so a
 # company with every signal positive (and no anomalies) scores a perfect 100.
 WEIGHTS = {
-    'active': 30,            # not suspended
-    'has_users': 20,         # at least one user
-    'has_key': 20,           # at least one API key
-    'recent_activity': 20,   # a movement within the dormancy window
-    'no_anomalies': 10,      # no detected anomalies at all
+    "active": 30,  # not suspended
+    "has_users": 20,  # at least one user
+    "has_key": 20,  # at least one API key
+    "recent_activity": 20,  # a movement within the dormancy window
+    "no_anomalies": 10,  # no detected anomalies at all
 }
 
 
@@ -44,11 +45,11 @@ def compute_health_score(signals: HealthSignals):
     always identical — no randomness, no clock, no I/O.
     """
     factors = {
-        'active': WEIGHTS['active'] if signals.is_active else 0,
-        'has_users': WEIGHTS['has_users'] if signals.has_users else 0,
-        'has_key': WEIGHTS['has_key'] if signals.has_key else 0,
-        'recent_activity': WEIGHTS['recent_activity'] if signals.has_recent_activity else 0,
-        'no_anomalies': WEIGHTS['no_anomalies'] if signals.anomaly_count == 0 else 0,
+        "active": WEIGHTS["active"] if signals.is_active else 0,
+        "has_users": WEIGHTS["has_users"] if signals.has_users else 0,
+        "has_key": WEIGHTS["has_key"] if signals.has_key else 0,
+        "recent_activity": WEIGHTS["recent_activity"] if signals.has_recent_activity else 0,
+        "no_anomalies": WEIGHTS["no_anomalies"] if signals.anomaly_count == 0 else 0,
     }
     score = sum(factors.values())
     # Weights are designed to sum to 100, but clamp defensively so the contract

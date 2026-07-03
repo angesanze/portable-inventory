@@ -8,56 +8,145 @@ import uuid
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0012_auditlog'),
+        ("core", "0012_auditlog"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('inventory', '0062_costing'),
+        ("inventory", "0062_costing"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='TransferOrder',
+            name="TransferOrder",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('number', models.CharField(max_length=32)),
-                ('status', models.CharField(choices=[('DRAFT', 'Draft'), ('IN_TRANSIT', 'In transit'), ('PARTIALLY_RECEIVED', 'Partially received'), ('RECEIVED', 'Received'), ('CANCELLED', 'Cancelled')], default='DRAFT', max_length=30)),
-                ('notes', models.TextField(blank=True)),
-                ('shipped_at', models.DateTimeField(blank=True, null=True)),
-                ('received_at', models.DateTimeField(blank=True, null=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('company', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='transfer_orders', to='core.company')),
-                ('created_by', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='transfer_orders', to=settings.AUTH_USER_MODEL)),
-                ('from_location', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='transfer_orders_out', to='inventory.location')),
-                ('to_location', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='transfer_orders_in', to='inventory.location')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("number", models.CharField(max_length=32)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("DRAFT", "Draft"),
+                            ("IN_TRANSIT", "In transit"),
+                            ("PARTIALLY_RECEIVED", "Partially received"),
+                            ("RECEIVED", "Received"),
+                            ("CANCELLED", "Cancelled"),
+                        ],
+                        default="DRAFT",
+                        max_length=30,
+                    ),
+                ),
+                ("notes", models.TextField(blank=True)),
+                ("shipped_at", models.DateTimeField(blank=True, null=True)),
+                ("received_at", models.DateTimeField(blank=True, null=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "company",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="transfer_orders",
+                        to="core.company",
+                    ),
+                ),
+                (
+                    "created_by",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="transfer_orders",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "from_location",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="transfer_orders_out",
+                        to="inventory.location",
+                    ),
+                ),
+                (
+                    "to_location",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="transfer_orders_in",
+                        to="inventory.location",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-created_at'],
+                "ordering": ["-created_at"],
             },
         ),
         migrations.CreateModel(
-            name='TransferOrderLine',
+            name="TransferOrderLine",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('quantity_sent', models.DecimalField(decimal_places=4, max_digits=12)),
-                ('quantity_received', models.DecimalField(decimal_places=4, default=Decimal('0'), max_digits=12)),
-                ('quantity_shortage', models.DecimalField(decimal_places=4, default=Decimal('0'), max_digits=12)),
-                ('batch', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='transfer_lines', to='inventory.productbatch')),
-                ('physical_product', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='transfer_lines', to='inventory.physicalproduct')),
-                ('product_model', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='transfer_order_lines', to='inventory.productmodel')),
-                ('transfer_order', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='lines', to='inventory.transferorder')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("quantity_sent", models.DecimalField(decimal_places=4, max_digits=12)),
+                (
+                    "quantity_received",
+                    models.DecimalField(decimal_places=4, default=Decimal("0"), max_digits=12),
+                ),
+                (
+                    "quantity_shortage",
+                    models.DecimalField(decimal_places=4, default=Decimal("0"), max_digits=12),
+                ),
+                (
+                    "batch",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="transfer_lines",
+                        to="inventory.productbatch",
+                    ),
+                ),
+                (
+                    "physical_product",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="transfer_lines",
+                        to="inventory.physicalproduct",
+                    ),
+                ),
+                (
+                    "product_model",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="transfer_order_lines",
+                        to="inventory.productmodel",
+                    ),
+                ),
+                (
+                    "transfer_order",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="lines",
+                        to="inventory.transferorder",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['id'],
+                "ordering": ["id"],
             },
         ),
         migrations.AddIndex(
-            model_name='transferorder',
-            index=models.Index(fields=['company', 'status'], name='inventory_t_company_91f27c_idx'),
+            model_name="transferorder",
+            index=models.Index(fields=["company", "status"], name="inventory_t_company_91f27c_idx"),
         ),
         migrations.AlterUniqueTogether(
-            name='transferorder',
-            unique_together={('company', 'number')},
+            name="transferorder",
+            unique_together={("company", "number")},
         ),
     ]

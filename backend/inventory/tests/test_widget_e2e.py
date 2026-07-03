@@ -2,12 +2,13 @@
 End-to-end widget flow tests:
   create product → get stock → add transaction → verify stock changed → move between locations
 """
+
 import pytest
 from decimal import Decimal
 from django.urls import reverse
 from rest_framework.test import APIClient
 from core.models import Company, User, ApiKey
-from inventory.models import ProductModel, Location, Movement
+from inventory.models import ProductModel, Location
 from inventory.services import LedgerService, StockService
 
 
@@ -25,7 +26,9 @@ def widget_env(db):
     store = Location.objects.create(company=company, name="Store", type="STORE")
 
     product = ProductModel.objects.create(
-        company=company, sku="E2E-001", name="E2E Widget",
+        company=company,
+        sku="E2E-001",
+        name="E2E Widget",
     )
 
     # Seed 50 units into warehouse

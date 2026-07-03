@@ -256,7 +256,9 @@ export async function replayQueue(
                     quantity: op.quantity,
                     reason: (op.metadata.reason as string) || "Offline Sync",
                     physical_identifier: op.metadata.physical_identifier || undefined,
-                    calculator_payload: op.metadata.calculator_payload || undefined,
+                    calc_payload: op.metadata.calc_payload || undefined,
+                    batch_data: op.metadata.batch_data || undefined,
+                    batch_id: op.metadata.batch_id || undefined,
                     idempotency_key: op.idempotencyKey || undefined,
                 }),
             });

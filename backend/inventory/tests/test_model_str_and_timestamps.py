@@ -9,9 +9,7 @@ from inventory.models.tracking import PhysicalProduct, ProductBatch
 class PhysicalProductStrTest(TestCase):
     def setUp(self):
         self.company = Company.objects.create(name="StrTestCo", license_code="STRTS1")
-        self.location = Location.objects.create(
-            company=self.company, name="WH1", type="WAREHOUSE"
-        )
+        self.location = Location.objects.create(company=self.company, name="WH1", type="WAREHOUSE")
         self.product = ProductModel.objects.create(
             company=self.company,
             sku="SER-001",
@@ -44,35 +42,37 @@ class UpdatedAtFieldTest(TestCase):
         self.company = Company.objects.create(name="TimestampCo", license_code="TMST01")
 
     def test_product_model_has_updated_at(self):
-        pm = ProductModel.objects.create(
-            company=self.company, sku="PM-001", name="Test"
-        )
+        pm = ProductModel.objects.create(company=self.company, sku="PM-001", name="Test")
         self.assertIsNotNone(pm.updated_at)
 
     def test_product_batch_has_updated_at(self):
         pm = ProductModel.objects.create(
-            company=self.company, sku="PM-002", name="Batch Test",
+            company=self.company,
+            sku="PM-002",
+            name="Batch Test",
             profile="BATCH_TRACKED",
         )
-        loc = Location.objects.create(
-            company=self.company, name="WH-BATCH", type="WAREHOUSE"
-        )
+        loc = Location.objects.create(company=self.company, name="WH-BATCH", type="WAREHOUSE")
         batch = ProductBatch.objects.create(
-            product_model=pm, location=loc,
-            batch_identifier="LOT-1", quantity=10,
+            product_model=pm,
+            location=loc,
+            batch_identifier="LOT-1",
+            quantity=10,
         )
         self.assertIsNotNone(batch.updated_at)
 
     def test_physical_product_has_timestamps(self):
         pm = ProductModel.objects.create(
-            company=self.company, sku="PM-003", name="Serial Test",
+            company=self.company,
+            sku="PM-003",
+            name="Serial Test",
             profile="SERIALIZED",
         )
-        loc = Location.objects.create(
-            company=self.company, name="WH-SER", type="WAREHOUSE"
-        )
+        loc = Location.objects.create(company=self.company, name="WH-SER", type="WAREHOUSE")
         pp = PhysicalProduct.objects.create(
-            product_model=pm, identifier="S-001", location=loc,
+            product_model=pm,
+            identifier="S-001",
+            location=loc,
         )
         self.assertIsNotNone(pp.created_at)
         self.assertIsNotNone(pp.updated_at)

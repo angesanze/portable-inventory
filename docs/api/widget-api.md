@@ -87,7 +87,7 @@ curl "https://your-domain.com/api/v1/widget/?api_key=abc123"
       "name": "Widget A",
       "sku": "WA-001",
       "stock_display": "150 units",
-      "engine_type": "STANDARD"
+      "engine_type": "counter"
     }
   ],
   "poly_products": []
@@ -115,7 +115,7 @@ Add or subtract stock for a product.
 ```json
 {
   "api_key": "abc123",
-  "direction": "Inbound",
+  "operation": "add",
   "quantity": 50,
   "location_id": "550e8400-e29b-41d4-a716-446655440001",
   "reason": "Purchase order received"
@@ -139,7 +139,9 @@ Add or subtract stock for a product.
 POST /api/v1/widget/move/
 ```
 
-Handle inbound/outbound stock adjustment via the InventoryOrchestrator.
+Handle inbound/outbound stock adjustment via the InventoryOrchestrator. Direction
+is taken from the **sign of `quantity`**: positive = inbound, negative = outbound
+(there is no `direction` field).
 
 **Request Body:**
 
@@ -148,7 +150,6 @@ Handle inbound/outbound stock adjustment via the InventoryOrchestrator.
   "api_key": "abc123",
   "product_id": "550e8400-...",
   "location_id": "550e8400-...",
-  "direction": "Inbound",
   "quantity": 25,
   "reason": "Receiving"
 }

@@ -2,14 +2,16 @@
 Engine integration tests: each engine type through full transaction cycle via API.
 Tests counter, converter, bucket, tracker engines through the widget transaction endpoint.
 """
+
 import pytest
 from decimal import Decimal
 from django.urls import reverse
 from rest_framework.test import APIClient
 from core.models import Company, User, ApiKey
 from inventory.models import (
-    ProductModel, Location,
-    CalculatorTemplate, PhysicalProduct,
+    ProductModel,
+    Location,
+    PhysicalProduct,
 )
 from inventory.services import LedgerService, StockService
 
@@ -50,8 +52,12 @@ class TestCounterEngineIntegration:
         )
         # Seed stock
         LedgerService.transfer_stock(
-            product, engine_env["supplier"], engine_env["warehouse"],
-            Decimal("100"), engine_env["user"], "Seed",
+            product,
+            engine_env["supplier"],
+            engine_env["warehouse"],
+            Decimal("100"),
+            engine_env["user"],
+            "Seed",
         )
 
         client = engine_env["client"]
@@ -72,7 +78,11 @@ class TestCounterEngineIntegration:
         # Subtract 10
         resp = client.post(
             f"{tx_url}?api_key={key}",
-            {"operation": "subtract", "quantity": 10, "location_id": str(engine_env["warehouse"].id)},
+            {
+                "operation": "subtract",
+                "quantity": 10,
+                "location_id": str(engine_env["warehouse"].id),
+            },
             format="json",
         )
         assert resp.status_code == 200
@@ -142,13 +152,21 @@ class TestTrackerEngineIntegration:
 
         # Seed stock for the items via ledger
         LedgerService.transfer_stock(
-            product, engine_env["supplier"], engine_env["warehouse"],
-            Decimal("1"), engine_env["user"], "Item SN-001 inbound",
+            product,
+            engine_env["supplier"],
+            engine_env["warehouse"],
+            Decimal("1"),
+            engine_env["user"],
+            "Item SN-001 inbound",
             physical_product=item1,
         )
         LedgerService.transfer_stock(
-            product, engine_env["supplier"], engine_env["warehouse"],
-            Decimal("1"), engine_env["user"], "Item SN-002 inbound",
+            product,
+            engine_env["supplier"],
+            engine_env["warehouse"],
+            Decimal("1"),
+            engine_env["user"],
+            "Item SN-002 inbound",
             physical_product=item2,
         )
 

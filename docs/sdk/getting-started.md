@@ -77,7 +77,7 @@ No JavaScript required. Drop the element into your HTML:
 ></portable-inventory>
 ```
 
-See [[web-component]] for full attribute reference and framework examples.
+See [Web Component](web-component.md) for full attribute reference and framework examples.
 
 ## Quick Start — UMD (Script Tag + JS API)
 
@@ -116,7 +116,7 @@ const widget = new PortableInventory({
 widget.mount();
 ```
 
-See [[api-reference]] for all `ThemeConfig` options.
+See [API Reference](api-reference.md) for all `ThemeConfig` options.
 
 ## Listening to Events
 
@@ -152,6 +152,6 @@ widget.destroy();
 
 ## Next Steps
 
-- [[api-reference]] — Full class API, config options, event types
-- [[web-component]] — `<portable-inventory>` element reference and framework snippets
-- [[security]] — CSP headers, domain whitelisting, origin validation
+- [API Reference](api-reference.md) — Full class API, config options, event types
+- [Web Component](web-component.md) — `<portable-inventory>` element reference and framework snippets
+- [Security](security.md) — CSP headers, domain whitelisting, origin validation

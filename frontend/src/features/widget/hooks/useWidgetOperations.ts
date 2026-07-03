@@ -1,7 +1,8 @@
 import { PROFILE_METADATA } from '../../../types/api';
 import type { InventoryProfile } from '../../../types/api';
 import type { Product, ProductBatch, ProductComponent, BatchManagerData } from '../types';
-import { buildMoveCalculatorPayload } from '../payload';
+import { buildMovePayloadParts, buildBatchUpdatePayload } from '../payload';
+import type { MoveCalcEnvelope, MoveBatchData } from '../payload';
 
 type WidgetMessage = { type: 'success' | 'error'; text: string } | null;
 
@@ -53,18 +54,9 @@ interface WidgetStateBag {
     fulfillFailedText: string;
 }
 
-/** Per-engine calculation envelope nested inside a move payload. */
-interface CalculatorPayload {
-    operation: 'add' | 'subtract';
-    quantity?: number | string;
-    dimension_values?: Record<string, number>;
-    expiry_date?: string;
-    batch_ref?: string;
-    batch_data?: Record<string, string>;
-    batch_id?: string;
-}
-
-/** Body posted to `/widget/move/`. */
+/** Body posted to `/widget/move/`. `calc_payload` carries the numeric/dimension
+ *  envelope; `batch_data`/`batch_id` sit TOP-LEVEL, exactly where the backend
+ *  orchestrator reads them (see payload.ts / test_bucket_flow.py). */
 interface MovePayload {
     api_key: string | null;
     product_id: string;
@@ -73,7 +65,9 @@ interface MovePayload {
     reason: string;
     physical_identifier?: string;
     work_order_id?: string;
-    calculator_payload?: CalculatorPayload;
+    calc_payload?: MoveCalcEnvelope;
+    batch_data?: MoveBatchData;
+    batch_id?: string;
 }
 
 /** A grouped child bucket built for the batch-manager composition view. */
@@ -255,7 +249,7 @@ export const useWidgetOperations = (
         const isTargetTimeBased = targetProduct.profile === 'PERISHABLE';
 
         // BATCH_TRACKED specifically — PERISHABLE is also supportsBatches but is
-        // handled by buildMoveCalculatorPayload's profile precedence (expiry, not
+        // handled by buildMovePayloadParts' profile precedence (expiry, not
         // a selected batch).
         const isBatchTracked = isTargetBucket && !isTargetDimension && !isTargetTimeBased;
         if (isTargetTracker) {
@@ -269,14 +263,17 @@ export const useWidgetOperations = (
                 setMessage({ type: 'error', text: "Please select a batch to consume from" });
                 return;
             }
-            // Per-engine calculator envelope — the per-profile field rules live in
-            // payload.ts so the move and transaction paths can't drift (MOD-03).
-            const calc = buildMoveCalculatorPayload(
+            // Per-profile move-body pieces — the field rules live in payload.ts so
+            // the move and scanner paths can't drift (MOD-03). calc_payload drives
+            // the numeric/dimension engines; batch_data/batch_id are top-level.
+            const parts = buildMovePayloadParts(
                 targetProduct.profile,
                 isAdd ? 'add' : 'subtract',
-                { qty, batchData, batchIdentifier, selectedBatchId, expiryDate, batchRef, hasCalcConfig: !!targetProduct.calc_config },
+                { qty, batchData, batchIdentifier, selectedBatchId, expiryDate, batchRef },
             );
-            if (calc) payload.calculator_payload = calc;
+            if (parts.calc_payload) payload.calc_payload = parts.calc_payload;
+            if (parts.batch_data) payload.batch_data = parts.batch_data;
+            if (parts.batch_id) payload.batch_id = parts.batch_id;
         }
 
         setActionLoading(true);
@@ -311,13 +308,12 @@ export const useWidgetOperations = (
                 };
             } else if (isParentBatchManager && workOrderId) {
                 url = `${apiUrl}/widget/${workOrderId}/transaction/`;
-                finalPayload = {
-                    operation: 'batch_update_item',
-                    product_model_id: targetProductId,
+                finalPayload = buildBatchUpdatePayload({
+                    productModelId: targetProductId,
                     delta: isAdd ? qty : -qty,
-                    physical_identifier: identifier,
-                    batch_id: selectedBatchId || undefined
-                };
+                    physicalIdentifier: identifier,
+                    batchId: selectedBatchId || undefined,
+                });
             } else if (!isAdd && workOrderId) {
                 payload.work_order_id = workOrderId;
             }

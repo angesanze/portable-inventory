@@ -145,6 +145,11 @@
       "batchReferenceOptional": "Riferimento lotto opzionale",
       "addWithExpiry": "Aggiungi con Scadenza"
     },
+    "batchTrackedForm": {
+      "title": "Carica Giacenza Lotto",
+      "lotId": "ID Lotto",
+      "lotIdOptional": "Opzionale — generato automaticamente se vuoto"
+    },
     "trackerPanel": {
       "itemsLoadedFromProduct": "Articoli caricati dall'inventario prodotto",
       "updateStatus": "AGGIORNA STATO"

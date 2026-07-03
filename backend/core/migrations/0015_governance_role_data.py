@@ -10,20 +10,21 @@ Conservative by design — nobody loses access on deploy:
 Reverse is a no-op: the enum values are valid free-text, so downgrading the
 field back to a plain CharField needs no data change.
 """
+
 from django.db import migrations
 
 
-OWNER = 'OWNER'
-ADMIN = 'ADMIN'
-OPERATOR = 'OPERATOR'
-VIEWER = 'VIEWER'
+OWNER = "OWNER"
+ADMIN = "ADMIN"
+OPERATOR = "OPERATOR"
+VIEWER = "VIEWER"
 
 _ALIASES = {
-    'admin': ADMIN,
-    'owner': OWNER,
-    'operator': OPERATOR,
-    'worker': OPERATOR,
-    'viewer': VIEWER,
+    "admin": ADMIN,
+    "owner": OWNER,
+    "operator": OPERATOR,
+    "worker": OPERATOR,
+    "viewer": VIEWER,
 }
 _ENUM = {OWNER, ADMIN, OPERATOR, VIEWER}
 
@@ -41,28 +42,24 @@ def _canonical(role):
 
 
 def forwards(apps, schema_editor):
-    User = apps.get_model('core', 'User')
-    Company = apps.get_model('core', 'Company')
+    User = apps.get_model("core", "User")
+    Company = apps.get_model("core", "Company")
 
     # 1. Normalize every existing role onto the enum (default ADMIN).
-    for user in User.objects.all().only('id', 'role'):
+    for user in User.objects.all().only("id", "role"):
         canonical = _canonical(user.role)
         if user.role != canonical:
             user.role = canonical
-            user.save(update_fields=['role'])
+            user.save(update_fields=["role"])
 
     # 2. Promote the first user of each company to OWNER so every company has
     #    exactly one owner of record. Company-less users (e.g. bare superusers)
     #    are left as-is.
-    for company in Company.objects.all().only('id'):
-        first = (
-            User.objects.filter(company_id=company.id)
-            .order_by('date_joined', 'id')
-            .first()
-        )
+    for company in Company.objects.all().only("id"):
+        first = User.objects.filter(company_id=company.id).order_by("date_joined", "id").first()
         if first is not None and first.role != OWNER:
             first.role = OWNER
-            first.save(update_fields=['role'])
+            first.save(update_fields=["role"])
 
 
 def backwards(apps, schema_editor):
@@ -71,9 +68,8 @@ def backwards(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0014_governance_license_role'),
+        ("core", "0014_governance_license_role"),
     ]
 
     operations = [

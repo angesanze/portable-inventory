@@ -4,15 +4,22 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inventory', '0035_add_movement_location_indexes'),
+        ("inventory", "0035_add_movement_location_indexes"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='productmodel',
-            name='tracking_mode',
-            field=models.CharField(choices=[('BULK', 'Bulk (Quantity Only)'), ('INDIVIDUAL', 'Individual (Unique Items)'), ('BATCH', 'Batch/Lot Tracking')], default='BULK', max_length=20),
+            model_name="productmodel",
+            name="tracking_mode",
+            field=models.CharField(
+                choices=[
+                    ("BULK", "Bulk (Quantity Only)"),
+                    ("INDIVIDUAL", "Individual (Unique Items)"),
+                    ("BATCH", "Batch/Lot Tracking"),
+                ],
+                default="BULK",
+                max_length=20,
+            ),
         ),
     ]

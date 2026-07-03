@@ -155,6 +155,79 @@ i gate (sqlite + `--no-migrations` + tipi/lint/unit) non potevano vedere.
 frontend `tsc -b` 0 / `eslint` 0 / `vitest` 1277; migrazione applica su Postgres
 reale + sqlite; app **booota e serve**.
 
+### 6ª tornata — audit indipendente "fresco" (8 agenti in parallelo)
+
+Domanda: *"un audit massimo, ripartendo da zero, troverebbe ancora?"* → **sì**.
+Otto reviewer indipendenti (engine/ledger, servizi, sicurezza API, data-layer FE,
+feature FE, widget/SDK, docs, architettura) hanno **ri-verificato ogni fix delle
+5 tornate** (tutti reggono) e trovato una **classe nuova** che i gate non vedono:
+contratto payload FE↔BE del widget + comportamenti solo-runtime/solo-Postgres.
+Tutti i finding sotto sono **corretti + testati** (gate finali:
+backend **1014 passed / 0 regressioni**, frontend `tsc -b` 0 / `vitest` 1277).
+
+- 🔴 **WIDGET-01 [C]** — il widget postava l'envelope calcolatore sotto
+  `calculator_payload`, chiave che il backend **non legge** (`calc_payload`), con
+  `batch_id`/`batch_data` annidati invece che top-level. Fallback silenzioso alla
+  quantità grezza → **corruzione di giacenza** (UNIT_CONVERSION/DIMENSIONAL),
+  perdita scadenza/lotto (PERISHABLE/BATCH carico), 400 sul consumo lotto. Fix:
+  builder unico `buildMovePayloadParts` (move+scanner+offline) allineato al
+  contratto testato (`test_bucket_flow`) + **test di contratto** BE per profilo
+  (`test_widget_move_contract.py`). Anche WIDGET-02 (dimension flat path: guardia
+  qty riordinata + `dimension_values`) e WIDGET-03 (lock QR: `qr_code` accettato).
+- 🟠 **Sicurezza:** SEC-07 QR cross-tenant via `api_key`/`batch` (clean() esteso);
+  SEC-08 gate ruolo/licenza bypassato su ogni `@action` custom → gating per verbo
+  HTTP.
+- 🟠 **Correttezza:** COR-07 resi RMA BATCH irrisolvibili (batch_id nel `_move`);
+  COR-08 `check_rules` crash su Postgres (FK pendente EventLog → rule NULL +
+  isolamento per-prodotto); COR-09 remove-to-zero lotto (zero invece di delete,
+  Movement PROTECT); COR-10 status tracker custom → seriali immovibili
+  (`.update()` invece di `save()`).
+- 🟠 **Frontend/ops/docs:** FE-01 nessun `notificationProvider` → toast muti
+  (bridge Refine↔Toast); FE-02 `pagination mode:"off"` troncato a 10 righe
+  (sentinel `page_size=0`); OPS-01 `delete_company` crash con movimenti (ledger
+  cancellato prima del cascade); DOC-01 `SECURE_SSL_REDIRECT=1` disabilitava il
+  redirect; BUILD-01 `make` `pytest --parallel` + falso-verde `tsc --noEmit`;
+  DOC webhooks/JWT/rate-limit riallineati.
+- 🟡 **Medium:** COR-11 (qty WorkOrder validata), COR-12 (Movement pp/batch =
+  stesso prodotto), COR-13 (prenotazioni BATCH proteggono lo stock), COR-14
+  (bulk-delete ricomputa i costi), COR-15/16 (importer: no profile-flip su
+  stock, celle data XLSX ISO), COR-17 (pipeline alert scadenza cablata),
+  CONC-01 (`select_for_update` batch manager), IDEM-01 (idempotency per-tenant),
+  FE-03 (invalidazione cache su switch tenant), FE-04 (fallback JWT del widget
+  scopato all'`X-Acting-Company` → niente 404 sull'impersonation developer),
+  FE-05 (filtri `contains` non si sovrascrivono), WIDGET-04 (barcode scansionato:
+  location + calc_config), MOD-06 (`buildBatchUpdatePayload` unico per i 4 siti).
+- ⚪ **Low:** F-9 (`_retry` sul replay 401), FE-12 (`getIdentity` via axiosInstance),
+  FE-11 (badge stato seriale sui valori reali), chiave demo_client → placeholder.
+- 🛠️ **Build/CI/docs:** Makefile (`pytest` reale + `tsc -b`), job **SDK** in CI
+  (build+test), e l'intera **doc-polish** (SSL redirect completo, webhooks/JWT/
+  rate-limit, porte, workflow License, `StrategyEngine`→`BaseEngine`, nav mkdocs,
+  wikilinks, campo `direction`) allineati al codice.
+
+### 6ter — chiusura definitiva della coda
+
+- **ruff adottato del tutto**: aggiunta `backend/ruff.toml` (E402/`__init__`/
+  migrazioni/test esentati con motivo), `ruff check --fix` (**128** problemi,
+  compreso un **bug reale**: `Location.clean()` sollevava `ValidationError` non
+  importato → `NameError` su un ciclo di gerarchia — corretto + test), `ruff
+  format` su 357 file, e gate **ruff check + format** in CI, pin `ruff==0.15.20`
+  in requirements-dev + pre-commit. **`make lint` ora è verde.**
+- **Deps backend pinnate** (`>=installed,<next-major`) in `requirements.txt`.
+- **`types/api.ts`** riallineato ai serializer (Movement/DynamicQRCode/status).
+- Fixata la fixture rotta `test_orchestrator_fixes` (`comp` non definito).
+
+**Residuo accettato (decisione, non difetto):**
+- **ARCH-01** (`core↔inventory`) — **nessun ciclo a import-time** (le viste
+  platform caricano dopo i model; gli import inventory in `core` sono già inline
+  dove serve). La dipendenza console-platform → inventory è **intrinseca**;
+  renderla lazy peggiorerebbe il codice per zero beneficio, e la "purezza" piena
+  richiederebbe un'app `platform` separata (refactor a sé). Lasciato così.
+- **SDK postMessage `targetOrigin:'*'`** — Low a impatto contenuto (nessun
+  segreto nel messaggio); un fix corretto richiede una superficie di config
+  dell'origine consentita che rischia di rompere gli embed legittimi.
+- Lo schema `spectacular` ha **65 errori pre-esistenti** (collisioni enum),
+  verificati non introdotti qui.
+
 ---
 
 ## 2. Legenda

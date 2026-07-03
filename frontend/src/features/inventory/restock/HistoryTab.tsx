@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import { useTranslation } from "react-i18next";
 import { Skeleton } from "../../../components/ui/Skeleton";
+import { useAccent } from "../../../theme/useTheme";
 import type { ChartPoint, Period } from "./drawerTypes";
 
 interface HistoryTabProps {
@@ -33,6 +34,7 @@ export const HistoryTab = ({
     criticalT,
 }: HistoryTabProps) => {
     const { t } = useTranslation(["restock", "common"]);
+    const { accent } = useAccent();
     return (
         <div className="space-y-4">
             <div
@@ -114,8 +116,8 @@ export const HistoryTab = ({
                             <Area
                                 type="monotone"
                                 dataKey="on_hand"
-                                stroke="#6366f1"
-                                fill="#6366f1"
+                                stroke={accent}
+                                fill={accent}
                                 fillOpacity={0.15}
                                 strokeWidth={2}
                                 isAnimationActive={false}

@@ -9,60 +9,162 @@ import uuid
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('core', '0012_auditlog'),
-        ('inventory', '0060_sales_orders'),
+        ("core", "0012_auditlog"),
+        ("inventory", "0060_sales_orders"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='CountSession',
+            name="CountSession",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('status', models.CharField(choices=[('OPEN', 'Open'), ('COUNTING', 'Counting'), ('REVIEW', 'Review'), ('APPLIED', 'Applied'), ('CANCELLED', 'Cancelled')], default='OPEN', max_length=20)),
-                ('snapshot_at', models.DateTimeField(default=django.utils.timezone.now)),
-                ('notes', models.TextField(blank=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('applied_at', models.DateTimeField(blank=True, null=True)),
-                ('applied_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='applied_count_sessions', to=settings.AUTH_USER_MODEL)),
-                ('company', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='count_sessions', to='core.company')),
-                ('created_by', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='count_sessions', to=settings.AUTH_USER_MODEL)),
-                ('location', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='count_sessions', to='inventory.location')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("OPEN", "Open"),
+                            ("COUNTING", "Counting"),
+                            ("REVIEW", "Review"),
+                            ("APPLIED", "Applied"),
+                            ("CANCELLED", "Cancelled"),
+                        ],
+                        default="OPEN",
+                        max_length=20,
+                    ),
+                ),
+                ("snapshot_at", models.DateTimeField(default=django.utils.timezone.now)),
+                ("notes", models.TextField(blank=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("applied_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "applied_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="applied_count_sessions",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "company",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="count_sessions",
+                        to="core.company",
+                    ),
+                ),
+                (
+                    "created_by",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="count_sessions",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "location",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="count_sessions",
+                        to="inventory.location",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-created_at'],
+                "ordering": ["-created_at"],
             },
         ),
         migrations.CreateModel(
-            name='CountLine',
+            name="CountLine",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('expected_qty', models.DecimalField(decimal_places=4, default=Decimal('0'), max_digits=19)),
-                ('counted_qty', models.DecimalField(blank=True, decimal_places=4, max_digits=19, null=True)),
-                ('counted_at', models.DateTimeField(blank=True, null=True)),
-                ('batch', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='count_lines', to='inventory.productbatch')),
-                ('counted_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='counted_lines', to=settings.AUTH_USER_MODEL)),
-                ('physical_product', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='count_lines', to='inventory.physicalproduct')),
-                ('product_model', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='count_lines', to='inventory.productmodel')),
-                ('session', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='lines', to='inventory.countsession')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                (
+                    "expected_qty",
+                    models.DecimalField(decimal_places=4, default=Decimal("0"), max_digits=19),
+                ),
+                (
+                    "counted_qty",
+                    models.DecimalField(blank=True, decimal_places=4, max_digits=19, null=True),
+                ),
+                ("counted_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "batch",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="count_lines",
+                        to="inventory.productbatch",
+                    ),
+                ),
+                (
+                    "counted_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="counted_lines",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "physical_product",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="count_lines",
+                        to="inventory.physicalproduct",
+                    ),
+                ),
+                (
+                    "product_model",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="count_lines",
+                        to="inventory.productmodel",
+                    ),
+                ),
+                (
+                    "session",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="lines",
+                        to="inventory.countsession",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['id'],
+                "ordering": ["id"],
             },
         ),
         migrations.AddIndex(
-            model_name='countsession',
-            index=models.Index(fields=['company', 'status'], name='inventory_c_company_296621_idx'),
+            model_name="countsession",
+            index=models.Index(fields=["company", "status"], name="inventory_c_company_296621_idx"),
         ),
         migrations.AddIndex(
-            model_name='countsession',
-            index=models.Index(fields=['location', 'status'], name='inventory_c_locatio_5937f1_idx'),
+            model_name="countsession",
+            index=models.Index(
+                fields=["location", "status"], name="inventory_c_locatio_5937f1_idx"
+            ),
         ),
         migrations.AlterUniqueTogether(
-            name='countline',
-            unique_together={('session', 'product_model', 'batch', 'physical_product')},
+            name="countline",
+            unique_together={("session", "product_model", "batch", "physical_product")},
         ),
     ]

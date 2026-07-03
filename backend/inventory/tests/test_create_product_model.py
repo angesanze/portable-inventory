@@ -1,15 +1,24 @@
-
 from django.test import TestCase
 from core.models import Company, User
-from inventory.models import ProductModel, CalculatorTemplate, Location, ProductBatch, Movement, PhysicalProduct
+from inventory.models import (
+    ProductModel,
+    CalculatorTemplate,
+    Location,
+    ProductBatch,
+    Movement,
+    PhysicalProduct,
+)
 from inventory.services import ProductService
 from rest_framework.test import APIClient
 from rest_framework import status
 
+
 class ProductModelCreateTest(TestCase):
     def setUp(self):
         self.company = Company.objects.create(name="ProductCo", license_code="PROD01")
-        self.user = User.objects.create_user(username="prodadmin", password="password", company=self.company)
+        self.user = User.objects.create_user(
+            username="prodadmin", password="password", company=self.company
+        )
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
 
@@ -20,7 +29,7 @@ class ProductModelCreateTest(TestCase):
             "profile": "SERIALIZED",
             "attributes": {},
         }
-        response = self.client.post('/api/v1/product-models/', payload, format='json')
+        response = self.client.post("/api/v1/product-models/", payload, format="json")
 
         if response.status_code != 201:
             pass
@@ -52,13 +61,13 @@ class ProductModelCreateTest(TestCase):
                 }
             },
         )
-        response = self.client.get(f'/api/v1/product-models/{product.id}/')
+        response = self.client.get(f"/api/v1/product-models/{product.id}/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        ui = response.data.get('engine_ui_config')
+        ui = response.data.get("engine_ui_config")
         self.assertIsNotNone(ui)
-        self.assertEqual(ui['input_type'], 'tracker')
-        self.assertEqual(ui['status_transitions']['BROKEN'], ['REPAIRED'])
-        self.assertNotIn('fields', ui)
+        self.assertEqual(ui["input_type"], "tracker")
+        self.assertEqual(ui["status_transitions"]["BROKEN"], ["REPAIRED"])
+        self.assertNotIn("fields", ui)
 
     def test_create_product_with_preset(self):
         """POST /product-models/ with default_calculator persists FK and seeds engine_config."""
@@ -79,7 +88,7 @@ class ProductModelCreateTest(TestCase):
             "profile": "SERIALIZED",
             "default_calculator": str(tpl.id),
         }
-        response = self.client.post('/api/v1/product-models/', payload, format='json')
+        response = self.client.post("/api/v1/product-models/", payload, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
         self.assertEqual(str(response.data["default_calculator"]), str(tpl.id))
         self.assertEqual(
@@ -103,19 +112,17 @@ class ProductModelCreateTest(TestCase):
             "default_calculator": str(tpl.id),
             "engine_config": explicit,
         }
-        response = self.client.post('/api/v1/product-models/', payload, format='json')
+        response = self.client.post("/api/v1/product-models/", payload, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
         self.assertEqual(response.data["engine_config"], explicit)
 
     def test_create_duplicate_sku(self):
-        ProductModel.objects.create(company=self.company, sku="EXISTING", name="Old", profile="SIMPLE_COUNT")
+        ProductModel.objects.create(
+            company=self.company, sku="EXISTING", name="Old", profile="SIMPLE_COUNT"
+        )
 
-        payload = {
-            "sku": "EXISTING",
-            "name": "Duplicate",
-            "profile": "SIMPLE_COUNT"
-        }
-        response = self.client.post('/api/v1/product-models/', payload, format='json')
+        payload = {"sku": "EXISTING", "name": "Duplicate", "profile": "SIMPLE_COUNT"}
+        response = self.client.post("/api/v1/product-models/", payload, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         # Verify error message from unique_together constraint
         self.assertIn("already exists", str(response.data))
@@ -137,10 +144,10 @@ class ProductModelCreateTest(TestCase):
                 "initial_location_id": str(warehouse.id),
             },
         }
-        response = self.client.post('/api/v1/product-models/', payload, format='json')
+        response = self.client.post("/api/v1/product-models/", payload, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
 
-        product = ProductModel.objects.get(id=response.data['id'])
+        product = ProductModel.objects.get(id=response.data["id"])
         batches = ProductBatch.objects.filter(product_model=product)
         self.assertEqual(batches.count(), 1)
         batch = batches.first()
@@ -171,10 +178,10 @@ class ProductModelCreateTest(TestCase):
                 "initial_location_id": str(warehouse.id),
             },
         }
-        response = self.client.post('/api/v1/product-models/', payload, format='json')
+        response = self.client.post("/api/v1/product-models/", payload, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
 
-        product = ProductModel.objects.get(id=response.data['id'])
+        product = ProductModel.objects.get(id=response.data["id"])
         batches = ProductBatch.objects.filter(product_model=product)
         self.assertEqual(batches.count(), 1)
         batch = batches.first()
@@ -201,18 +208,18 @@ class ProductModelCreateTest(TestCase):
             "initial_serials": ["SN-001", "SN-002", "SN-003"],
             "initial_location_id": str(warehouse.id),
         }
-        response = self.client.post('/api/v1/product-models/', payload, format='json')
+        response = self.client.post("/api/v1/product-models/", payload, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
 
-        product = ProductModel.objects.get(id=response.data['id'])
+        product = ProductModel.objects.get(id=response.data["id"])
         items = PhysicalProduct.objects.filter(product_model=product)
         self.assertEqual(items.count(), 3)
         self.assertEqual(
-            sorted(items.values_list('identifier', flat=True)),
+            sorted(items.values_list("identifier", flat=True)),
             ["SN-001", "SN-002", "SN-003"],
         )
         for it in items:
-            self.assertEqual(it.status, 'ACTIVE')
+            self.assertEqual(it.status, "ACTIVE")
             self.assertEqual(it.location_id, warehouse.id)
 
         movements = Movement.objects.filter(product_model=product, to_location=warehouse)
@@ -232,12 +239,12 @@ class ProductModelCreateTest(TestCase):
             "initial_serials": ["SN-A", "SN-B", "SN-A"],
             "initial_location_id": str(warehouse.id),
         }
-        response = self.client.post('/api/v1/product-models/', payload, format='json')
+        response = self.client.post("/api/v1/product-models/", payload, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST, response.data)
-        self.assertIn('initial_serials', response.data)
-        self.assertIn('SN-A', str(response.data['initial_serials']))
+        self.assertIn("initial_serials", response.data)
+        self.assertIn("SN-A", str(response.data["initial_serials"]))
         # Atomic: nothing should be persisted on failure.
-        self.assertFalse(ProductModel.objects.filter(sku='SERIAL-DUP-1').exists())
+        self.assertFalse(ProductModel.objects.filter(sku="SERIAL-DUP-1").exists())
         self.assertEqual(PhysicalProduct.objects.count(), 0)
 
     def test_create_dimensional_with_initial_measurement(self):
@@ -259,10 +266,10 @@ class ProductModelCreateTest(TestCase):
             "initial_dimensions": {"length": 3, "width": 4},
             "initial_location_id": str(warehouse.id),
         }
-        response = self.client.post('/api/v1/product-models/', payload, format='json')
+        response = self.client.post("/api/v1/product-models/", payload, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
 
-        product = ProductModel.objects.get(id=response.data['id'])
+        product = ProductModel.objects.get(id=response.data["id"])
         movements = Movement.objects.filter(product_model=product, to_location=warehouse)
         self.assertEqual(movements.count(), 1)
         self.assertEqual(float(movements.first().quantity), 12.0)
@@ -280,9 +287,9 @@ class ProductModelCreateTest(TestCase):
                 "formula": "length * width",
             },
         }
-        response = self.client.post('/api/v1/product-models/', payload, format='json')
+        response = self.client.post("/api/v1/product-models/", payload, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
-        product = ProductModel.objects.get(id=response.data['id'])
+        product = ProductModel.objects.get(id=response.data["id"])
         self.assertEqual(Movement.objects.filter(product_model=product).count(), 0)
 
     def test_create_perishable_without_initial_batch_still_works(self):
@@ -292,9 +299,9 @@ class ProductModelCreateTest(TestCase):
             "name": "Empty Perishable",
             "profile": "PERISHABLE",
         }
-        response = self.client.post('/api/v1/product-models/', payload, format='json')
+        response = self.client.post("/api/v1/product-models/", payload, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
-        product = ProductModel.objects.get(id=response.data['id'])
+        product = ProductModel.objects.get(id=response.data["id"])
         self.assertEqual(ProductBatch.objects.filter(product_model=product).count(), 0)
         self.assertEqual(Movement.objects.filter(product_model=product).count(), 0)
 
@@ -330,10 +337,10 @@ class PolyInstanceCreateTest(TestCase):
 
     def test_create_poly_instance_clones_base_model(self):
         payload = {"name": "Cloned Instance", "product_model": str(self.base.id)}
-        response = self.client.post('/api/v1/products-poly/', payload, format='json')
+        response = self.client.post("/api/v1/products-poly/", payload, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
-        new_id = response.data['id']
+        new_id = response.data["id"]
         self.assertNotEqual(new_id, str(self.base.id))
 
         new = ProductModel.objects.get(id=new_id)
@@ -344,19 +351,13 @@ class PolyInstanceCreateTest(TestCase):
         self.assertTrue(new.sku.startswith("POLY-"))
 
     def test_create_poly_instance_requires_name_and_base(self):
-        response = self.client.post(
-            '/api/v1/products-poly/', {"name": "No Base"}, format='json'
-        )
+        response = self.client.post("/api/v1/products-poly/", {"name": "No Base"}, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_clone_poly_instance_service_generates_unique_skus(self):
         """ProductService.clone_poly_instance copies fields and yields unique POLY- SKUs."""
-        a = ProductService.clone_poly_instance(
-            self.base, name="A", company=self.company
-        )
-        b = ProductService.clone_poly_instance(
-            self.base, name="B", company=self.company
-        )
+        a = ProductService.clone_poly_instance(self.base, name="A", company=self.company)
+        b = ProductService.clone_poly_instance(self.base, name="B", company=self.company)
         self.assertEqual(a.profile, self.base.profile)
         self.assertEqual(a.default_calculator_id, self.preset.id)
         self.assertTrue(a.sku.startswith("POLY-"))

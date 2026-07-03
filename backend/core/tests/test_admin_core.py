@@ -41,6 +41,7 @@ def company(db):
 
 # -- changelists reachable ---------------------------------------------------
 
+
 @_plain_static
 @pytest.mark.parametrize(
     "changelist",
@@ -54,6 +55,7 @@ def test_changelist_returns_200(superclient, changelist):
 
 
 # -- search works (proves search_fields set) ---------------------------------
+
 
 @_plain_static
 @pytest.mark.parametrize(
@@ -70,6 +72,7 @@ def test_changelist_search_returns_200(superclient, changelist):
 
 
 # -- bulk action flips is_active ---------------------------------------------
+
 
 @_plain_static
 @pytest.mark.django_db
@@ -93,6 +96,7 @@ def test_suspend_companies_action_flips_is_active(superclient, company):
 
 # -- AuditLog is read-only (add denied) --------------------------------------
 
+
 @_plain_static
 @pytest.mark.django_db
 def test_auditlog_add_view_is_forbidden(superclient):
@@ -102,6 +106,7 @@ def test_auditlog_add_view_is_forbidden(superclient):
 
 
 # -- spot-check the ApiKey expiry badge + AuditLog metadata renderer ----------
+
 
 @_plain_static
 @pytest.mark.django_db

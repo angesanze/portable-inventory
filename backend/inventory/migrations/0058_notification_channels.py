@@ -7,49 +7,122 @@ import uuid
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0012_auditlog'),
-        ('inventory', '0057_reservation'),
+        ("core", "0012_auditlog"),
+        ("inventory", "0057_reservation"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='NotificationChannel',
+            name="NotificationChannel",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('name', models.CharField(max_length=255)),
-                ('kind', models.CharField(choices=[('EMAIL', 'Email'), ('WEBHOOK', 'Webhook')], max_length=20)),
-                ('is_active', models.BooleanField(default=True)),
-                ('recipients', models.TextField(blank=True, help_text='Comma-separated email addresses (EMAIL kind).')),
-                ('url', models.URLField(blank=True, help_text='Destination URL (WEBHOOK kind).')),
-                ('secret', models.CharField(default=inventory.models.notifications.generate_webhook_secret, editable=False, help_text='HMAC-SHA256 signing key for the X-PI-Signature header.', max_length=64)),
-                ('headers', models.JSONField(blank=True, default=dict, help_text='Optional extra HTTP headers (WEBHOOK kind).')),
-                ('event_filter', models.JSONField(blank=True, default=list, help_text='Trigger types this channel accepts (empty = all).')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('company', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='notification_channels', to='core.company')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+                (
+                    "kind",
+                    models.CharField(
+                        choices=[("EMAIL", "Email"), ("WEBHOOK", "Webhook")], max_length=20
+                    ),
+                ),
+                ("is_active", models.BooleanField(default=True)),
+                (
+                    "recipients",
+                    models.TextField(
+                        blank=True, help_text="Comma-separated email addresses (EMAIL kind)."
+                    ),
+                ),
+                ("url", models.URLField(blank=True, help_text="Destination URL (WEBHOOK kind).")),
+                (
+                    "secret",
+                    models.CharField(
+                        default=inventory.models.notifications.generate_webhook_secret,
+                        editable=False,
+                        help_text="HMAC-SHA256 signing key for the X-PI-Signature header.",
+                        max_length=64,
+                    ),
+                ),
+                (
+                    "headers",
+                    models.JSONField(
+                        blank=True,
+                        default=dict,
+                        help_text="Optional extra HTTP headers (WEBHOOK kind).",
+                    ),
+                ),
+                (
+                    "event_filter",
+                    models.JSONField(
+                        blank=True,
+                        default=list,
+                        help_text="Trigger types this channel accepts (empty = all).",
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "company",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="notification_channels",
+                        to="core.company",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-created_at'],
+                "ordering": ["-created_at"],
             },
         ),
         migrations.CreateModel(
-            name='NotificationDelivery',
+            name="NotificationDelivery",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('status', models.CharField(choices=[('PENDING', 'Pending'), ('SENT', 'Sent'), ('FAILED', 'Failed')], default='PENDING', max_length=20)),
-                ('attempts', models.PositiveIntegerField(default=0)),
-                ('last_error', models.TextField(blank=True)),
-                ('next_retry_at', models.DateTimeField(blank=True, null=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('channel', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='deliveries', to='inventory.notificationchannel')),
-                ('event_log', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='deliveries', to='inventory.eventlog')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[("PENDING", "Pending"), ("SENT", "Sent"), ("FAILED", "Failed")],
+                        default="PENDING",
+                        max_length=20,
+                    ),
+                ),
+                ("attempts", models.PositiveIntegerField(default=0)),
+                ("last_error", models.TextField(blank=True)),
+                ("next_retry_at", models.DateTimeField(blank=True, null=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "channel",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="deliveries",
+                        to="inventory.notificationchannel",
+                    ),
+                ),
+                (
+                    "event_log",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="deliveries",
+                        to="inventory.eventlog",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-created_at'],
-                'indexes': [models.Index(fields=['status', 'next_retry_at'], name='inventory_n_status_3fd1f5_idx')],
+                "ordering": ["-created_at"],
+                "indexes": [
+                    models.Index(
+                        fields=["status", "next_retry_at"], name="inventory_n_status_3fd1f5_idx"
+                    )
+                ],
             },
         ),
     ]

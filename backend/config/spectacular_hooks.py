@@ -15,47 +15,47 @@ per-viewset:
 """
 
 ACTING_COMPANY_PARAMETER = {
-    'name': 'X-Acting-Company',
-    'in': 'header',
-    'required': False,
-    'description': (
-        'Optional. A developer-tier company may scope the request to a child '
-        'tenant it owns by sending that child company UUID. Ignored for '
-        'managers acting on their own company; superusers may name any company.'
+    "name": "X-Acting-Company",
+    "in": "header",
+    "required": False,
+    "description": (
+        "Optional. A developer-tier company may scope the request to a child "
+        "tenant it owns by sending that child company UUID. Ignored for "
+        "managers acting on their own company; superusers may name any company."
     ),
-    'schema': {'type': 'string', 'format': 'uuid'},
+    "schema": {"type": "string", "format": "uuid"},
 }
 
 
 def _is_v1_path(path):
-    return path.startswith('/api/v1/')
+    return path.startswith("/api/v1/")
 
 
 def add_acting_company_header(result, generator, request, public):
     """Add the optional X-Acting-Company header to every authenticated v1 op."""
-    for path, path_item in result.get('paths', {}).items():
+    for path, path_item in result.get("paths", {}).items():
         if not _is_v1_path(path):
             continue
         for method, operation in path_item.items():
-            if method not in {'get', 'post', 'put', 'patch', 'delete'}:
+            if method not in {"get", "post", "put", "patch", "delete"}:
                 continue
             # Skip the public widget + onboarding surface: those are api_key /
             # anonymous, never developer-impersonation paths.
-            if '/widget/' in path or '/onboarding/' in path:
+            if "/widget/" in path or "/onboarding/" in path:
                 continue
-            params = operation.setdefault('parameters', [])
-            if not any(p.get('name') == 'X-Acting-Company' for p in params):
+            params = operation.setdefault("parameters", [])
+            if not any(p.get("name") == "X-Acting-Company" for p in params):
                 params.append(dict(ACTING_COMPANY_PARAMETER))
     return result
 
 
 def tag_platform_endpoints(result, generator, request, public):
     """Group the superuser-only platform/* operations under a 'Platform' tag."""
-    for path, path_item in result.get('paths', {}).items():
-        if '/platform/' not in path:
+    for path, path_item in result.get("paths", {}).items():
+        if "/platform/" not in path:
             continue
         for method, operation in path_item.items():
-            if method not in {'get', 'post', 'put', 'patch', 'delete'}:
+            if method not in {"get", "post", "put", "patch", "delete"}:
                 continue
-            operation['tags'] = ['Platform']
+            operation["tags"] = ["Platform"]
     return result

@@ -1,4 +1,5 @@
 """EngineFactory: profile/engine_type -> engine instance."""
+
 from typing import Any, Dict
 
 from .base import BaseEngine
@@ -11,6 +12,7 @@ class EngineFactory:
     """
     Factory to instantiate the appropriate engine for a product.
     """
+
     _engines = {
         "counter": CounterEngine,
         "converter": ConverterEngine,
@@ -22,13 +24,13 @@ class EngineFactory:
 
     # Profile → engine class registry
     _profile_registry = {
-        'SIMPLE_COUNT': CounterEngine,
-        'UNIT_CONVERSION': ConverterEngine,
-        'DIMENSIONAL': DimensionEngine,
-        'BATCH_TRACKED': BucketEngine,
-        'PERISHABLE': TimeBasedEngine,
-        'SERIALIZED': TrackerEngine,
-        'ASSEMBLED': CounterEngine,
+        "SIMPLE_COUNT": CounterEngine,
+        "UNIT_CONVERSION": ConverterEngine,
+        "DIMENSIONAL": DimensionEngine,
+        "BATCH_TRACKED": BucketEngine,
+        "PERISHABLE": TimeBasedEngine,
+        "SERIALIZED": TrackerEngine,
+        "ASSEMBLED": CounterEngine,
     }
 
     @classmethod
@@ -55,11 +57,11 @@ class EngineFactory:
         Accepts a ProductModel instance.
         Uses profile for dispatch, falls back to engine_type for backward compat.
         """
-        profile = getattr(product, 'profile', None)
+        profile = getattr(product, "profile", None)
 
         if profile and profile in cls._profile_registry:
             engine_cls = cls._profile_registry[profile]
-            config = getattr(product, 'engine_config', {})
+            config = getattr(product, "engine_config", {})
             return engine_cls(product, config)
 
         # Fallback to legacy dispatch
@@ -75,4 +77,3 @@ class EngineFactory:
         if not engine_cls:
             return [f"Unknown engine type: {engine_type}"]
         return engine_cls.validate_config(config)
-

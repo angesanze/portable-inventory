@@ -18,18 +18,19 @@ Design constraints honored here:
   enforced here — they are checked only at the relevant create points so we
   never count rows on every request.
 """
+
 from django.http import JsonResponse
 
-SAFE_METHODS = frozenset({'GET', 'HEAD', 'OPTIONS', 'TRACE'})
+SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS", "TRACE"})
 
 # Path prefixes that must stay writable even with an expired license: auth
 # (token obtain/refresh), self-service onboarding, and the schema. Matched as
 # substrings against the request path.
 _EXEMPT_PATH_MARKERS = (
-    '/token',
-    '/onboarding/',
-    '/register',
-    '/schema',
+    "/token",
+    "/onboarding/",
+    "/register",
+    "/schema",
 )
 
 
@@ -43,9 +44,9 @@ class LicenseEnforcementMiddleware:
         if self._should_block(request):
             return JsonResponse(
                 {
-                    'code': 'license_expired',
-                    'detail': 'Your license has expired. The workspace is '
-                              'read-only until it is renewed.',
+                    "code": "license_expired",
+                    "detail": "Your license has expired. The workspace is "
+                    "read-only until it is renewed.",
                 },
                 status=403,
             )
@@ -56,27 +57,27 @@ class LicenseEnforcementMiddleware:
         if method in SAFE_METHODS:
             return False
 
-        path = request.path or ''
+        path = request.path or ""
         if any(marker in path for marker in _EXEMPT_PATH_MARKERS):
             return False
 
         user = self._resolve_user(request)
-        if not (user and getattr(user, 'is_authenticated', False)):
+        if not (user and getattr(user, "is_authenticated", False)):
             return False
-        if getattr(user, 'is_superuser', False):
+        if getattr(user, "is_superuser", False):
             return False
 
         # The effective company the write would land on. Prefer the resolved
         # acting company (developer acting on a child); fall back to the
         # scoped company, then the user's own company.
         company = (
-            getattr(request, 'acting_company', None)
-            or getattr(request, 'company', None)
-            or getattr(user, 'company', None)
+            getattr(request, "acting_company", None)
+            or getattr(request, "company", None)
+            or getattr(user, "company", None)
         )
         if company is None:
             return False
-        return bool(getattr(company, 'is_license_expired', False))
+        return bool(getattr(company, "is_license_expired", False))
 
     @staticmethod
     def _resolve_user(request):
@@ -89,11 +90,12 @@ class LicenseEnforcementMiddleware:
         license gate sees the real user. Any auth failure is swallowed — DRF
         will surface the proper 401 downstream.
         """
-        user = getattr(request, 'user', None)
-        if user is not None and getattr(user, 'is_authenticated', False):
+        user = getattr(request, "user", None)
+        if user is not None and getattr(user, "is_authenticated", False):
             return user
         try:
             from rest_framework_simplejwt.authentication import JWTAuthentication
+
             result = JWTAuthentication().authenticate(request)
         except Exception:
             return None

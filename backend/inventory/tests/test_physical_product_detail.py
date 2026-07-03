@@ -7,6 +7,7 @@ to build itself from a single GET. This file pins down the contract:
 * ``status_label``, ``attributes``, ``created_at``/``updated_at``;
 * ``last_status_change`` — most recent ``quantity=0`` audit Movement, or null.
 """
+
 import pytest
 from rest_framework.test import APIClient
 
@@ -20,7 +21,9 @@ from inventory.tests.helpers import make_company
 def env(db):
     company, user, _ = make_company("DET")
     warehouse = Location.objects.create(
-        company=company, name="Main Warehouse", type="WAREHOUSE",
+        company=company,
+        name="Main Warehouse",
+        type="WAREHOUSE",
     )
     transitions = {
         "ACTIVE": ["BROKEN"],
@@ -53,21 +56,26 @@ def env(db):
 class TestPhysicalProductDetailPayload:
     def test_detail_returns_last_status_change_for_latest_audit(self, env):
         engine = TrackerEngine(env["product"], env["product"].engine_config)
-        TrackerStatusBehavior.execute_status_change(engine, {
-            "physical_product_id": str(env["pp"].id),
-            "new_status": "BROKEN",
-            "notes": "screen cracked",
-            "user": env["user"],
-        })
-        TrackerStatusBehavior.execute_status_change(engine, {
-            "physical_product_id": str(env["pp"].id),
-            "new_status": "ACTIVE",
-            "notes": "back from repair",
-            "user": env["user"],
-        })
+        TrackerStatusBehavior.execute_status_change(
+            engine,
+            {
+                "physical_product_id": str(env["pp"].id),
+                "new_status": "BROKEN",
+                "notes": "screen cracked",
+                "user": env["user"],
+            },
+        )
+        TrackerStatusBehavior.execute_status_change(
+            engine,
+            {
+                "physical_product_id": str(env["pp"].id),
+                "new_status": "ACTIVE",
+                "notes": "back from repair",
+                "user": env["user"],
+            },
+        )
         latest = (
-            Movement.objects
-            .filter(physical_product=env["pp"], quantity=0)
+            Movement.objects.filter(physical_product=env["pp"], quantity=0)
             .order_by("-occurred_at")
             .first()
         )

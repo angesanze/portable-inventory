@@ -6,34 +6,67 @@ import uuid
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0005_apikey_default_location'),
-        ('inventory', '0002_alter_physicalproduct_unique_together_and_more'),
+        ("core", "0005_apikey_default_location"),
+        ("inventory", "0002_alter_physicalproduct_unique_together_and_more"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Product',
+            name="Product",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('name', models.CharField(max_length=255)),
-                ('attributes', models.JSONField(blank=True, default=dict)),
-                ('engine_type', models.CharField(choices=[('counter', 'Counter (Discrete)'), ('converter', 'Converter (Continuous)'), ('bucket', 'Bucket (Segmented)')], max_length=50)),
-                ('engine_config', models.JSONField(blank=True, default=dict)),
-                ('stock_value', models.JSONField(blank=True, default=dict)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('company', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='products', to='core.company')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+                ("attributes", models.JSONField(blank=True, default=dict)),
+                (
+                    "engine_type",
+                    models.CharField(
+                        choices=[
+                            ("counter", "Counter (Discrete)"),
+                            ("converter", "Converter (Continuous)"),
+                            ("bucket", "Bucket (Segmented)"),
+                        ],
+                        max_length=50,
+                    ),
+                ),
+                ("engine_config", models.JSONField(blank=True, default=dict)),
+                ("stock_value", models.JSONField(blank=True, default=dict)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "company",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="products",
+                        to="core.company",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='Transaction',
+            name="Transaction",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('delta', models.JSONField()),
-                ('metadata', models.JSONField(blank=True, default=dict)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('product', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='transactions', to='inventory.product')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("delta", models.JSONField()),
+                ("metadata", models.JSONField(blank=True, default=dict)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "product",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="transactions",
+                        to="inventory.product",
+                    ),
+                ),
             ],
         ),
     ]

@@ -1,47 +1,48 @@
 """DATA-ONBOARDING-09 — barcode + CSV/Excel import tests."""
+
 import io
-import json
 
 import pytest
 from django.test import TestCase
 from rest_framework.test import APIClient
-from rest_framework import status
 
 from core.models import Company, User, ApiKey
 from inventory.models import ProductModel, PhysicalProduct, ProductBatch, Location, Supplier
 from inventory.services import importer, StockService
-from inventory.services.onboarding import onboard_initial_stock
 from inventory.validators import validate_gtin
 
 
 # --------------------------------------------------------------------------
 # validate_gtin — table-driven check-digit tests
 # --------------------------------------------------------------------------
-@pytest.mark.parametrize("code,expected", [
-    # EAN-13 (valid real-world examples)
-    ("4006381333931", True),
-    ("5012345678900", True),
-    ("0012345678905", True),   # 13-digit form of a UPC
-    # EAN-8
-    ("96385074", True),
-    ("73513537", True),
-    # UPC-A (12 digits)
-    ("036000291452", True),
-    ("012345678905", True),
-    # GTIN-14
-    ("00012345678905", True),
-    # Wrong check digit
-    ("4006381333932", False),
-    ("96385075", False),
-    ("036000291453", False),
-    # Wrong length
-    ("12345", False),
-    ("123456789012345", False),
-    # Non-numeric / empty
-    ("ABCDEFGH", False),
-    ("", False),
-    ("400638133393X", False),
-])
+@pytest.mark.parametrize(
+    "code,expected",
+    [
+        # EAN-13 (valid real-world examples)
+        ("4006381333931", True),
+        ("5012345678900", True),
+        ("0012345678905", True),  # 13-digit form of a UPC
+        # EAN-8
+        ("96385074", True),
+        ("73513537", True),
+        # UPC-A (12 digits)
+        ("036000291452", True),
+        ("012345678905", True),
+        # GTIN-14
+        ("00012345678905", True),
+        # Wrong check digit
+        ("4006381333932", False),
+        ("96385075", False),
+        ("036000291453", False),
+        # Wrong length
+        ("12345", False),
+        ("123456789012345", False),
+        # Non-numeric / empty
+        ("ABCDEFGH", False),
+        ("", False),
+        ("400638133393X", False),
+    ],
+)
 def test_validate_gtin_table(code, expected):
     assert validate_gtin(code) is expected
 
@@ -52,7 +53,10 @@ def test_validate_gtin_table(code, expected):
 def _make_company(suffix="A"):
     company = Company.objects.create(name=f"Co{suffix}", license_code=f"LIC{suffix}")
     user = User.objects.create_user(
-        username=f"user_{suffix}", password="pw", company=company, role="Admin",
+        username=f"user_{suffix}",
+        password="pw",
+        company=company,
+        role="Admin",
     )
     api_key = ApiKey.objects.create(company=company, key=f"key-{suffix}-12345", label="K")
     for name, loc_type in [
@@ -74,8 +78,10 @@ def _csv_bytes(header, rows):
     return f
 
 
-HEADER = ("sku,name,profile,barcode,engine_config,initial_stock,location,"
-          "supplier,unit_cost,batch_identifier,expiry_date,serials")
+HEADER = (
+    "sku,name,profile,barcode,engine_config,initial_stock,location,"
+    "supplier,unit_cost,batch_identifier,expiry_date,serials"
+)
 
 
 # --------------------------------------------------------------------------
@@ -107,8 +113,22 @@ class ParseTest(TestCase):
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.append(HEADER.split(","))
-        ws.append(["SKU-X", "Excel Widget", "SIMPLE_COUNT", "", "", "10",
-                   "Main Warehouse", "", "", "", "", ""])
+        ws.append(
+            [
+                "SKU-X",
+                "Excel Widget",
+                "SIMPLE_COUNT",
+                "",
+                "",
+                "10",
+                "Main Warehouse",
+                "",
+                "",
+                "",
+                "",
+                "",
+            ]
+        )
         buf = io.BytesIO()
         wb.save(buf)
         buf.seek(0)
@@ -129,14 +149,20 @@ class ImportFlowTest(TestCase):
 
     def test_validate_create_update_error(self):
         ProductModel.objects.create(
-            company=self.company, sku="EXIST", name="Existing", profile="SIMPLE_COUNT",
+            company=self.company,
+            sku="EXIST",
+            name="Existing",
+            profile="SIMPLE_COUNT",
         )
-        f = _csv_bytes(HEADER, [
-            "NEW1,New Product,SIMPLE_COUNT,,,,,,,,,",        # CREATE
-            "EXIST,Renamed,SIMPLE_COUNT,,,,,,,,,",            # UPDATE
-            ",NoSku,SIMPLE_COUNT,,,,,,,,,",                   # ERROR (no sku)
-            "BAD,Bad Profile,NOPE,,,,,,,,,",                  # ERROR (profile)
-        ])
+        f = _csv_bytes(
+            HEADER,
+            [
+                "NEW1,New Product,SIMPLE_COUNT,,,,,,,,,",  # CREATE
+                "EXIST,Renamed,SIMPLE_COUNT,,,,,,,,,",  # UPDATE
+                ",NoSku,SIMPLE_COUNT,,,,,,,,,",  # ERROR (no sku)
+                "BAD,Bad Profile,NOPE,,,,,,,,,",  # ERROR (profile)
+            ],
+        )
         rows = importer.parse(f)
         results = importer.validate_rows(self.company, rows)
         by_row = {r["row"]: r for r in results}
@@ -147,7 +173,10 @@ class ImportFlowTest(TestCase):
 
     def test_validate_rejects_initial_stock_on_update(self):
         ProductModel.objects.create(
-            company=self.company, sku="UPD", name="U", profile="SIMPLE_COUNT",
+            company=self.company,
+            sku="UPD",
+            name="U",
+            profile="SIMPLE_COUNT",
         )
         f = _csv_bytes(HEADER, ["UPD,U,SIMPLE_COUNT,,,99,Main Warehouse,,,,,"])
         rows = importer.parse(f)
@@ -174,7 +203,8 @@ class ImportFlowTest(TestCase):
         f = _csv_bytes(HEADER, ["DRY1,Dry,SIMPLE_COUNT,,,5,Main Warehouse,,,,,"])
         resp = client.post(
             "/api/v1/import/products/?dry_run=true",
-            {"file": f}, format="multipart",
+            {"file": f},
+            format="multipart",
         )
         self.assertEqual(resp.status_code, 200)
         self.assertTrue(resp.data["dry_run"])
@@ -182,9 +212,12 @@ class ImportFlowTest(TestCase):
         self.assertFalse(ProductModel.objects.filter(sku="DRY1").exists())
 
     def test_commit_creates_product_and_stock(self):
-        f = _csv_bytes(HEADER, [
-            "BULK1,Bulk Product,SIMPLE_COUNT,4006381333931,,7,Main Warehouse,Acme,2.50,,,",
-        ])
+        f = _csv_bytes(
+            HEADER,
+            [
+                "BULK1,Bulk Product,SIMPLE_COUNT,4006381333931,,7,Main Warehouse,Acme,2.50,,,",
+            ],
+        )
         rows = importer.parse(f)
         report = importer.commit(self.company, rows, self.user)
         self.assertEqual(report["created"], 1)
@@ -197,9 +230,12 @@ class ImportFlowTest(TestCase):
         self.assertTrue(Supplier.objects.filter(company=self.company, name="Acme").exists())
 
     def test_commit_creates_batch_stock(self):
-        f = _csv_bytes(HEADER, [
-            "BAT1,Batch Product,BATCH_TRACKED,,,12,Main Warehouse,,,LOT-A,2030-01-01,",
-        ])
+        f = _csv_bytes(
+            HEADER,
+            [
+                "BAT1,Batch Product,BATCH_TRACKED,,,12,Main Warehouse,,,LOT-A,2030-01-01,",
+            ],
+        )
         rows = importer.parse(f)
         report = importer.commit(self.company, rows, self.user)
         self.assertEqual(report["created"], 1)
@@ -211,9 +247,12 @@ class ImportFlowTest(TestCase):
     def test_commit_normalizes_non_iso_expiry_to_iso(self):
         # validate_rows accepts DD/MM/YYYY, but the stored batch date must be ISO
         # so downstream expiry parsing/monitoring (which only groks ISO) works.
-        f = _csv_bytes(HEADER, [
-            "BAT-EXP,Perishable,BATCH_TRACKED,,,5,Main Warehouse,,,LOT-EXP,01/02/2026,",
-        ])
+        f = _csv_bytes(
+            HEADER,
+            [
+                "BAT-EXP,Perishable,BATCH_TRACKED,,,5,Main Warehouse,,,LOT-EXP,01/02/2026,",
+            ],
+        )
         rows = importer.parse(f)
         report = importer.commit(self.company, rows, self.user)
         self.assertEqual(report["created"], 1)
@@ -225,9 +264,12 @@ class ImportFlowTest(TestCase):
 
     def test_commit_keeps_iso_expiry_iso(self):
         # An already-ISO expiry must pass through unchanged.
-        f = _csv_bytes(HEADER, [
-            "BAT-ISO,Perishable,BATCH_TRACKED,,,5,Main Warehouse,,,LOT-ISO,2026-12-31,",
-        ])
+        f = _csv_bytes(
+            HEADER,
+            [
+                "BAT-ISO,Perishable,BATCH_TRACKED,,,5,Main Warehouse,,,LOT-ISO,2026-12-31,",
+            ],
+        )
         rows = importer.parse(f)
         importer.commit(self.company, rows, self.user)
         product = ProductModel.objects.get(company=self.company, sku="BAT-ISO")
@@ -235,25 +277,33 @@ class ImportFlowTest(TestCase):
         self.assertEqual(batch.data.get("expiry_date"), "2026-12-31")
 
     def test_commit_creates_serials(self):
-        f = _csv_bytes(HEADER, [
-            "SER1,Serial Product,SERIALIZED,,,,Main Warehouse,,,,,S1;S2;S3",
-        ])
+        f = _csv_bytes(
+            HEADER,
+            [
+                "SER1,Serial Product,SERIALIZED,,,,Main Warehouse,,,,,S1;S2;S3",
+            ],
+        )
         rows = importer.parse(f)
         report = importer.commit(self.company, rows, self.user)
         self.assertEqual(report["created"], 1)
         product = ProductModel.objects.get(company=self.company, sku="SER1")
         idents = set(
-            PhysicalProduct.objects.filter(product_model=product).values_list("identifier", flat=True)
+            PhysicalProduct.objects.filter(product_model=product).values_list(
+                "identifier", flat=True
+            )
         )
         self.assertEqual(idents, {"S1", "S2", "S3"})
 
     def test_broken_row_isolated(self):
         # Row 1 valid, row 2 has bad profile (validation error), row 3 valid.
-        f = _csv_bytes(HEADER, [
-            "OK1,Ok,SIMPLE_COUNT,,,,,,,,,",
-            "BAD,Bad,NOTAPROFILE,,,,,,,,,",
-            "OK2,Ok2,SIMPLE_COUNT,,,,,,,,,",
-        ])
+        f = _csv_bytes(
+            HEADER,
+            [
+                "OK1,Ok,SIMPLE_COUNT,,,,,,,,,",
+                "BAD,Bad,NOTAPROFILE,,,,,,,,,",
+                "OK2,Ok2,SIMPLE_COUNT,,,,,,,,,",
+            ],
+        )
         rows = importer.parse(f)
         report = importer.commit(self.company, rows, self.user)
         self.assertEqual(report["created"], 2)
@@ -283,7 +333,10 @@ class ImportFlowTest(TestCase):
     def test_cross_company_isolation(self):
         company_b, user_b, _ = _make_company("B")
         ProductModel.objects.create(
-            company=company_b, sku="SHARED", name="B's product", profile="SIMPLE_COUNT",
+            company=company_b,
+            sku="SHARED",
+            name="B's product",
+            profile="SIMPLE_COUNT",
         )
         # Company A imports SKU 'SHARED' — should CREATE (not collide with B).
         f = _csv_bytes(HEADER, ["SHARED,A's product,SIMPLE_COUNT,,,,,,,,,"])
@@ -303,8 +356,11 @@ class ResolveBarcodeTest(TestCase):
         self.company, self.user, self.api_key = _make_company("A")
         self.client = APIClient()
         self.product = ProductModel.objects.create(
-            company=self.company, sku="P-BC", name="Barcoded",
-            profile="SIMPLE_COUNT", barcode="4006381333931",
+            company=self.company,
+            sku="P-BC",
+            name="Barcoded",
+            profile="SIMPLE_COUNT",
+            barcode="4006381333931",
         )
 
     def test_resolve_by_barcode(self):
@@ -316,8 +372,11 @@ class ResolveBarcodeTest(TestCase):
 
     def test_resolve_by_qr_fallback(self):
         from inventory.models import DynamicQRCode
+
         qr = DynamicQRCode.objects.create(
-            company=self.company, code="QRCODE99", product_model=self.product,
+            company=self.company,
+            code="QRCODE99",
+            product_model=self.product,
             status="CONFIGURED",
         )
         url = f"/api/v1/widget/resolve_barcode/?api_key={self.api_key.key}&code={qr.code}"
@@ -346,30 +405,45 @@ class BarcodeFieldTest(TestCase):
         self.company, self.user, _ = _make_company("A")
 
     def test_blank_barcode_allowed_multiple(self):
-        ProductModel.objects.create(company=self.company, sku="A1", name="A", profile="SIMPLE_COUNT")
-        ProductModel.objects.create(company=self.company, sku="A2", name="B", profile="SIMPLE_COUNT")
+        ProductModel.objects.create(
+            company=self.company, sku="A1", name="A", profile="SIMPLE_COUNT"
+        )
+        ProductModel.objects.create(
+            company=self.company, sku="A2", name="B", profile="SIMPLE_COUNT"
+        )
         # Two blank barcodes coexist (conditional unique constraint).
         self.assertEqual(ProductModel.objects.filter(company=self.company, barcode="").count(), 2)
 
     def test_duplicate_barcode_rejected(self):
         from django.db import IntegrityError, transaction
+
         ProductModel.objects.create(
-            company=self.company, sku="A1", name="A", profile="SIMPLE_COUNT",
+            company=self.company,
+            sku="A1",
+            name="A",
+            profile="SIMPLE_COUNT",
             barcode="4006381333931",
         )
         with self.assertRaises(IntegrityError):
             with transaction.atomic():
                 # Bypass full_clean's uniqueness check to hit the DB constraint.
                 p = ProductModel(
-                    company=self.company, sku="A2", name="B", profile="SIMPLE_COUNT",
+                    company=self.company,
+                    sku="A2",
+                    name="B",
+                    profile="SIMPLE_COUNT",
                     barcode="4006381333931",
                 )
                 super(ProductModel, p).save()
 
     def test_invalid_barcode_rejected_on_clean(self):
         from django.core.exceptions import ValidationError
+
         with self.assertRaises(ValidationError):
             ProductModel.objects.create(
-                company=self.company, sku="A1", name="A", profile="SIMPLE_COUNT",
+                company=self.company,
+                sku="A1",
+                name="A",
+                profile="SIMPLE_COUNT",
                 barcode="1234567890123",  # bad check digit
             )

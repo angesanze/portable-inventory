@@ -6,7 +6,7 @@
 In a polymorphic system, "If-Else" chains are the root of all evil.
 *   **Bad**: `if product.type == 'SERIALIZED': do_this() elif product.type == 'BULK': do_that()`
 *   **Good**: `strategy_engine.process_movement(product, quantity)`
-We define an abstract base class `StrategyEngine` and enforce that every specific engine (`CounterEngine`, `TrackerEngine`) implements the standard methods (`validate`, `move`, `create`). This makes the system extensible without modifying core code.
+We define abstract base types — `BaseEngine` (`engines/base.py`: `validate_config` / `calculate_delta` / `process_transaction`) for calculation, and `ProfileBehavior` (`strategies.py`) for the ledger write path — and each concrete engine/behaviour (`CounterEngine`, `TrackerEngine`, `BatchBehavior`, …) implements them. This makes the system extensible without modifying core code.
 
 ### 1.2 "Thin Views, Fat Services"
 Our Django Views (Controllers) are incredibly thin. They do not contain business logic.
@@ -14,10 +14,10 @@ Our Django Views (Controllers) are incredibly thin. They do not contain business
 *   **Service Role**: Validate Rules -> Check Permissions -> Update DB -> Handle Transactions -> Return Result.
 This ensures that whether a request comes from the Web UI, the Mobile App, or a CLI script, the **Business Logic is identical**.
 
-### 1.3 "Double-Entry" Integrity
-Data integrity is paramount. We use Database Constraints (`CHECK constraints`, `FOREIGN KEYS`) to enforce logic at the lowest level.
-*   Example: A database constraint prevents `quantity` from being negative for Bulk items.
-*   Example: A constraint prevents a `PhysicalProduct` from having a duplicate `serial_number` within the same `company`.
+### 1.3 Integrity at the right layer
+Data integrity is enforced where it belongs: database `FOREIGN KEY`s and unique constraints for structural rules, and the service/engine layer for stock rules.
+*   Example: negative bulk stock is rejected by the engine's `allow_negative` guard (`engines/numeric.py`), not a DB `CHECK` constraint.
+*   Example: a `PhysicalProduct` is unique on `(product_model, identifier)` — the same identifier can't be duplicated for one product.
 
 ---
 
@@ -40,7 +40,7 @@ We treat the UI as a reflection of the Data State, minimized by "Magic".
 We employ a "Pyramid" testing strategy:
 1.  **Unit Tests (Models/Services)**: `tests/test_ledger.py`. Does the math work? Does the double-entry balance? (Coverage: 100% of critical paths).
 2.  **Integration Tests (Views)**: Does the API accept valid JSON and reject invalid JSON?
-3.  **E2E / Verification Scripts**: We use scripts like `debug_create.py` to simulate complex user flows (Create Product -> Receive Stock -> Move Stock) in a realistic environment.
+3.  **E2E / Verification**: end-to-end flows (Create Product → Receive Stock → Move Stock) are covered by integration tests under `inventory/tests/` (e.g. `test_widget_e2e.py`, `test_stock_service.py`).
 
 ---
 

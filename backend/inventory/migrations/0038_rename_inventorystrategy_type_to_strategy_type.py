@@ -4,15 +4,14 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inventory', '0037_migrate_bulk_bucket_to_batch'),
+        ("inventory", "0037_migrate_bulk_bucket_to_batch"),
     ]
 
     operations = [
         migrations.RenameField(
-            model_name='inventorystrategy',
-            old_name='type',
-            new_name='strategy_type',
+            model_name="inventorystrategy",
+            old_name="type",
+            new_name="strategy_type",
         ),
     ]

@@ -23,23 +23,45 @@ const ToastContext = createContext<ToastContextValue | null>(null);
 
 const DEFAULT_DURATION = 4000;
 
-const variantConfig: Record<ToastVariant, { icon: LucideIcon; className: string }> = {
-    success: { icon: CheckCircle2, className: "text-emerald-400" },
-    error: { icon: AlertCircle, className: "text-red-400" },
-    info: { icon: Info, className: "text-zinc-300" },
+// Per-variant styling with a tinted background + coloured border + accent bar so
+// the toast clearly stands out from the near-black app background (the old
+// bg-zinc-900 + 6%-white border blended into it and was nearly invisible).
+const variantConfig: Record<
+    ToastVariant,
+    { icon: LucideIcon; iconClass: string; cardClass: string; accentClass: string }
+> = {
+    success: {
+        icon: CheckCircle2,
+        iconClass: "text-emerald-300",
+        cardClass: "bg-emerald-950/95 border-emerald-500/50",
+        accentClass: "bg-emerald-400",
+    },
+    error: {
+        icon: AlertCircle,
+        iconClass: "text-red-300",
+        cardClass: "bg-red-950/95 border-red-500/60",
+        accentClass: "bg-red-500",
+    },
+    info: {
+        icon: Info,
+        iconClass: "text-indigo-300",
+        cardClass: "bg-zinc-800/95 border-indigo-400/50",
+        accentClass: "bg-indigo-400",
+    },
 };
 
 const ToastView: React.FC<{ item: ToastItem; onDismiss: (id: number) => void }> = ({ item, onDismiss }) => {
-    const { icon: Icon, className } = variantConfig[item.variant];
+    const { icon: Icon, iconClass, cardClass, accentClass } = variantConfig[item.variant];
     return (
         <button
             type="button"
             onClick={() => onDismiss(item.id)}
-            className="flex items-start gap-3 bg-zinc-900 border border-white/[0.06] rounded-lg shadow-xl px-4 py-3 text-sm text-left w-full max-w-sm cursor-pointer"
+            className={`relative flex items-start gap-3 overflow-hidden rounded-lg border shadow-2xl ring-1 ring-black/40 backdrop-blur pl-5 pr-4 py-3 text-sm text-left w-full max-w-sm cursor-pointer ${cardClass}`}
             data-testid="toast"
         >
-            <Icon size={16} className={`${className} mt-0.5 shrink-0`} />
-            <span className="flex-1 text-zinc-200">{item.message}</span>
+            <span className={`absolute inset-y-0 left-0 w-1.5 ${accentClass}`} aria-hidden="true" />
+            <Icon size={18} className={`${iconClass} mt-0.5 shrink-0`} />
+            <span className="flex-1 text-zinc-50 font-medium leading-snug">{item.message}</span>
         </button>
     );
 };

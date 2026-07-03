@@ -13,11 +13,13 @@ class Customer(models.Model):
     physical from/to Location semantics are unchanged — the customer is an
     attribution layer on top of the existing "External" virtual location.
     """
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='customers')
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="customers")
     name = models.CharField(max_length=255)
     vat_number = models.CharField(
-        max_length=64, blank=True,
+        max_length=64,
+        blank=True,
         help_text="Partita IVA / VAT number",
         validators=[validate_partita_iva],
     )
@@ -29,8 +31,8 @@ class Customer(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('company', 'name')
-        ordering = ['name']
+        unique_together = ("company", "name")
+        ordering = ["name"]
 
     def __str__(self):
         return self.name

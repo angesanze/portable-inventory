@@ -4,7 +4,7 @@ test:
 	docker compose run --rm backend pytest
 
 test-backend:
-	cd backend && pytest --parallel -q
+	cd backend && python -m pytest -q
 
 test-frontend:
 	cd frontend && npm test -- --run
@@ -26,7 +26,7 @@ lint:
 
 test-all:
 	@echo "=== Backend Tests ==="
-	cd backend && pytest --parallel -q
+	cd backend && python -m pytest -q
 	@echo ""
 	@echo "=== Frontend Tests ==="
 	cd frontend && npm test -- --run
@@ -35,7 +35,7 @@ test-all:
 	cd sdk && npm run build && npm test
 	@echo ""
 	@echo "=== Type Checking ==="
-	cd frontend && npx tsc --noEmit
+	cd frontend && npx tsc -b --force
 	cd sdk && npx tsc --noEmit
 	@echo ""
 	@echo "=== API Schema Validation ==="

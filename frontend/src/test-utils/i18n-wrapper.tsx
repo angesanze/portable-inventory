@@ -1,6 +1,7 @@
 import { render, type RenderOptions, type RenderResult } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
-import type { ReactElement, ReactNode } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useMemo, type ReactElement, type ReactNode } from "react";
 import i18n from "../i18n";
 
 /**
@@ -12,9 +13,17 @@ import i18n from "../i18n";
  * global auto-init is ever removed). Defaults to English; switch languages in a
  * test with `i18n.changeLanguage("it")` and reset in a `finally`.
  */
-export const I18nWrapper = ({ children }: { children: ReactNode }) => (
-    <I18nextProvider i18n={i18n}>{children}</I18nextProvider>
-);
+export const I18nWrapper = ({ children }: { children: ReactNode }) => {
+    // A QueryClient so components that reach for React Query (e.g. anything under
+    // ActingTenantProvider, which invalidates the cache on tenant switch) render
+    // in tests the same way they do under <Refine> in the app.
+    const queryClient = useMemo(() => new QueryClient(), []);
+    return (
+        <QueryClientProvider client={queryClient}>
+            <I18nextProvider i18n={i18n}>{children}</I18nextProvider>
+        </QueryClientProvider>
+    );
+};
 
 /**
  * Drop-in replacement for Testing Library's `render` that wraps the UI in

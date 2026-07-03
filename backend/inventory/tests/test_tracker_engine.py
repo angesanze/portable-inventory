@@ -1,6 +1,5 @@
 import pytest
 import uuid
-from decimal import Decimal
 
 from core.models import Company
 from inventory.models import ProductModel, Location, PhysicalProduct
@@ -35,24 +34,28 @@ def tracker_product(db, company):
 def physical_items(db, tracker_product, locations):
     items = []
     for i in range(5):
-        items.append(PhysicalProduct.objects.create(
-            product_model=tracker_product,
-            identifier=f"SN-{i:04d}",
-            status="ACTIVE",
-            location=locations["warehouse"],
-        ))
+        items.append(
+            PhysicalProduct.objects.create(
+                product_model=tracker_product,
+                identifier=f"SN-{i:04d}",
+                status="ACTIVE",
+                location=locations["warehouse"],
+            )
+        )
     return items
 
 
 @pytest.fixture
 def engine(tracker_product):
     """Create TrackerEngine with product adapter-like object."""
+
     class FakeAdapter:
         def __init__(self, product):
             self.model = product
             self.engine_type = "tracker"
             self.engine_config = product.engine_config
             self.attributes = product.attributes
+
     adapter = FakeAdapter(tracker_product)
     return TrackerEngine(adapter, adapter.engine_config)
 
@@ -107,21 +110,25 @@ class TestTrackerEngineUIConfig:
 class TestTrackerEngineDelta:
     def test_calculate_delta_returns_metadata(self, engine, physical_items):
         item = physical_items[0]
-        delta = engine.calculate_delta({
-            "physical_product_id": str(item.id),
-            "new_status": "IN_USE",
-            "notes": "Assigned to dev team",
-        })
+        delta = engine.calculate_delta(
+            {
+                "physical_product_id": str(item.id),
+                "new_status": "IN_USE",
+                "notes": "Assigned to dev team",
+            }
+        )
         assert delta["type"] == "status_change"
         assert delta["new_status"] == "IN_USE"
         assert delta["notes"] == "Assigned to dev team"
 
     def test_calculate_delta_rejects_invalid_status(self, engine):
         with pytest.raises(ValueError, match="Invalid status"):
-            engine.calculate_delta({
-                "physical_product_id": "fake-id",
-                "new_status": "NONEXISTENT",
-            })
+            engine.calculate_delta(
+                {
+                    "physical_product_id": "fake-id",
+                    "new_status": "NONEXISTENT",
+                }
+            )
 
 
 @pytest.mark.django_db
@@ -200,10 +207,13 @@ class TestTrackerStatusBehavior:
 
     def test_execute_status_change_updates_db(self, engine, physical_items):
         item = physical_items[0]
-        result = TrackerStatusBehavior.execute_status_change(engine, {
-            "physical_product_id": str(item.id),
-            "new_status": "IN_USE",
-        })
+        result = TrackerStatusBehavior.execute_status_change(
+            engine,
+            {
+                "physical_product_id": str(item.id),
+                "new_status": "IN_USE",
+            },
+        )
         item.refresh_from_db()
         assert item.status == "IN_USE"
         assert isinstance(result, dict)
@@ -211,29 +221,39 @@ class TestTrackerStatusBehavior:
     def test_execute_status_change_returns_counts(self, engine, physical_items):
         """After transitioning one item, counts reflect the change."""
         item = physical_items[0]
-        result = TrackerStatusBehavior.execute_status_change(engine, {
-            "physical_product_id": str(item.id),
-            "new_status": "IN_USE",
-        })
+        result = TrackerStatusBehavior.execute_status_change(
+            engine,
+            {
+                "physical_product_id": str(item.id),
+                "new_status": "IN_USE",
+            },
+        )
         # 5 items total: 4 ACTIVE, 1 IN_USE
         assert result.get("ACTIVE", 0) == 4
         assert result.get("IN_USE", 0) == 1
 
     def test_nonexistent_physical_product(self, engine):
         from inventory.exceptions import ItemNotFoundError
+
         with pytest.raises(ItemNotFoundError, match="Physical product not found"):
-            TrackerStatusBehavior.execute_status_change(engine, {
-                "physical_product_id": str(uuid.uuid4()),
-                "new_status": "IN_USE",
-            })
+            TrackerStatusBehavior.execute_status_change(
+                engine,
+                {
+                    "physical_product_id": str(uuid.uuid4()),
+                    "new_status": "IN_USE",
+                },
+            )
 
     def test_invalid_transition_via_strategy(self, engine, physical_items):
         item = physical_items[0]
         with pytest.raises(ValueError, match="Cannot transition"):
-            TrackerStatusBehavior.execute_status_change(engine, {
-                "physical_product_id": str(item.id),
-                "new_status": "RETURNED",
-            })
+            TrackerStatusBehavior.execute_status_change(
+                engine,
+                {
+                    "physical_product_id": str(item.id),
+                    "new_status": "RETURNED",
+                },
+            )
 
 
 @pytest.mark.django_db
@@ -270,15 +290,17 @@ class TestTrackerStatusCountsIntegration:
 
     def test_get_tracker_status_counts(self, engine, physical_items):
         from inventory.services.stock import StockService
+
         product_model = physical_items[0].product_model
         counts = StockService.get_tracker_status_counts(product_model)
-        assert counts.get('ACTIVE', 0) == 5
+        assert counts.get("ACTIVE", 0) == 5
 
         display = engine.format_stock_display(counts)
         assert "5 active" in display
 
     def test_get_tracker_status_counts_empty(self, tracker_product):
         from inventory.services.stock import StockService
+
         counts = StockService.get_tracker_status_counts(tracker_product)
         assert counts == {}
 

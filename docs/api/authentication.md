@@ -41,13 +41,13 @@ curl -X POST https://your-domain.com/api/token/ \
 Include the access token in the `Authorization` header:
 
 ```bash
-curl https://your-domain.com/api/v1/product_models/ \
+curl https://your-domain.com/api/v1/product-models/ \
   -H "Authorization: Bearer eyJ0eXAiOiJKV1..."
 ```
 
 ### Refresh Token
 
-Access tokens expire after 24 hours. Use the refresh token to get a new access token:
+Access tokens expire after 15 minutes (refresh tokens after 7 days); both lifetimes are fixed in `SIMPLE_JWT`, not env-configurable. Use the refresh token to get a new access token:
 
 ```bash
 curl -X POST https://your-domain.com/api/token/refresh/ \
@@ -102,7 +102,7 @@ API keys support `allowed_domains` to restrict which origins can use the key. Wh
 |-------|-------|
 | Widget API (sustained) | 1,000 requests/hour |
 | Widget API (burst) | 100 requests/minute |
-| Auth endpoints | 100 requests/minute |
+| Auth endpoints (login) | 10 requests/minute |
 | Anonymous | 1,000 requests/day |
 | Authenticated user | 100,000 requests/day |
 

@@ -6,28 +6,53 @@ import uuid
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inventory', '0023_dynamicqrcode_location'),
+        ("inventory", "0023_dynamicqrcode_location"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='workorder',
-            name='product_model',
-            field=models.ForeignKey(blank=True, help_text='Batch definition / Kit type', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='work_orders', to='inventory.productmodel'),
+            model_name="workorder",
+            name="product_model",
+            field=models.ForeignKey(
+                blank=True,
+                help_text="Batch definition / Kit type",
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="work_orders",
+                to="inventory.productmodel",
+            ),
         ),
         migrations.CreateModel(
-            name='ProductComponent',
+            name="ProductComponent",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('quantity', models.DecimalField(decimal_places=4, default=1, max_digits=19)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('child', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='used_in', to='inventory.productmodel')),
-                ('parent', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='components', to='inventory.productmodel')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("quantity", models.DecimalField(decimal_places=4, default=1, max_digits=19)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "child",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="used_in",
+                        to="inventory.productmodel",
+                    ),
+                ),
+                (
+                    "parent",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="components",
+                        to="inventory.productmodel",
+                    ),
+                ),
             ],
             options={
-                'unique_together': {('parent', 'child')},
+                "unique_together": {("parent", "child")},
             },
         ),
     ]

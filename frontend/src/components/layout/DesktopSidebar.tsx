@@ -14,7 +14,7 @@ export function DesktopSidebar({ collapsed, onToggleCollapsed, ...sidebarProps }
             aria-label="Main navigation"
             className={`
                 ${collapsed ? "w-14" : "w-60"}
-                flex-shrink-0 bg-zinc-950 border-r border-white/[0.06]
+                flex-shrink-0 bg-zinc-900 border-r border-white/[0.06]
                 flex flex-col transition-all duration-300 z-20
             `}
         >

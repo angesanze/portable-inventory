@@ -7,7 +7,9 @@ from core.models import Company, User
 
 @pytest.fixture
 def auth_client(db):
-    company = Company.objects.create(name="CalcValCo", license_code=f"CV{uuid.uuid4().hex[:4].upper()}")
+    company = Company.objects.create(
+        name="CalcValCo", license_code=f"CV{uuid.uuid4().hex[:4].upper()}"
+    )
     user = User.objects.create_user(username="calcadmin", password="password", company=company)
     client = APIClient()
     client.force_authenticate(user=user)
@@ -69,7 +71,10 @@ class TestCalculatorValidationEndpoint:
     def test_bucket_valid(self, auth_client):
         resp = auth_client.post(
             VALIDATE_URL,
-            {"engine_type": "bucket", "engine_config": {"allocation_strategy": "FIFO", "primary_key": "lot_id"}},
+            {
+                "engine_type": "bucket",
+                "engine_config": {"allocation_strategy": "FIFO", "primary_key": "lot_id"},
+            },
             format="json",
         )
         assert resp.data["valid"] is True
@@ -90,7 +95,10 @@ class TestCalculatorValidationEndpoint:
             {
                 "engine_type": "tracker",
                 "engine_config": {
-                    "status_transitions": {"ACTIVE": ["IN_USE", "DISPOSED"], "IN_USE": ["RETURNED"]},
+                    "status_transitions": {
+                        "ACTIVE": ["IN_USE", "DISPOSED"],
+                        "IN_USE": ["RETURNED"],
+                    },
                 },
             },
             format="json",

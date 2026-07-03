@@ -10,9 +10,10 @@ import {
     type LucideIcon,
 } from "lucide-react";
 import { BRAND_NAME } from "../../config";
-import { type NavItem, type SidebarContentProps, SETTINGS_GROUP_KEY } from "./types";
+import { type NavItem, type SidebarContentProps } from "./types";
 import { iconMap } from "./navConfig";
 import { LanguageSelector } from "./LanguageSelector";
+import { InfoTip } from "../ui/InfoTip";
 
 /** Single sidebar nav entry (one row in a nav group). */
 function SidebarNavItem({
@@ -67,8 +68,8 @@ export function SidebarContent({
     onToggleCollapsed,
     showCollapseToggle,
     onOpenCommandPalette,
-    settingsExpanded,
-    onToggleSettingsExpanded,
+    expandedGroups,
+    onToggleGroup,
 }: SidebarContentProps) {
     const { t } = useTranslation("nav");
     return (
@@ -125,26 +126,33 @@ export function SidebarContent({
             {/* Navigation */}
             <nav className="flex-1 overflow-y-auto px-2 pb-4" style={{ scrollbarWidth: "none" }}>
                 {navGroups.map((group) => {
-                    const isSettingsGroup = group.labelKey === SETTINGS_GROUP_KEY;
-                    const isGroupExpanded = !isSettingsGroup || settingsExpanded;
                     const groupHasActive = group.items.some(
                         (item) => isActive(item.route) || selectedKey === item.name,
                     );
+                    // The group owning the active route is always shown expanded;
+                    // otherwise honour the stored per-group preference, falling
+                    // back to the group's default (`collapsedByDefault`).
+                    const isGroupExpanded =
+                        groupHasActive ||
+                        (expandedGroups[group.labelKey] ?? !group.collapsedByDefault);
                     const groupLabel = t(group.labelKey);
+                    const groupDesc = t(`${group.labelKey}Desc`);
 
                     return (
                         <div key={group.labelKey} className="mb-4">
                             {!collapsed && (
-                                isSettingsGroup ? (
+                                <div className="flex items-center gap-1 px-3 mb-1">
                                     <button
-                                        onClick={onToggleSettingsExpanded}
-                                        className={`flex items-center justify-between w-full text-[11px] font-medium uppercase tracking-wider px-3 mb-1 hover:text-zinc-400 transition-colors ${
+                                        type="button"
+                                        onClick={() => onToggleGroup(group.labelKey)}
+                                        className={`flex items-center justify-between gap-1.5 flex-1 min-w-0 text-[11px] font-medium uppercase tracking-wider text-left hover:text-zinc-400 transition-colors ${
                                             groupHasActive ? "text-zinc-300" : "text-zinc-500"
                                         }`}
-                                        data-testid="settings-group-toggle"
+                                        aria-expanded={isGroupExpanded}
+                                        data-testid={`nav-group-toggle-${group.labelKey}`}
                                     >
-                                        <span className="flex items-center gap-1.5">
-                                            {groupLabel}
+                                        <span className="flex items-center gap-1.5 min-w-0">
+                                            <span className="truncate">{groupLabel}</span>
                                             {!isGroupExpanded && (
                                                 <span className="text-[10px] normal-case tracking-normal text-zinc-600">
                                                     ({group.items.length})
@@ -152,17 +160,17 @@ export function SidebarContent({
                                             )}
                                         </span>
                                         <ChevronDown
-                                            className={`w-3 h-3 transition-transform duration-200 ${isGroupExpanded ? "" : "-rotate-90"}`}
+                                            className={`w-3 h-3 flex-shrink-0 transition-transform duration-200 ${isGroupExpanded ? "" : "-rotate-90"}`}
                                             strokeWidth={2}
                                         />
                                     </button>
-                                ) : (
-                                    <div className={`text-[11px] font-medium uppercase tracking-wider px-3 mb-1 transition-colors duration-150 ${
-                                        groupHasActive ? "text-zinc-300" : "text-zinc-500"
-                                    }`}>
-                                        {groupLabel}
-                                    </div>
-                                )
+                                    <InfoTip
+                                        title={groupLabel}
+                                        content={groupDesc}
+                                        position="right"
+                                        ariaLabel={`${t("common:moreInfo")}: ${groupLabel}`}
+                                    />
+                                </div>
                             )}
                             {collapsed && <div className="h-px bg-white/[0.06] mx-1 mb-2 mt-1" />}
                             <div

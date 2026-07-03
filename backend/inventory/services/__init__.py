@@ -8,6 +8,7 @@ service that participates in the cycle, follow the same pattern (import the
 collaborator inside the method) — or, better, extract the shared contract into a
 lower ``services/_base`` layer to remove the cycle entirely.
 """
+
 from .ledger import LedgerService
 from .costing import CostingService
 from .counterparty import CounterpartyService
@@ -29,11 +30,23 @@ from .stocktake import StocktakeService
 from .rma import RmaService
 
 __all__ = [
-    'LedgerService', 'CostingService', 'CounterpartyService', 'StockService', 'StrategyService',
-    'ProductService',
-    'WidgetService',  # backward-compatible facade
-    'WidgetProductService', 'WidgetTransactionService', 'BatchManagerService',
-    'WorkOrderService', 'WorkOrderFulfillmentService', 'RestockService', 'NotificationService',
-    'PurchasingService', 'SalesService', 'TransferService', 'StocktakeService',
-    'RmaService',
+    "LedgerService",
+    "CostingService",
+    "CounterpartyService",
+    "StockService",
+    "StrategyService",
+    "ProductService",
+    "WidgetService",  # backward-compatible facade
+    "WidgetProductService",
+    "WidgetTransactionService",
+    "BatchManagerService",
+    "WorkOrderService",
+    "WorkOrderFulfillmentService",
+    "RestockService",
+    "NotificationService",
+    "PurchasingService",
+    "SalesService",
+    "TransferService",
+    "StocktakeService",
+    "RmaService",
 ]

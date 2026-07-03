@@ -215,11 +215,6 @@ describe("Mount-point parity: TransactionWidget vs PolymorphicWidget", () => {
     }> = [
         { name: "SIMPLE_COUNT", fixture: "SIMPLE_COUNT", testid: "panel-quantity" },
         {
-            name: "BATCH_TRACKED",
-            fixture: "BATCH_TRACKED",
-            testid: "panel-batch-composition",
-        },
-        {
             name: "SERIALIZED (no preset)",
             fixture: "SERIALIZED_NO_PRESET",
             testid: "panel-tracker-form",
@@ -267,5 +262,27 @@ describe("Mount-point parity: TransactionWidget vs PolymorphicWidget", () => {
             expect(screen.getByTestId("panel-tracker-form")).toBeInTheDocument();
         });
         expect(screen.queryByTestId("panel-tracker-status")).not.toBeInTheDocument();
+    });
+
+    it("BATCH_TRACKED (plain): known divergence between routes", async () => {
+        const fixture = FIXTURES.BATCH_TRACKED;
+
+        // TransactionWidget renders a check-in form so a plain batch product can
+        // actually be loaded (BatchTrackedForm).
+        installFetchMock(fixture);
+        renderTransactionWidget(fixture);
+        await waitFor(() => {
+            expect(screen.getByTestId("panel-batch-tracked")).toBeInTheDocument();
+        });
+
+        cleanup();
+
+        // PolymorphicWidget still mounts the (consume-oriented) BucketPanel.
+        // Unifying the two batch panels is deferred (MOD-03).
+        installFetchMock(fixture);
+        renderPolymorphicWidget(fixture);
+        await waitFor(() => {
+            expect(screen.getByTestId("panel-batch-composition")).toBeInTheDocument();
+        });
     });
 });

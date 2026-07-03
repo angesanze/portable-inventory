@@ -5,7 +5,7 @@ from decimal import Decimal
 from ..models import Movement, Location, ProductModel, PhysicalProduct, ProductBatch
 from ..exceptions import InventoryError, ItemNotFoundError
 
-logger = logging.getLogger('inventory.widget')
+logger = logging.getLogger("inventory.widget")
 
 
 class BatchManagerService:
@@ -19,19 +19,20 @@ class BatchManagerService:
         Creates Movement records for every operation to maintain audit trail.
         """
         try:
-            delta = float(data.get('delta', 0))
+            delta = float(data.get("delta", 0))
             if delta == 0:
                 return {"success": True}
 
             def _get_location(item=None):
                 """Resolve location for movement records."""
-                if item and hasattr(item, 'location') and item.location:
+                if item and hasattr(item, "location") and item.location:
                     return item.location
-                wh = Location.objects.filter(company=work_order.company, type='WAREHOUSE').first()
+                wh = Location.objects.filter(company=work_order.company, type="WAREHOUSE").first()
                 return wh if wh else Location.objects.filter(company=work_order.company).first()
 
-            def _record_movement(product_model, location, quantity, reason,
-                                 physical_product=None, batch=None):
+            def _record_movement(
+                product_model, location, quantity, reason, physical_product=None, batch=None
+            ):
                 """Create an audit Movement record for a batch manager operation."""
                 Movement.objects.create(
                     product_model=product_model,
@@ -45,9 +46,9 @@ class BatchManagerService:
                 )
 
             # 1. Handle Physical Products (Serials)
-            if data.get('physical_product_id') or data.get('physical_identifier'):
-                identifier = data.get('physical_identifier')
-                pp_id = data.get('physical_product_id')
+            if data.get("physical_product_id") or data.get("physical_identifier"):
+                identifier = data.get("physical_identifier")
+                pp_id = data.get("physical_product_id")
 
                 qs = PhysicalProduct.objects.filter(product_model__company=work_order.company)
                 if pp_id:
@@ -55,7 +56,7 @@ class BatchManagerService:
                 elif identifier:
                     qs = qs.filter(identifier=identifier)
 
-                item = qs.select_related('product_model', 'location').first()
+                item = qs.select_related("product_model", "location").first()
                 if not item:
                     raise ItemNotFoundError(detail="Item not found")
 
@@ -66,7 +67,9 @@ class BatchManagerService:
                         item.work_order = None
                         item.save()
                         _record_movement(
-                            item.product_model, loc, 1,
+                            item.product_model,
+                            loc,
+                            1,
                             reason=f"WO_UNASSIGN: {item.identifier} removed from WO {work_order.name}",
                             physical_product=item,
                         )
@@ -75,33 +78,51 @@ class BatchManagerService:
                     item.work_order = work_order
                     item.save()
                     _record_movement(
-                        item.product_model, loc, 1,
+                        item.product_model,
+                        loc,
+                        1,
                         reason=f"WO_ASSIGN: {item.identifier} assigned to WO {work_order.name}",
                         physical_product=item,
                     )
 
             # 2. Handle Batches
-            elif data.get('batch_id'):
-                batch = ProductBatch.objects.filter(
-                    id=data.get('batch_id'), work_order=work_order
-                ).select_related('product_model', 'location').first()
+            elif data.get("batch_id"):
+                # Lock the row before the read-modify-write on quantity — two
+                # concurrent widget calls would otherwise both read the old value
+                # and one increment would be lost (CONC-01). atomic() alone does
+                # not serialize a RMW.
+                batch = (
+                    ProductBatch.objects.select_for_update()
+                    .filter(id=data.get("batch_id"), work_order=work_order)
+                    .first()
+                )
                 if batch:
                     loc = _get_location(batch)
                     abs_delta = abs(delta)
                     if delta < 0:
                         if (batch.quantity + Decimal(str(delta))) <= 0:
                             removed_qty = batch.quantity
-                            product_model = batch.product_model
-                            batch.delete()
+                            # Keep the row: every add booked a Movement with
+                            # batch=this, and Movement.batch is PROTECT, so
+                            # delete() raises ProtectedError. Zero it instead —
+                            # quantity>0 queries skip it and the ledger audit
+                            # chain stays intact (COR-09).
+                            batch.quantity = Decimal("0")
+                            batch.save()
                             _record_movement(
-                                product_model, loc, float(removed_qty),
-                                reason=f"BATCH_REMOVE: batch removed from WO {work_order.name}",
+                                batch.product_model,
+                                loc,
+                                float(removed_qty),
+                                reason=f"BATCH_REMOVE: batch emptied in WO {work_order.name}",
+                                batch=batch,
                             )
                         else:
                             batch.quantity += Decimal(str(delta))
                             batch.save()
                             _record_movement(
-                                batch.product_model, loc, abs_delta,
+                                batch.product_model,
+                                loc,
+                                abs_delta,
                                 reason=f"BATCH_REMOVE: {abs_delta} removed from batch in WO {work_order.name}",
                                 batch=batch,
                             )
@@ -109,7 +130,9 @@ class BatchManagerService:
                         batch.quantity += Decimal(str(delta))
                         batch.save()
                         _record_movement(
-                            batch.product_model, loc, abs_delta,
+                            batch.product_model,
+                            loc,
+                            abs_delta,
                             reason=f"BATCH_ADD: {abs_delta} added to batch in WO {work_order.name}",
                             batch=batch,
                         )
@@ -117,69 +140,84 @@ class BatchManagerService:
                     raise ItemNotFoundError(detail="Batch not found")
 
             # 3. Handle Generic Add (Batch Creation / Adjustment)
-            elif data.get('product_model_id') and delta != 0:
-                wh = Location.objects.filter(company=work_order.company, type='WAREHOUSE').first()
+            elif data.get("product_model_id") and delta != 0:
+                wh = Location.objects.filter(company=work_order.company, type="WAREHOUSE").first()
                 loc = wh if wh else Location.objects.filter(company=work_order.company).first()
 
                 # Scope the product lookup to the work order's company so a
                 # tenant can't seed a batch of another tenant's product (and a
                 # bad/cross-tenant id yields a clean 404 rather than a 500).
                 product_model = ProductModel.objects.filter(
-                    id=data.get('product_model_id'), company=work_order.company
+                    id=data.get("product_model_id"), company=work_order.company
                 ).first()
                 if not product_model:
                     raise ItemNotFoundError(detail="Product model not found")
 
                 batch_identifier = ProductBatch.make_identifier(work_order, product_model)
 
-                batch = ProductBatch.objects.filter(
-                    product_model_id=data.get('product_model_id'),
-                    work_order=work_order,
-                    location=loc,
-                    batch_identifier=batch_identifier
-                ).first()
+                batch = (
+                    ProductBatch.objects.select_for_update()
+                    .filter(
+                        product_model_id=data.get("product_model_id"),
+                        work_order=work_order,
+                        location=loc,
+                        batch_identifier=batch_identifier,
+                    )
+                    .first()
+                )
 
                 if batch:
                     batch.quantity += Decimal(str(delta))
                     if batch.quantity <= 0:
                         removed_qty = batch.quantity - Decimal(str(delta))  # original qty
-                        batch.delete()
+                        # Zero rather than delete — Movements PROTECT the row (COR-09).
+                        batch.quantity = Decimal("0")
+                        batch.save()
                         _record_movement(
-                            product_model, loc, float(abs(removed_qty)),
-                            reason=f"BATCH_REMOVE: batch {batch_identifier} removed from WO {work_order.name}",
+                            product_model,
+                            loc,
+                            float(abs(removed_qty)),
+                            reason=f"BATCH_REMOVE: batch {batch_identifier} emptied in WO {work_order.name}",
+                            batch=batch,
                         )
                     else:
                         batch.save()
                         if delta > 0:
                             _record_movement(
-                                product_model, loc, delta,
+                                product_model,
+                                loc,
+                                delta,
                                 reason=f"BATCH_ADD: {delta} added to batch {batch_identifier} in WO {work_order.name}",
                                 batch=batch,
                             )
                         else:
                             _record_movement(
-                                product_model, loc, abs(delta),
+                                product_model,
+                                loc,
+                                abs(delta),
                                 reason=f"BATCH_REMOVE: {abs(delta)} removed from batch {batch_identifier} in WO {work_order.name}",
                                 batch=batch,
                             )
                 elif delta > 0:
                     new_batch = ProductBatch.objects.create(
-                        product_model_id=data.get('product_model_id'),
+                        product_model_id=data.get("product_model_id"),
                         work_order=work_order,
                         quantity=Decimal(str(delta)),
                         location=loc,
                         batch_identifier=batch_identifier,
-                        data={"source": "Widget Manual Add"}
+                        data={"source": "Widget Manual Add"},
                     )
                     _record_movement(
-                        product_model, loc, delta,
+                        product_model,
+                        loc,
+                        delta,
                         reason=f"BATCH_ADD: batch {batch_identifier} created in WO {work_order.name}",
                         batch=new_batch,
                     )
 
             # 4. Handle Produce Kit
-            elif data.get('operation') == 'produce_kit' and delta > 0:
-                wh = Location.objects.filter(company=work_order.company, type='WAREHOUSE').first()
+            elif data.get("operation") == "produce_kit" and delta > 0:
+                wh = Location.objects.filter(company=work_order.company, type="WAREHOUSE").first()
                 loc = wh if wh else Location.objects.filter(company=work_order.company).first()
 
                 if work_order.product_model:
@@ -187,16 +225,16 @@ class BatchManagerService:
                         qty_needed = Decimal(str(delta)) * comp.quantity
 
                         existing_batch = ProductBatch.objects.filter(
-                            work_order=work_order,
-                            product_model=comp.child,
-                            location=loc
+                            work_order=work_order, product_model=comp.child, location=loc
                         ).first()
 
                         if existing_batch:
                             existing_batch.quantity += qty_needed
                             existing_batch.save()
                             _record_movement(
-                                comp.child, loc, float(qty_needed),
+                                comp.child,
+                                loc,
+                                float(qty_needed),
                                 reason=f"KIT_PRODUCTION: {float(qty_needed)} of {comp.child.sku} for WO {work_order.name}",
                                 batch=existing_batch,
                             )
@@ -206,11 +244,15 @@ class BatchManagerService:
                                 work_order=work_order,
                                 quantity=qty_needed,
                                 location=loc,
-                                batch_identifier=ProductBatch.make_identifier(work_order, comp.child),
-                                data={"source": "Widget Kit Production"}
+                                batch_identifier=ProductBatch.make_identifier(
+                                    work_order, comp.child
+                                ),
+                                data={"source": "Widget Kit Production"},
                             )
                             _record_movement(
-                                comp.child, loc, float(qty_needed),
+                                comp.child,
+                                loc,
+                                float(qty_needed),
                                 reason=f"KIT_PRODUCTION: {float(qty_needed)} of {comp.child.sku} for WO {work_order.name}",
                                 batch=new_batch,
                             )

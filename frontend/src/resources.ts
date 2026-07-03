@@ -169,6 +169,11 @@ export function buildResources(capabilities: Capabilities, isSuperuser = false):
       meta: { label: "Notifications" },
     },
     {
+      name: "appearance",
+      list: "/settings/appearance",
+      meta: { label: "Appearance" },
+    },
+    {
       name: "product-import",
       list: "/settings/import",
       meta: { label: "Import Products" },

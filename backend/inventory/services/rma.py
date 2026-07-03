@@ -14,6 +14,7 @@ ledger semantics are unchanged. The four shapes are:
 COSTING-06: inbound RESTOCK re-weights the average and SCRAP/return outbound
 freezes COGS — all handled automatically by CostingService inside the ledger.
 """
+
 from decimal import Decimal
 
 from django.db import transaction
@@ -23,14 +24,15 @@ from core.models import Company
 from .. import constants
 from ..exceptions import InventoryError
 from ..models import (
-    Location, PhysicalProduct, ReturnOrder, ReturnOrderLine,
+    Location,
+    ReturnOrder,
+    ReturnOrderLine,
 )
 from .counterparty import CounterpartyService
 from .ledger import LedgerService
 
 
 class RmaService:
-
     # ── Numbering ────────────────────────────────────────────────────
 
     @staticmethod
@@ -45,20 +47,23 @@ class RmaService:
         year = timezone.now().year
         prefix = f"RMA-{year}-"
         last = (
-            ReturnOrder.objects
-            .filter(company=company, number__startswith=prefix)
-            .order_by('-number')
-            .values_list('number', flat=True)
+            ReturnOrder.objects.filter(company=company, number__startswith=prefix)
+            .order_by("-number")
+            .values_list("number", flat=True)
             .first()
         )
         progressive = 1
         if last:
             try:
-                progressive = int(last.rsplit('-', 1)[1]) + 1
+                progressive = int(last.rsplit("-", 1)[1]) + 1
             except (ValueError, IndexError):
-                progressive = ReturnOrder.objects.filter(
-                    company=company, number__startswith=prefix,
-                ).count() + 1
+                progressive = (
+                    ReturnOrder.objects.filter(
+                        company=company,
+                        number__startswith=prefix,
+                    ).count()
+                    + 1
+                )
         return f"{prefix}{progressive:04d}"
 
     # ── Quarantine location ──────────────────────────────────────────
@@ -72,12 +77,13 @@ class RmaService:
         (StockService). Created lazily, mirroring CounterpartyService.
         """
         existing = Location.objects.filter(
-            company=company, name=constants.DEFAULT_QUARANTINE_LOCATION_NAME,
+            company=company,
+            name=constants.DEFAULT_QUARANTINE_LOCATION_NAME,
         ).first()
         if existing:
             if existing.is_sellable:
                 existing.is_sellable = False
-                existing.save(update_fields=['is_sellable'])
+                existing.save(update_fields=["is_sellable"])
             return existing
         return Location.objects.create(
             company=company,
@@ -98,14 +104,16 @@ class RmaService:
         Supplier returns never pass through quarantine — they ship directly via
         ``resolve_line`` semantics and are received as a no-op here.
         """
-        from ..orchestrators import InventoryOrchestrator  # inline import: breaks the services↔orchestrators import cycle (orchestrators imports services)
+        from ..orchestrators import (
+            InventoryOrchestrator,
+        )  # inline import: breaks the services↔orchestrators import cycle (orchestrators imports services)
 
         rma = ReturnOrder.objects.select_for_update().get(pk=rma.pk)
         if rma.kind != constants.RMA_KIND_CUSTOMER_RETURN:
             raise InventoryError(detail="Only customer returns are received into quarantine.")
         if rma.status != constants.RMA_STATUS_OPEN:
             raise InventoryError(detail=f"Return {rma.number} is not OPEN (status: {rma.status}).")
-        lines = list(rma.lines.select_related('product_model').all())
+        lines = list(rma.lines.select_related("product_model").all())
         if not lines:
             raise InventoryError(detail="Cannot receive a return without lines.")
 
@@ -115,7 +123,7 @@ class RmaService:
 
         for line in lines:
             product = line.product_model
-            if product.tracking_mode == 'INDIVIDUAL':
+            if product.tracking_mode == "INDIVIDUAL":
                 pp = line.physical_product
                 if pp is None:
                     raise InventoryError(
@@ -124,13 +132,16 @@ class RmaService:
                 # Reactivate the dormant (RETURNED/…) item at the source so the
                 # ledger can move it into quarantine as ACTIVE stock.
                 pp = InventoryOrchestrator.resolve_or_create_item(
-                    product, pp.identifier, external, inbound=True,
+                    product,
+                    pp.identifier,
+                    external,
+                    inbound=True,
                 )
                 LedgerService.transfer_stock(
                     product_model=product,
                     from_location=external,
                     to_location=quarantine,
-                    quantity=Decimal('1'),
+                    quantity=Decimal("1"),
                     user=user,
                     reason=reason,
                     physical_product=pp,
@@ -138,8 +149,15 @@ class RmaService:
                 )
             else:
                 batch_data = None
-                if product.tracking_mode == 'BATCH' and line.batch is not None:
-                    batch_data = dict(line.batch.data or {})
+                if product.tracking_mode == "BATCH" and line.batch is not None:
+                    # Preserve the original lot identity so the quarantine batch is
+                    # findable (by identifier) when the line is later resolved —
+                    # without it BatchBehavior synthesizes an AUTO- lot and the
+                    # outbound resolve has no batch to consume (COR-07).
+                    batch_data = {
+                        "batch_identifier": line.batch.batch_identifier,
+                        "data": dict(line.batch.data or {}),
+                    }
                 LedgerService.transfer_stock(
                     product_model=product,
                     from_location=external,
@@ -152,14 +170,16 @@ class RmaService:
                 )
 
         rma.status = constants.RMA_STATUS_RECEIVED
-        rma.save(update_fields=['status', 'updated_at'])
+        rma.save(update_fields=["status", "updated_at"])
         return rma
 
     # ── Resolve a line ───────────────────────────────────────────────
 
     @staticmethod
     @transaction.atomic
-    def resolve_line(line: ReturnOrderLine, resolution: str, user, *, location=None, supplier=None) -> ReturnOrderLine:
+    def resolve_line(
+        line: ReturnOrderLine, resolution: str, user, *, location=None, supplier=None
+    ) -> ReturnOrderLine:
         """Resolve a received customer-return line with one of three outcomes.
 
         RESTOCK            → Quarantena → warehouse (item back to ACTIVE/sellable);
@@ -171,9 +191,14 @@ class RmaService:
         ``supplier`` attributes the RETURN_TO_SUPPLIER outbound (a customer
         return carries no supplier of its own).
         """
-        line = ReturnOrderLine.objects.select_for_update().select_related(
-            'return_order', 'product_model',
-        ).get(pk=line.pk)
+        line = (
+            ReturnOrderLine.objects.select_for_update()
+            .select_related(
+                "return_order",
+                "product_model",
+            )
+            .get(pk=line.pk)
+        )
         rma = line.return_order
 
         if rma.kind != constants.RMA_KIND_CUSTOMER_RETURN:
@@ -193,7 +218,7 @@ class RmaService:
 
         product = line.product_model
         quarantine = RmaService.quarantine_location(rma.company)
-        pp = line.physical_product if product.tracking_mode == 'INDIVIDUAL' else None
+        pp = line.physical_product if product.tracking_mode == "INDIVIDUAL" else None
 
         if resolution == constants.RMA_RESOLUTION_RESTOCK:
             dest = location or RmaService._default_warehouse(rma.company)
@@ -201,23 +226,30 @@ class RmaService:
                 raise InventoryError(detail="No sellable warehouse available to restock into.")
             if not dest.is_sellable:
                 raise InventoryError(detail="Restock destination must be a sellable location.")
-            RmaService._move(line, quarantine, dest, user, pp,
-                             f"RMA {rma.number} restock", customer=rma.customer)
+            RmaService._move(
+                line, quarantine, dest, user, pp, f"RMA {rma.number} restock", customer=rma.customer
+            )
         elif resolution == constants.RMA_RESOLUTION_SCRAP:
             loss = RmaService._loss_location(rma.company)
-            RmaService._move(line, quarantine, loss, user, pp,
-                             f"RMA {rma.number} scrap")
+            RmaService._move(line, quarantine, loss, user, pp, f"RMA {rma.number} scrap")
         else:  # RETURN_TO_SUPPLIER
             vendor = CounterpartyService.resolve(rma.company, constants.COUNTERPARTY_VENDOR)
             attributed = supplier or rma.supplier
             if attributed is not None and attributed.company_id != rma.company_id:
                 raise InventoryError(detail="supplier belongs to a different company.")
-            RmaService._move(line, quarantine, vendor, user, pp,
-                             f"RMA {rma.number} return to supplier", supplier=attributed)
+            RmaService._move(
+                line,
+                quarantine,
+                vendor,
+                user,
+                pp,
+                f"RMA {rma.number} return to supplier",
+                supplier=attributed,
+            )
 
         line.resolution = resolution
         line.resolved_at = timezone.now()
-        line.save(update_fields=['resolution', 'resolved_at'])
+        line.save(update_fields=["resolution", "resolved_at"])
 
         RmaService._refresh_status(rma)
         return line
@@ -237,7 +269,7 @@ class RmaService:
             raise InventoryError(detail="Only supplier returns are shipped to the vendor.")
         if rma.status != constants.RMA_STATUS_OPEN:
             raise InventoryError(detail=f"Return {rma.number} is not OPEN (status: {rma.status}).")
-        lines = list(rma.lines.select_related('product_model').all())
+        lines = list(rma.lines.select_related("product_model").all())
         if not lines:
             raise InventoryError(detail="Cannot ship a return without lines.")
 
@@ -249,15 +281,15 @@ class RmaService:
 
         for line in lines:
             product = line.product_model
-            pp = line.physical_product if product.tracking_mode == 'INDIVIDUAL' else None
+            pp = line.physical_product if product.tracking_mode == "INDIVIDUAL" else None
             from_loc = pp.location if pp is not None and pp.location_id else source
             RmaService._move(line, from_loc, vendor, user, pp, reason, supplier=rma.supplier)
             line.resolution = constants.RMA_RESOLUTION_RETURN_TO_SUPPLIER
             line.resolved_at = timezone.now()
-            line.save(update_fields=['resolution', 'resolved_at'])
+            line.save(update_fields=["resolution", "resolved_at"])
 
         rma.status = constants.RMA_STATUS_RESOLVED
-        rma.save(update_fields=['status', 'updated_at'])
+        rma.save(update_fields=["status", "updated_at"])
         return rma
 
     # ── Cancel ───────────────────────────────────────────────────────
@@ -268,9 +300,11 @@ class RmaService:
         """Cancel a return while still OPEN (nothing received/shipped)."""
         rma = ReturnOrder.objects.select_for_update().get(pk=rma.pk)
         if rma.status != constants.RMA_STATUS_OPEN:
-            raise InventoryError(detail=f"Only OPEN returns can be cancelled (status: {rma.status}).")
+            raise InventoryError(
+                detail=f"Only OPEN returns can be cancelled (status: {rma.status})."
+            )
         rma.status = constants.RMA_STATUS_CANCELLED
-        rma.save(update_fields=['status', 'updated_at'])
+        rma.save(update_fields=["status", "updated_at"])
         return rma
 
     # ── Helpers ──────────────────────────────────────────────────────
@@ -280,14 +314,31 @@ class RmaService:
         kwargs = {}
         product = line.product_model
         if pp is not None:
-            kwargs['physical_product'] = pp
-        if product.tracking_mode == 'BATCH' and line.batch is not None:
-            kwargs['batch_data'] = dict(line.batch.data or {})
+            kwargs["physical_product"] = pp
+        if product.tracking_mode == "BATCH" and line.batch is not None:
+            # Outbound from a non-virtual location (quarantine / warehouse)
+            # consumes a specific batch — validate_bucket_transfer requires its
+            # id. Resolve the source batch by the identifier preserved at receive
+            # time; fall back to batch_data if it can't be located (COR-07).
+            from ..models import ProductBatch
+
+            src_batch = ProductBatch.objects.filter(
+                product_model=product,
+                location=from_loc,
+                batch_identifier=line.batch.batch_identifier,
+            ).first()
+            if src_batch is not None:
+                kwargs["batch_id"] = str(src_batch.id)
+            else:
+                kwargs["batch_data"] = {
+                    "batch_identifier": line.batch.batch_identifier,
+                    "data": dict(line.batch.data or {}),
+                }
         return LedgerService.transfer_stock(
             product_model=product,
             from_location=from_loc,
             to_location=to_loc,
-            quantity=line.quantity if pp is None else Decimal('1'),
+            quantity=line.quantity if pp is None else Decimal("1"),
             user=user,
             reason=reason,
             supplier=supplier,
@@ -297,9 +348,15 @@ class RmaService:
 
     @staticmethod
     def _default_warehouse(company):
-        return Location.objects.filter(
-            company=company, type=constants.LOCATION_TYPE_WAREHOUSE, is_sellable=True,
-        ).order_by('name').first()
+        return (
+            Location.objects.filter(
+                company=company,
+                type=constants.LOCATION_TYPE_WAREHOUSE,
+                is_sellable=True,
+            )
+            .order_by("name")
+            .first()
+        )
 
     @staticmethod
     def _loss_location(company):
@@ -312,4 +369,4 @@ class RmaService:
         if lines and all(l.resolution != constants.RMA_RESOLUTION_PENDING for l in lines):
             if rma.status != constants.RMA_STATUS_RESOLVED:
                 rma.status = constants.RMA_STATUS_RESOLVED
-                rma.save(update_fields=['status', 'updated_at'])
+                rma.save(update_fields=["status", "updated_at"])

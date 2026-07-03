@@ -4,20 +4,40 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inventory', '0033_add_dimension_engine_type'),
+        ("inventory", "0033_add_dimension_engine_type"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='calculatortemplate',
-            name='engine_type',
-            field=models.CharField(choices=[('counter', 'Counter (Discrete)'), ('converter', 'Converter (Continuous)'), ('bucket', 'Bucket (Segmented)'), ('tracker', 'Item Tracker (Serialized)'), ('dimension', 'Dimension (Area/Volume)'), ('time_based', 'Time-Based (Perishable/Rental)')], max_length=50),
+            model_name="calculatortemplate",
+            name="engine_type",
+            field=models.CharField(
+                choices=[
+                    ("counter", "Counter (Discrete)"),
+                    ("converter", "Converter (Continuous)"),
+                    ("bucket", "Bucket (Segmented)"),
+                    ("tracker", "Item Tracker (Serialized)"),
+                    ("dimension", "Dimension (Area/Volume)"),
+                    ("time_based", "Time-Based (Perishable/Rental)"),
+                ],
+                max_length=50,
+            ),
         ),
         migrations.AlterField(
-            model_name='productmodel',
-            name='engine_type',
-            field=models.CharField(choices=[('counter', 'Counter (Discrete)'), ('converter', 'Converter (Continuous)'), ('bucket', 'Bucket (Segmented)'), ('tracker', 'Item Tracker (Serialized)'), ('dimension', 'Dimension (Area/Volume)'), ('time_based', 'Time-Based (Perishable/Rental)')], default='counter', max_length=50),
+            model_name="productmodel",
+            name="engine_type",
+            field=models.CharField(
+                choices=[
+                    ("counter", "Counter (Discrete)"),
+                    ("converter", "Converter (Continuous)"),
+                    ("bucket", "Bucket (Segmented)"),
+                    ("tracker", "Item Tracker (Serialized)"),
+                    ("dimension", "Dimension (Area/Volume)"),
+                    ("time_based", "Time-Based (Perishable/Rental)"),
+                ],
+                default="counter",
+                max_length=50,
+            ),
         ),
     ]

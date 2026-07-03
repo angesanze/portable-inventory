@@ -10,6 +10,7 @@ The read side is intentionally narrow: a developer sees only its own children
 (``Company.objects.filter(parent=request.user.company)``), mirroring the
 single-switch scoping in ``core.scope.resolve_effective_company``.
 """
+
 from django.db import transaction
 from rest_framework import mixins, serializers, status, viewsets
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -26,7 +27,7 @@ class TenantSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Company
-        fields = ['id', 'name', 'license_code', 'account_type', 'parent', 'settings']
+        fields = ["id", "name", "license_code", "account_type", "parent", "settings"]
         read_only_fields = fields
 
 
@@ -53,22 +54,20 @@ class TenantCreateSerializer(serializers.Serializer):
         return value
 
 
-class TenantManagementViewSet(mixins.ListModelMixin,
-                              mixins.RetrieveModelMixin,
-                              viewsets.GenericViewSet):
+class TenantManagementViewSet(
+    mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet
+):
     """List, retrieve and create the manager tenants a developer/superuser owns."""
 
     # Gate on the same capability the identity payload exposes to the UI.
-    permission_classes = [require_capability('manage_tenants')]
+    permission_classes = [require_capability("manage_tenants")]
     serializer_class = TenantSerializer
 
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser:
-            return Company.objects.filter(
-                account_type=Company.AccountType.MANAGER
-            ).order_by('name')
-        return Company.objects.filter(parent=user.company).order_by('name')
+            return Company.objects.filter(account_type=Company.AccountType.MANAGER).order_by("name")
+        return Company.objects.filter(parent=user.company).order_by("name")
 
     @extend_schema(
         summary="Create a manager tenant",
@@ -85,36 +84,31 @@ class TenantManagementViewSet(mixins.ListModelMixin,
         # Resolve the owning developer company.
         if user.is_superuser:
             parent = None
-            parent_id = data.get('parent')
+            parent_id = data.get("parent")
             if parent_id:
                 try:
                     parent = Company.objects.get(pk=parent_id)
                 except Company.DoesNotExist:
-                    raise ValidationError({'parent': "Parent company not found."})
+                    raise ValidationError({"parent": "Parent company not found."})
                 if not parent.is_developer:
-                    raise ValidationError(
-                        {'parent': "Parent must be a developer company."}
-                    )
+                    raise ValidationError({"parent": "Parent must be a developer company."})
         else:
             # A developer always parents new tenants to itself.
             parent = user.company
             if parent is None or not parent.is_developer:
-                raise PermissionDenied(
-                    "Only developer companies may provision tenants."
-                )
+                raise PermissionDenied("Only developer companies may provision tenants.")
 
         # License quota (GOVERNANCE-11): a developer may not exceed its
         # max_managed_companies cap. Superusers bypass; null cap = unlimited.
         from core.license_limits import check_managed_companies_limit
+
         check_managed_companies_limit(parent, user=user)
 
         with transaction.atomic():
             company, _api_key, _api_key_value = provision_manager_company(
-                name=data['name'],
+                name=data["name"],
                 parent=parent,
-                settings=data.get('settings') or {},
+                settings=data.get("settings") or {},
             )
 
-        return Response(
-            TenantSerializer(company).data, status=status.HTTP_201_CREATED
-        )
+        return Response(TenantSerializer(company).data, status=status.HTTP_201_CREATED)

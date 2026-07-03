@@ -46,9 +46,9 @@ print(f'Product company: {pm.company_id}')
 
 ```bash
 docker compose exec backend python manage.py shell -c "
-from inventory.models import QRCode
-qr = QRCode.objects.get(code='<qr_code>')
-print(f'State: {qr.state}, Product: {qr.product_model_id}, Locked: {getattr(qr, \"is_locked\", \"N/A\")}')
+from inventory.models import DynamicQRCode
+qr = DynamicQRCode.objects.get(code='<qr_code>')
+print(f'Status: {qr.status}, Product: {qr.product_model_id}')
 "
 ```
 
@@ -58,7 +58,7 @@ print(f'State: {qr.state}, Product: {qr.product_model_id}, Locked: {getattr(qr, 
 - Invalid transition attempted (e.g., trying to configure an already-active code)
 - Batch generation created codes in unexpected initial state
 
-**Fix:** Check `QRCodeStateError.allowed_transitions` in the error response for valid next states. If a code is genuinely stuck, an admin can update its state directly via Django admin or shell.
+**Fix:** Check `QRCodeStateError.allowed_transitions` in the error response for valid next states. If a code is genuinely stuck, an admin can update its `status` directly via Django admin or shell.
 
 ---
 
@@ -69,8 +69,11 @@ print(f'State: {qr.state}, Product: {qr.product_model_id}, Locked: {getattr(qr, 
 **Diagnosis:**
 
 ```bash
-# Check the validation error details in the API response
-curl -s http://localhost:8000/api/v1/widget/engines/ -H "Authorization: Bearer $TOKEN" | python -m json.tool
+# The engine config is validated when creating/updating a product; the 400
+# body carries the details. There is no separate "engines" endpoint.
+curl -s -X POST http://localhost:8001/api/v1/product-models/ \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"sku":"X","name":"X","profile":"DIMENSIONAL","engine_config":{}}' | python -m json.tool
 ```
 
 **Common Causes:**
@@ -90,8 +93,8 @@ curl -s http://localhost:8000/api/v1/widget/engines/ -H "Authorization: Bearer $
 **Diagnosis:**
 
 ```bash
-# Check rate limit headers in response
-curl -v http://localhost:8000/api/v1/widget/?api_key=KEY 2>&1 | grep -i "retry-after\|x-ratelimit"
+# On a throttled response the server sends Retry-After (no x-ratelimit headers).
+curl -v http://localhost:8001/api/v1/widget/?api_key=KEY 2>&1 | grep -i "retry-after"
 ```
 
 **Common Causes:**
@@ -126,7 +129,7 @@ docker compose exec db psql -U postgres -c "SELECT count(*) FROM pg_stat_activit
 
 - Verify `DATABASE_URL` is correct in environment
 - Check if PostgreSQL container is healthy: `docker compose ps db`
-- If connections exhausted, restart backend to release connections and consider connection pooling (see [[scaling]])
+- If connections exhausted, restart backend to release connections and consider connection pooling (see [Scaling](scaling.md))
 
 ---
 

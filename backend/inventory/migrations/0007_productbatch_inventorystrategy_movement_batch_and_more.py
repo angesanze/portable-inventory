@@ -7,56 +7,125 @@ import uuid
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0005_apikey_default_location'),
-        ('inventory', '0006_productmodel_initial_balance_and_more'),
+        ("core", "0005_apikey_default_location"),
+        ("inventory", "0006_productmodel_initial_balance_and_more"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='ProductBatch',
+            name="ProductBatch",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('batch_identifier', models.CharField(help_text='Unique ID for this batch (e.g. Lot Number)', max_length=255)),
-                ('data', models.JSONField(blank=True, default=dict, help_text='Dynamic data based on Strategy Schema')),
-                ('quantity', models.DecimalField(decimal_places=4, default=0, max_digits=19)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('location', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='batches', to='inventory.location')),
-                ('product_model', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='batches', to='inventory.productmodel')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                (
+                    "batch_identifier",
+                    models.CharField(
+                        help_text="Unique ID for this batch (e.g. Lot Number)", max_length=255
+                    ),
+                ),
+                (
+                    "data",
+                    models.JSONField(
+                        blank=True, default=dict, help_text="Dynamic data based on Strategy Schema"
+                    ),
+                ),
+                ("quantity", models.DecimalField(decimal_places=4, default=0, max_digits=19)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "location",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="batches",
+                        to="inventory.location",
+                    ),
+                ),
+                (
+                    "product_model",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="batches",
+                        to="inventory.productmodel",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='InventoryStrategy',
+            name="InventoryStrategy",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('name', models.CharField(max_length=255)),
-                ('type', models.CharField(choices=[('BUCKET', 'Bucket / Batch Tracking'), ('ASSEMBLY', 'Assembly / Kit'), ('CONVERTER', 'Converter / Continuous')], max_length=50)),
-                ('schema_definition', models.JSONField(blank=True, default=dict, help_text='JSON Schema for batch data or conversion rules')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('company', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='inventory_strategies', to='core.company')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+                (
+                    "type",
+                    models.CharField(
+                        choices=[
+                            ("BUCKET", "Bucket / Batch Tracking"),
+                            ("ASSEMBLY", "Assembly / Kit"),
+                            ("CONVERTER", "Converter / Continuous"),
+                        ],
+                        max_length=50,
+                    ),
+                ),
+                (
+                    "schema_definition",
+                    models.JSONField(
+                        blank=True,
+                        default=dict,
+                        help_text="JSON Schema for batch data or conversion rules",
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "company",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="inventory_strategies",
+                        to="core.company",
+                    ),
+                ),
             ],
         ),
         migrations.AddField(
-            model_name='movement',
-            name='batch',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='movements', to='inventory.productbatch'),
+            model_name="movement",
+            name="batch",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="movements",
+                to="inventory.productbatch",
+            ),
         ),
         migrations.AddField(
-            model_name='productmodel',
-            name='strategy',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='product_models', to='inventory.inventorystrategy'),
+            model_name="productmodel",
+            name="strategy",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="product_models",
+                to="inventory.inventorystrategy",
+            ),
         ),
         migrations.AddIndex(
-            model_name='productbatch',
-            index=django.contrib.postgres.indexes.GinIndex(fields=['data'], name='batch_data_gin'),
+            model_name="productbatch",
+            index=django.contrib.postgres.indexes.GinIndex(fields=["data"], name="batch_data_gin"),
         ),
         migrations.AlterUniqueTogether(
-            name='productbatch',
-            unique_together={('product_model', 'location', 'batch_identifier')},
+            name="productbatch",
+            unique_together={("product_model", "location", "batch_identifier")},
         ),
         migrations.AlterUniqueTogether(
-            name='inventorystrategy',
-            unique_together={('company', 'name')},
+            name="inventorystrategy",
+            unique_together={("company", "name")},
         ),
     ]

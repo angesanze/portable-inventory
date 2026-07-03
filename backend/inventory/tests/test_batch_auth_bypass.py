@@ -6,14 +6,13 @@ Verifies that ApiKeyAuthMixin is properly enforced:
 - Valid API key grants access
 - JWT auth still works
 """
+
 import datetime
-import uuid
 
 from django.test import TestCase
 from rest_framework.test import APIClient
 from rest_framework import status
 
-from core.models import ApiKey
 from inventory.models import ProductModel, Location, ProductBatch
 from inventory.tests.helpers import make_company as _make_company
 
@@ -40,19 +39,25 @@ class ProductBatchAuthBypassTest(TestCase):
     def test_anonymous_request_rejected(self):
         """Request with no auth credentials must be rejected (not return empty 200)."""
         response = self.client.get("/api/v1/batches/")
-        self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+        self.assertIn(
+            response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]
+        )
 
     def test_invalid_api_key_rejected(self):
         """Request with invalid API key must be rejected."""
         response = self.client.get("/api/v1/batches/?api_key=bogus-key-12345")
-        self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+        self.assertIn(
+            response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]
+        )
 
     def test_expired_api_key_rejected(self):
         """Request with expired API key must be rejected."""
         self.api_key_a.expires_at = datetime.date(2020, 1, 1)
         self.api_key_a.save()
         response = self.client.get(f"/api/v1/batches/?api_key={self.api_key_a.key}")
-        self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+        self.assertIn(
+            response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]
+        )
 
     def test_valid_api_key_returns_data(self):
         """Valid active API key should return batch data."""
@@ -81,17 +86,24 @@ class ProductBatchAuthBypassTest(TestCase):
         """SEC-02: the batches endpoint is read-only — a direct (anonymous) write
         that would bypass the LedgerService must not create stock."""
         before = ProductBatch.objects.count()
-        response = self.client.post("/api/v1/batches/", {
-            "product_model": str(self.product_a.id),
-            "location": str(self.loc_a.id),
-            "batch_identifier": "HACK-001",
-            "quantity": 999,
-        }, format="json")
-        self.assertIn(response.status_code, [
-            status.HTTP_401_UNAUTHORIZED,
-            status.HTTP_403_FORBIDDEN,
-            status.HTTP_405_METHOD_NOT_ALLOWED,
-        ])
+        response = self.client.post(
+            "/api/v1/batches/",
+            {
+                "product_model": str(self.product_a.id),
+                "location": str(self.loc_a.id),
+                "batch_identifier": "HACK-001",
+                "quantity": 999,
+            },
+            format="json",
+        )
+        self.assertIn(
+            response.status_code,
+            [
+                status.HTTP_401_UNAUTHORIZED,
+                status.HTTP_403_FORBIDDEN,
+                status.HTTP_405_METHOD_NOT_ALLOWED,
+            ],
+        )
         self.assertEqual(ProductBatch.objects.count(), before)
 
     def test_create_rejected_even_with_valid_key(self):
@@ -99,11 +111,14 @@ class ProductBatchAuthBypassTest(TestCase):
         creation must route through the ledger, not a raw REST write."""
         before = ProductBatch.objects.count()
         response = self.client.post(
-            f"/api/v1/batches/?api_key={self.api_key_a.key}", {
+            f"/api/v1/batches/?api_key={self.api_key_a.key}",
+            {
                 "product_model": str(self.product_a.id),
                 "location": str(self.loc_a.id),
                 "batch_identifier": "HACK-002",
                 "quantity": 999,
-            }, format="json")
+            },
+            format="json",
+        )
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
         self.assertEqual(ProductBatch.objects.count(), before)

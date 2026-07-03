@@ -271,9 +271,7 @@ class WorkOrderCrossTenantTest(TestCase):
 
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
         # The whole create is atomic → no work order, no batch survive.
-        self.assertFalse(
-            ProductBatch.objects.filter(product_model=self.product_b).exists()
-        )
+        self.assertFalse(ProductBatch.objects.filter(product_model=self.product_b).exists())
         self.assertFalse(WorkOrder.objects.filter(name="Cross-tenant WO").exists())
 
     def test_cross_tenant_physical_product_not_reassigned(self):
@@ -286,7 +284,9 @@ class WorkOrderCrossTenantTest(TestCase):
             company=self.company_b, sku="B-TRACK", name="B Device", profile="SERIALIZED"
         )
         pp_b = PhysicalProduct.objects.create(
-            product_model=tracker_b, identifier="B-SN-1", status="ACTIVE",
+            product_model=tracker_b,
+            identifier="B-SN-1",
+            status="ACTIVE",
             location=warehouse_b,
         )
 
@@ -313,7 +313,10 @@ class WorkOrderCrossTenantTest(TestCase):
         }
         resp = self.client.post("/api/v1/work-orders/", payload, format="json")
         # Model-level clean() catches cross-company product_model
-        self.assertIn(resp.status_code, [
-            status.HTTP_400_BAD_REQUEST,
-            status.HTTP_500_INTERNAL_SERVER_ERROR,
-        ])
+        self.assertIn(
+            resp.status_code,
+            [
+                status.HTTP_400_BAD_REQUEST,
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+            ],
+        )

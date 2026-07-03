@@ -6,7 +6,7 @@ import { useWidgetApiKey } from "../hooks/useWidgetApiKey";
 import type { WidgetData } from "../types";
 import type { InventoryProfile } from "../../../types/api";
 import { PROFILE_METADATA } from "../../../types/api";
-import { buildTransactionPayload, resolveEngineType } from "../payload";
+import { buildTransactionPayload, resolveEngineType, buildBatchUpdatePayload } from "../payload";
 import {
     CounterPanel,
     BucketPanel,
@@ -120,14 +120,13 @@ export const PolymorphicWidget = () => {
         setSubmitting(true);
         setMessage(null);
         try {
-            const payload = {
-                operation: 'batch_update_item',
-                product_model_id: modelId,
+            const payload = buildBatchUpdatePayload({
+                productModelId: modelId,
                 delta,
-                physical_identifier: identifier,
-                physical_product_id: physicalProductId,
-                batch_id: batchId
-            };
+                physicalIdentifier: identifier,
+                physicalProductId,
+                batchId,
+            });
 
             const res = await fetch(`${API_URL}/api/v1/widget/${id}/transaction/`, {
                 method: "POST",

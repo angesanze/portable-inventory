@@ -10,6 +10,7 @@ import "./App.css";
 import { authProvider } from "./providers/authProvider";
 import { axiosInstance } from "./providers/axios-client";
 import { AxiosErrorHandler } from "./providers/AxiosErrorHandler";
+import { notificationProvider, NotificationBridge } from "./providers/notificationProvider";
 import { Layout } from "./components/layout";
 import { Login } from "./features/auth/Login";
 import { Dashboard } from "./features/core/dashboard";
@@ -25,6 +26,7 @@ import { CalculatorList, CalculatorCreate, CalculatorEdit } from "./features/set
 import { NotificationChannelList } from "./features/settings/notifications";
 import { ProductImport } from "./features/settings/import/ProductImport";
 import { CompanyDataExport } from "./features/settings/export/CompanyDataExport";
+import { AppearanceSettings } from "./features/settings/appearance";
 
 import { LocationList, LocationCreate, LocationEdit, LocationShow } from "./features/inventory/locations";
 import { SupplierList, SupplierCreate, SupplierEdit } from "./features/inventory/suppliers";
@@ -47,6 +49,7 @@ import { TenantList, TenantCreate } from "./features/tenants";
 import { ConsoleLayout, Overview as ConsoleOverview, Companies as ConsoleCompanies, CompanyDetail as ConsoleCompanyDetail, Insights as ConsoleInsights, ApiUsage as ConsoleApiUsage, Audit as ConsoleAudit } from "./features/console";
 import { RegisterPage, SetupWizard } from "./features/onboarding";
 import { ToastProvider } from "./components/ui/Toast";
+import { ThemeProvider } from "./theme/ThemeProvider";
 import { ActingTenantProvider } from "./context/ActingTenantProvider";
 import { buildResources } from "./resources";
 import { API_URL } from "./config";
@@ -93,9 +96,11 @@ function App() {
   const resources = useMemo(() => buildResources(capabilities, isSuperuser), [capabilities, isSuperuser]);
   return (
     <BrowserRouter>
+      <ThemeProvider>
       <Refine
         dataProvider={safeDataProvider((API_URL.endsWith("/") ? API_URL.slice(0, -1) : API_URL) + "/api/v1", axiosInstance)}
         authProvider={authProvider}
+        notificationProvider={notificationProvider}
         resources={resources}
         options={{
           syncWithLocation: false,
@@ -115,6 +120,7 @@ function App() {
         }}
       >
         <ToastProvider>
+         <NotificationBridge />
          <ActingTenantProvider>
           <AxiosErrorHandler />
           <CapabilitySync onChange={setCapabilities} onSuperuserChange={setIsSuperuser} />
@@ -305,6 +311,8 @@ function App() {
 
             <Route path="/settings/export" element={<CompanyDataExport />} />
 
+            <Route path="/settings/appearance" element={<AppearanceSettings />} />
+
             <Route path="/settings/calculators">
               <Route index element={<CalculatorList />} />
               <Route path="create" element={<CalculatorCreate />} />
@@ -347,6 +355,7 @@ function App() {
          </ActingTenantProvider>
         </ToastProvider>
       </Refine>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

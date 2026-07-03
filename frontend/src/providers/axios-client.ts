@@ -86,6 +86,10 @@ axiosInstance.interceptors.response.use(
             return new Promise<string>((resolve, reject) => {
                 failedQueue.push({ resolve, reject });
             }).then((newToken) => {
+                // Mark as retried so a request that STILL 401s after a successful
+                // refresh (e.g. a deactivated user whose refresh keeps working)
+                // rejects instead of kicking off another refresh→retry cycle (F-9).
+                originalRequest._retry = true;
                 originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
                 return axiosInstance(originalRequest);
             });

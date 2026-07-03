@@ -3,6 +3,7 @@
 Webhook transport is stubbed by patching ``urlopen`` in the service module —
 no network. Email uses Django's test outbox (locmem backend under pytest).
 """
+
 import hashlib
 import hmac
 import json
@@ -79,21 +80,32 @@ def env(db):
         severity="CRITICAL",
     )
     return {
-        "company_a": company_a, "user_a": user_a,
-        "company_b": company_b, "user_b": user_b,
-        "product": product, "rule": rule,
+        "company_a": company_a,
+        "user_a": user_a,
+        "company_b": company_b,
+        "user_b": user_b,
+        "product": product,
+        "rule": rule,
     }
 
 
 def make_email_channel(company, recipients="ops@example.com,boss@example.com", **kw):
     return NotificationChannel.objects.create(
-        company=company, name="Ops email", kind="EMAIL", recipients=recipients, **kw,
+        company=company,
+        name="Ops email",
+        kind="EMAIL",
+        recipients=recipients,
+        **kw,
     )
 
 
 def make_webhook_channel(company, url="https://hooks.example.com/pi", **kw):
     return NotificationChannel.objects.create(
-        company=company, name="Ops webhook", kind="WEBHOOK", url=url, **kw,
+        company=company,
+        name="Ops webhook",
+        kind="WEBHOOK",
+        url=url,
+        **kw,
     )
 
 
@@ -265,7 +277,10 @@ def test_email_channel_validates_recipients(env):
         make_email_channel(env["company_a"], recipients="")
     with pytest.raises(ValidationError):
         NotificationChannel.objects.create(
-            company=env["company_a"], name="No URL", kind="WEBHOOK", url="",
+            company=env["company_a"],
+            name="No URL",
+            kind="WEBHOOK",
+            url="",
         )
 
 
@@ -301,9 +316,15 @@ def test_channel_api_is_company_scoped(env):
 
 def test_channel_create_via_api_sets_company_and_secret(env):
     client = api_client(env["user_a"])
-    res = client.post("/api/v1/notification-channels/", {
-        "name": "Hook", "kind": "WEBHOOK", "url": "https://hooks.example.com/x",
-    }, format="json")
+    res = client.post(
+        "/api/v1/notification-channels/",
+        {
+            "name": "Hook",
+            "kind": "WEBHOOK",
+            "url": "https://hooks.example.com/x",
+        },
+        format="json",
+    )
     assert res.status_code == 201, res.content
     body = res.json()
     assert len(body["secret"]) == 64  # server-generated
@@ -313,9 +334,15 @@ def test_channel_create_via_api_sets_company_and_secret(env):
 
 def test_channel_create_invalid_email_is_400(env):
     client = api_client(env["user_a"])
-    res = client.post("/api/v1/notification-channels/", {
-        "name": "Bad", "kind": "EMAIL", "recipients": "nope",
-    }, format="json")
+    res = client.post(
+        "/api/v1/notification-channels/",
+        {
+            "name": "Bad",
+            "kind": "EMAIL",
+            "recipients": "nope",
+        },
+        format="json",
+    )
     assert res.status_code == 400
 
 

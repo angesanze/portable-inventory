@@ -7,60 +7,160 @@ import uuid
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('core', '0001_initial'),
+        ("core", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Location',
+            name="Location",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('name', models.CharField(max_length=255)),
-                ('type', models.CharField(choices=[('WAREHOUSE', 'Warehouse'), ('STORE', 'Store'), ('LOSS', 'Loss'), ('VIRTUAL', 'Virtual')], max_length=50)),
-                ('company', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='locations', to='core.company')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+                (
+                    "type",
+                    models.CharField(
+                        choices=[
+                            ("WAREHOUSE", "Warehouse"),
+                            ("STORE", "Store"),
+                            ("LOSS", "Loss"),
+                            ("VIRTUAL", "Virtual"),
+                        ],
+                        max_length=50,
+                    ),
+                ),
+                (
+                    "company",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="locations",
+                        to="core.company",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='ProductModel',
+            name="ProductModel",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('sku', models.CharField(max_length=100)),
-                ('name', models.CharField(max_length=255)),
-                ('attributes', models.JSONField(blank=True, default=dict)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('company', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='product_models', to='core.company')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("sku", models.CharField(max_length=100)),
+                ("name", models.CharField(max_length=255)),
+                ("attributes", models.JSONField(blank=True, default=dict)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "company",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="product_models",
+                        to="core.company",
+                    ),
+                ),
             ],
             options={
-                'unique_together': {('company', 'sku')},
+                "unique_together": {("company", "sku")},
             },
         ),
         migrations.CreateModel(
-            name='PhysicalProduct',
+            name="PhysicalProduct",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('identifier', models.CharField(max_length=255)),
-                ('batch_date', models.DateField(blank=True, null=True)),
-                ('status', models.CharField(choices=[('ACTIVE', 'Active'), ('RECALL', 'Recall'), ('EXPIRED', 'Expired')], default='ACTIVE', max_length=50)),
-                ('product_model', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='physical_products', to='inventory.productmodel')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("identifier", models.CharField(max_length=255)),
+                ("batch_date", models.DateField(blank=True, null=True)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("ACTIVE", "Active"),
+                            ("RECALL", "Recall"),
+                            ("EXPIRED", "Expired"),
+                        ],
+                        default="ACTIVE",
+                        max_length=50,
+                    ),
+                ),
+                (
+                    "product_model",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="physical_products",
+                        to="inventory.productmodel",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='Movement',
+            name="Movement",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('quantity', models.DecimalField(decimal_places=4, max_digits=19)),
-                ('occurred_at', models.DateTimeField()),
-                ('reason', models.CharField(max_length=255)),
-                ('from_location', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='outgoing_movements', to='inventory.location')),
-                ('performed_by', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='performed_movements', to=settings.AUTH_USER_MODEL)),
-                ('physical_product', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='movements', to='inventory.physicalproduct')),
-                ('product_model', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='movements', to='inventory.productmodel')),
-                ('to_location', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='incoming_movements', to='inventory.location')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("quantity", models.DecimalField(decimal_places=4, max_digits=19)),
+                ("occurred_at", models.DateTimeField()),
+                ("reason", models.CharField(max_length=255)),
+                (
+                    "from_location",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="outgoing_movements",
+                        to="inventory.location",
+                    ),
+                ),
+                (
+                    "performed_by",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="performed_movements",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "physical_product",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="movements",
+                        to="inventory.physicalproduct",
+                    ),
+                ),
+                (
+                    "product_model",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="movements",
+                        to="inventory.productmodel",
+                    ),
+                ),
+                (
+                    "to_location",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="incoming_movements",
+                        to="inventory.location",
+                    ),
+                ),
             ],
         ),
     ]

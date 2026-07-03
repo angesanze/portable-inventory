@@ -4,20 +4,31 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inventory', '0005_product_product_model'),
+        ("inventory", "0005_product_product_model"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='productmodel',
-            name='initial_balance',
-            field=models.DecimalField(decimal_places=4, default=0, help_text='Initial stock level for BULK tracking', max_digits=19),
+            model_name="productmodel",
+            name="initial_balance",
+            field=models.DecimalField(
+                decimal_places=4,
+                default=0,
+                help_text="Initial stock level for BULK tracking",
+                max_digits=19,
+            ),
         ),
         migrations.AddField(
-            model_name='productmodel',
-            name='tracking_mode',
-            field=models.CharField(choices=[('BULK', 'Bulk (Quantity Only)'), ('INDIVIDUAL', 'Individual (Unique Items)')], default='BULK', max_length=20),
+            model_name="productmodel",
+            name="tracking_mode",
+            field=models.CharField(
+                choices=[
+                    ("BULK", "Bulk (Quantity Only)"),
+                    ("INDIVIDUAL", "Individual (Unique Items)"),
+                ],
+                default="BULK",
+                max_length=20,
+            ),
         ),
     ]

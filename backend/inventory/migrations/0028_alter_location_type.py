@@ -4,15 +4,23 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inventory', '0027_movement_idempotency_key_and_more'),
+        ("inventory", "0027_movement_idempotency_key_and_more"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='location',
-            name='type',
-            field=models.CharField(choices=[('PHYSICAL', 'Physical'), ('WAREHOUSE', 'Warehouse'), ('STORE', 'Store'), ('LOSS', 'Loss'), ('VIRTUAL', 'Virtual')], max_length=50),
+            model_name="location",
+            name="type",
+            field=models.CharField(
+                choices=[
+                    ("PHYSICAL", "Physical"),
+                    ("WAREHOUSE", "Warehouse"),
+                    ("STORE", "Store"),
+                    ("LOSS", "Loss"),
+                    ("VIRTUAL", "Virtual"),
+                ],
+                max_length=50,
+            ),
         ),
     ]

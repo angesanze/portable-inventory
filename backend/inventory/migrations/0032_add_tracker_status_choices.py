@@ -4,15 +4,25 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inventory', '0031_dynamicqrcode_work_order'),
+        ("inventory", "0031_dynamicqrcode_work_order"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='physicalproduct',
-            name='status',
-            field=models.CharField(choices=[('ACTIVE', 'Active'), ('IN_USE', 'In Use'), ('RETURNED', 'Returned'), ('RECALL', 'Recall'), ('EXPIRED', 'Expired'), ('DISPOSED', 'Disposed')], default='ACTIVE', max_length=50),
+            model_name="physicalproduct",
+            name="status",
+            field=models.CharField(
+                choices=[
+                    ("ACTIVE", "Active"),
+                    ("IN_USE", "In Use"),
+                    ("RETURNED", "Returned"),
+                    ("RECALL", "Recall"),
+                    ("EXPIRED", "Expired"),
+                    ("DISPOSED", "Disposed"),
+                ],
+                default="ACTIVE",
+                max_length=50,
+            ),
         ),
     ]

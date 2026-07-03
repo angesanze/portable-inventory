@@ -4,14 +4,13 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inventory', '0018_physicalproduct_work_order_productbatch_work_order_and_more'),
+        ("inventory", "0018_physicalproduct_work_order_productbatch_work_order_and_more"),
     ]
 
     operations = [
         migrations.AlterUniqueTogether(
-            name='productbatch',
-            unique_together={('product_model', 'location', 'batch_identifier', 'work_order')},
+            name="productbatch",
+            unique_together={("product_model", "location", "batch_identifier", "work_order")},
         ),
     ]

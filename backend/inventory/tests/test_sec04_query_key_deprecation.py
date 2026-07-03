@@ -5,6 +5,7 @@ flows already hand out revocable *signed widget tokens* (which contain ':') for
 use in URLs; a raw key in the query is still accepted (backward compat with
 legacy embeds) but must emit a deprecation warning so it can be migrated.
 """
+
 import logging
 
 import pytest

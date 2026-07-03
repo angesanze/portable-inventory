@@ -11,6 +11,7 @@ import {
     ResponsiveContainer,
 } from "recharts";
 import { Card } from "../ui/Card";
+import { useAccent } from "../../theme/useTheme";
 
 type Period = "7d" | "30d" | "90d";
 
@@ -58,6 +59,7 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
 
 export const MovementChart = () => {
     const { t } = useTranslation("dashboard");
+    const { accent } = useAccent();
     const [period, setPeriod] = useState<Period>("7d");
     const days = PERIOD_DAYS[period];
 
@@ -161,7 +163,7 @@ export const MovementChart = () => {
                             type="monotone"
                             dataKey="inbound"
                             name={t("inbound")}
-                            stroke="#6366f1"
+                            stroke={accent}
                             strokeWidth={2}
                             dot={false}
                             activeDot={{ r: 4, strokeWidth: 0 }}

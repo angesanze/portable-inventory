@@ -5,16 +5,22 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0005_apikey_default_location'),
-        ('inventory', '0021_dynamicqrcode'),
+        ("core", "0005_apikey_default_location"),
+        ("inventory", "0021_dynamicqrcode"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='dynamicqrcode',
-            name='api_key',
-            field=models.ForeignKey(blank=True, help_text='API Key used for widget access', null=True, on_delete=django.db.models.deletion.CASCADE, related_name='qr_codes', to='core.apikey'),
+            model_name="dynamicqrcode",
+            name="api_key",
+            field=models.ForeignKey(
+                blank=True,
+                help_text="API Key used for widget access",
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="qr_codes",
+                to="core.apikey",
+            ),
         ),
     ]

@@ -6,6 +6,7 @@ with a tight 5s timeout so a dead endpoint can't stall a monitor run. Failures
 are retried with exponential backoff on subsequent monitor runs via
 ``retry_pending()`` (piggyback — no new scheduler).
 """
+
 import hashlib
 import hmac
 import ipaddress
@@ -45,14 +46,16 @@ class NotificationService:
         company_id = event_log.product.company_id
         event_type = NotificationService._event_type(event_log)
         channels = NotificationChannel.objects.filter(
-            company_id=company_id, is_active=True,
+            company_id=company_id,
+            is_active=True,
         )
         deliveries = []
         for channel in channels:
             if not channel.accepts(event_type):
                 continue
             delivery = NotificationDelivery.objects.create(
-                channel=channel, event_log=event_log,
+                channel=channel,
+                event_log=event_log,
             )
             NotificationService._attempt(delivery)
             deliveries.append(delivery)
@@ -66,8 +69,9 @@ class NotificationService:
         Returns the number of deliveries attempted.
         """
         due = NotificationDelivery.objects.filter(
-            status='PENDING', next_retry_at__lte=timezone.now(),
-        ).select_related('channel', 'event_log', 'event_log__product', 'event_log__rule')
+            status="PENDING",
+            next_retry_at__lte=timezone.now(),
+        ).select_related("channel", "event_log", "event_log__product", "event_log__rule")
         count = 0
         for delivery in due:
             NotificationService._attempt(delivery)
@@ -82,11 +86,11 @@ class NotificationService:
         Returns ``(ok: bool, error: str | None)``.
         """
         try:
-            if channel.kind == 'EMAIL':
+            if channel.kind == "EMAIL":
                 send_mail(
                     subject="[Portable Inventory] TEST — notification channel check",
                     message=(
-                        f"This is a test notification for channel \"{channel.name}\".\n"
+                        f'This is a test notification for channel "{channel.name}".\n'
                         "If you are reading this, email delivery is configured correctly."
                     ),
                     from_email=settings.DEFAULT_FROM_EMAIL,
@@ -95,12 +99,12 @@ class NotificationService:
                 )
             else:
                 payload = {
-                    'event_id': None,
-                    'type': 'TEST',
-                    'company_id': str(channel.company_id),
-                    'product': None,
-                    'payload': {'message': f'Test notification for channel "{channel.name}".'},
-                    'created_at': timezone.now().isoformat(),
+                    "event_id": None,
+                    "type": "TEST",
+                    "company_id": str(channel.company_id),
+                    "product": None,
+                    "payload": {"message": f'Test notification for channel "{channel.name}".'},
+                    "created_at": timezone.now().isoformat(),
                 }
                 NotificationService._post_webhook(channel, payload)
             return True, None
@@ -114,7 +118,7 @@ class NotificationService:
     def _event_type(event_log):
         """Trigger type of the event's rule; virtual/missing rules count as THRESHOLD."""
         rule = event_log.rule
-        return rule.trigger_type if rule and rule.trigger_type else 'THRESHOLD'
+        return rule.trigger_type if rule and rule.trigger_type else "THRESHOLD"
 
     @staticmethod
     def _attempt(delivery):
@@ -122,7 +126,7 @@ class NotificationService:
         channel = delivery.channel
         event_log = delivery.event_log
         try:
-            if channel.kind == 'EMAIL':
+            if channel.kind == "EMAIL":
                 NotificationService._send_email(channel, event_log)
             else:
                 NotificationService._send_webhook(channel, event_log)
@@ -131,32 +135,38 @@ class NotificationService:
             # Never log the channel secret: only the exception text is stored.
             delivery.last_error = str(exc)[:1000]
             if delivery.attempts >= MAX_ATTEMPTS:
-                delivery.status = 'FAILED'
+                delivery.status = "FAILED"
                 delivery.next_retry_at = None
             else:
-                delivery.status = 'PENDING'
+                delivery.status = "PENDING"
                 delivery.next_retry_at = timezone.now() + timedelta(
-                    seconds=(2 ** delivery.attempts) * BACKOFF_BASE_SECONDS,
+                    seconds=(2**delivery.attempts) * BACKOFF_BASE_SECONDS,
                 )
-            delivery.save(update_fields=['attempts', 'last_error', 'status', 'next_retry_at', 'updated_at'])
+            delivery.save(
+                update_fields=["attempts", "last_error", "status", "next_retry_at", "updated_at"]
+            )
             logger.warning(
                 "Notification delivery %s attempt %s failed: %s",
-                delivery.id, delivery.attempts, exc,
+                delivery.id,
+                delivery.attempts,
+                exc,
             )
             return False
 
         delivery.attempts += 1
-        delivery.status = 'SENT'
-        delivery.last_error = ''
+        delivery.status = "SENT"
+        delivery.last_error = ""
         delivery.next_retry_at = None
-        delivery.save(update_fields=['attempts', 'last_error', 'status', 'next_retry_at', 'updated_at'])
+        delivery.save(
+            update_fields=["attempts", "last_error", "status", "next_retry_at", "updated_at"]
+        )
         return True
 
     @staticmethod
     def _send_email(channel, event_log):
         product = event_log.product
         event_type = NotificationService._event_type(event_log)
-        severity = event_log.rule.severity if event_log.rule else 'WARNING'
+        severity = event_log.rule.severity if event_log.rule else "WARNING"
         link = f"{settings.FRONTEND_BASE_URL}/products/{product.id}"
         subject = f"[Portable Inventory] {event_type} — {product.name}"
         body = (
@@ -178,22 +188,22 @@ class NotificationService:
     def _send_webhook(channel, event_log):
         product = event_log.product
         payload = {
-            'event_id': str(event_log.id),
-            'type': NotificationService._event_type(event_log),
-            'company_id': str(channel.company_id),
-            'product': {
-                'id': str(product.id),
-                'sku': product.sku,
-                'name': product.name,
+            "event_id": str(event_log.id),
+            "type": NotificationService._event_type(event_log),
+            "company_id": str(channel.company_id),
+            "product": {
+                "id": str(product.id),
+                "sku": product.sku,
+                "name": product.name,
             },
-            'payload': {
-                'message': event_log.message,
-                'severity': event_log.rule.severity if event_log.rule else 'WARNING',
-                'rule_id': str(event_log.rule_id) if event_log.rule_id else None,
-                'batch_id': str(event_log.batch_id) if event_log.batch_id else None,
-                'status': event_log.status,
+            "payload": {
+                "message": event_log.message,
+                "severity": event_log.rule.severity if event_log.rule else "WARNING",
+                "rule_id": str(event_log.rule_id) if event_log.rule_id else None,
+                "batch_id": str(event_log.batch_id) if event_log.batch_id else None,
+                "status": event_log.status,
             },
-            'created_at': event_log.created_at.isoformat(),
+            "created_at": event_log.created_at.isoformat(),
         }
         NotificationService._post_webhook(channel, payload)
 
@@ -211,7 +221,7 @@ class NotificationService:
         host = parsed.hostname
         if not host:
             raise ValueError("Webhook URL has no host.")
-        port = parsed.port or (443 if parsed.scheme == 'https' else 80)
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
         try:
             infos = socket.getaddrinfo(host, port, proto=socket.IPPROTO_TCP)
         except OSError:
@@ -219,23 +229,21 @@ class NotificationService:
         for info in infos:
             ip = ipaddress.ip_address(info[4][0])
             if not ip.is_global:
-                raise ValueError(
-                    f"Refusing webhook to non-public address {ip} ({host})."
-                )
+                raise ValueError(f"Refusing webhook to non-public address {ip} ({host}).")
 
     @staticmethod
     def _post_webhook(channel, payload):
         """POST JSON to the channel URL, signed with HMAC-SHA256 of the body."""
         NotificationService._assert_public_host(channel.url)
-        body = json.dumps(payload).encode('utf-8')
-        signature = hmac.new(channel.secret.encode('utf-8'), body, hashlib.sha256).hexdigest()
+        body = json.dumps(payload).encode("utf-8")
+        signature = hmac.new(channel.secret.encode("utf-8"), body, hashlib.sha256).hexdigest()
         headers = {
-            'Content-Type': 'application/json',
-            'X-PI-Signature': f'sha256={signature}',
+            "Content-Type": "application/json",
+            "X-PI-Signature": f"sha256={signature}",
         }
         for key, value in (channel.headers or {}).items():
             headers[str(key)] = str(value)
-        req = Request(channel.url, data=body, headers=headers, method='POST')
+        req = Request(channel.url, data=body, headers=headers, method="POST")
         # urlopen raises HTTPError on 4xx/5xx and URLError on network failures.
         with urlopen(req, timeout=WEBHOOK_TIMEOUT_SECONDS):
             pass

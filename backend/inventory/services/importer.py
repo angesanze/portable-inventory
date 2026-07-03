@@ -30,7 +30,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
 
-from ..models import ProductModel, Location, Supplier
+from ..models import ProductModel, Location, Supplier, Movement, ProductBatch
 from ..profiles import profile_to_legacy
 from ..engines import EngineFactory
 from ..validators import validate_gtin
@@ -41,14 +41,24 @@ MAX_FILE_BYTES = 5 * 1024 * 1024  # 5 MB
 MAX_ROWS = 2000
 
 CANONICAL_COLUMNS = [
-    'sku', 'name', 'profile', 'barcode', 'engine_config', 'initial_stock',
-    'location', 'supplier', 'unit_cost', 'batch_identifier', 'expiry_date', 'serials',
+    "sku",
+    "name",
+    "profile",
+    "barcode",
+    "engine_config",
+    "initial_stock",
+    "location",
+    "supplier",
+    "unit_cost",
+    "batch_identifier",
+    "expiry_date",
+    "serials",
 ]
 
 # Accepted expiry_date input formats, tried in this order. Both validate_rows
 # (shape check) and _normalize_expiry (ISO normalization) iterate this so the
 # stored value is always ISO no matter which form the upload used.
-_EXPIRY_FORMATS = ('%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y')
+_EXPIRY_FORMATS = ("%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y")
 
 _VALID_PROFILES = {code for code, _ in INVENTORY_PROFILES}
 
@@ -58,7 +68,7 @@ class ImportError_(Exception):
 
 
 def _normalize_header(name):
-    return (name or '').strip().lower().replace(' ', '_')
+    return (name or "").strip().lower().replace(" ", "_")
 
 
 def parse(file):
@@ -70,12 +80,12 @@ def parse(file):
     """
     raw = file.read()
     if isinstance(raw, str):
-        raw = raw.encode('utf-8')
+        raw = raw.encode("utf-8")
     if len(raw) > MAX_FILE_BYTES:
         raise ImportError_(f"File too large (limit {MAX_FILE_BYTES // (1024 * 1024)} MB).")
 
-    name = (getattr(file, 'name', '') or '').lower()
-    if name.endswith('.xlsx') or raw[:2] == b'PK':
+    name = (getattr(file, "name", "") or "").lower()
+    if name.endswith(".xlsx") or raw[:2] == b"PK":
         rows = _parse_xlsx(raw)
     else:
         rows = _parse_csv(raw)
@@ -86,24 +96,26 @@ def parse(file):
 
 
 def _parse_csv(raw):
-    text = raw.decode('utf-8-sig', errors='replace')
+    text = raw.decode("utf-8-sig", errors="replace")
     reader = csv.reader(io.StringIO(text))
     try:
         header = next(reader)
     except StopIteration:
         raise ImportError_("Empty file.")
     keys = [_normalize_header(h) for h in header]
-    if 'sku' not in keys or 'name' not in keys or 'profile' not in keys:
+    if "sku" not in keys or "name" not in keys or "profile" not in keys:
         raise ImportError_("Missing required header(s): sku, name, profile.")
 
     rows = []
     for i, raw_row in enumerate(reader, start=1):
         # Skip completely blank lines.
-        if not any((c or '').strip() for c in raw_row):
+        if not any((c or "").strip() for c in raw_row):
             continue
-        row = {keys[j]: (raw_row[j].strip() if j < len(raw_row) and raw_row[j] is not None else '')
-               for j in range(len(keys))}
-        row['_row'] = i
+        row = {
+            keys[j]: (raw_row[j].strip() if j < len(raw_row) and raw_row[j] is not None else "")
+            for j in range(len(keys))
+        }
+        row["_row"] = i
         rows.append(row)
         if len(rows) > MAX_ROWS:
             raise ImportError_(f"Too many rows (limit {MAX_ROWS}).")
@@ -129,21 +141,21 @@ def _parse_xlsx(raw):
     for sheet_row in ws.iter_rows(values_only=True):
         if header is None:
             header = sheet_row
-            keys = [_normalize_header(str(h) if h is not None else '') for h in header]
-            if 'sku' not in keys or 'name' not in keys or 'profile' not in keys:
+            keys = [_normalize_header(str(h) if h is not None else "") for h in header]
+            if "sku" not in keys or "name" not in keys or "profile" not in keys:
                 wb.close()
                 raise ImportError_("Missing required header(s): sku, name, profile.")
             continue
         if sheet_row is None or not any(
-            (str(c).strip() if c is not None else '') for c in sheet_row
+            (str(c).strip() if c is not None else "") for c in sheet_row
         ):
             continue
         data_idx += 1
         row = {}
         for j in range(len(keys)):
             val = sheet_row[j] if j < len(sheet_row) else None
-            row[keys[j]] = '' if val is None else str(val).strip()
-        row['_row'] = data_idx
+            row[keys[j]] = _stringify_cell(val)
+        row["_row"] = data_idx
         rows.append(row)
         if len(rows) > MAX_ROWS:
             wb.close()
@@ -152,10 +164,29 @@ def _parse_xlsx(raw):
     return rows
 
 
+def _stringify_cell(val):
+    """Render an XLSX cell as the trimmed string the row dict expects.
+
+    Excel auto-types date columns, so openpyxl (data_only) hands back
+    ``datetime``/``date`` objects. ``str()`` on those yields ``'2026-07-01
+    00:00:00'``, which matches none of the accepted expiry formats and makes
+    perishable initial stock un-importable via XLSX (COR-16). Render dates as an
+    ISO ``YYYY-MM-DD`` string instead. (datetime is a subclass of date, so it is
+    checked first.)
+    """
+    if val is None:
+        return ""
+    if isinstance(val, datetime.datetime):
+        return val.date().isoformat()
+    if isinstance(val, datetime.date):
+        return val.isoformat()
+    return str(val).strip()
+
+
 def _parse_serials(value):
     if not value:
         return []
-    return [s.strip() for s in str(value).split(';') if s.strip()]
+    return [s.strip() for s in str(value).split(";") if s.strip()]
 
 
 def _normalize_expiry(value):
@@ -166,7 +197,7 @@ def _normalize_expiry(value):
     ISO. Store ISO so a row like ``01/02/2026`` doesn't become an unparseable
     batch date. Tries the same formats in the same order as validate_rows.
     """
-    value = (value or '').strip()
+    value = (value or "").strip()
     if not value:
         return None
     for fmt in _EXPIRY_FORMATS:
@@ -190,13 +221,13 @@ def validate_rows(company, rows):
     (v1 — rectifications go through stocktake, not import).
     Reuses validate_gtin and the engine `validate_config` validators.
     """
-    existing_skus = set(
-        ProductModel.objects.filter(company=company).values_list('sku', flat=True)
-    )
+    existing_skus = set(ProductModel.objects.filter(company=company).values_list("sku", flat=True))
     # Track barcodes already taken in DB and within this batch to flag clashes.
     db_barcodes = {
-        b for b in ProductModel.objects.filter(company=company)
-        .exclude(barcode='').values_list('barcode', flat=True)
+        b
+        for b in ProductModel.objects.filter(company=company)
+        .exclude(barcode="")
+        .values_list("barcode", flat=True)
     }
     seen_skus_in_batch = {}
     seen_barcodes_in_batch = {}
@@ -204,10 +235,10 @@ def validate_rows(company, rows):
     results = []
     for row in rows:
         errors = []
-        sku = (row.get('sku') or '').strip()
-        name = (row.get('name') or '').strip()
-        profile = (row.get('profile') or '').strip().upper()
-        barcode = (row.get('barcode') or '').strip()
+        sku = (row.get("sku") or "").strip()
+        name = (row.get("name") or "").strip()
+        profile = (row.get("profile") or "").strip().upper()
+        barcode = (row.get("barcode") or "").strip()
 
         if not sku:
             errors.append("sku is required.")
@@ -219,13 +250,13 @@ def validate_rows(company, rows):
             errors.append(f"Invalid profile '{profile}'.")
 
         is_update = sku in existing_skus
-        action = 'UPDATE' if is_update else 'CREATE'
+        action = "UPDATE" if is_update else "CREATE"
 
         # Duplicate SKU within the same file.
         if sku and sku in seen_skus_in_batch:
             errors.append(f"Duplicate sku in file (also row {seen_skus_in_batch[sku]}).")
         elif sku:
-            seen_skus_in_batch[sku] = row.get('_row')
+            seen_skus_in_batch[sku] = row.get("_row")
 
         # Barcode GTIN check + uniqueness.
         if barcode:
@@ -240,11 +271,11 @@ def validate_rows(company, rows):
                     )
                 elif clash_db:
                     errors.append(f"Barcode '{barcode}' already used by another product.")
-                seen_barcodes_in_batch[barcode] = row.get('_row')
+                seen_barcodes_in_batch[barcode] = row.get("_row")
 
         # engine_config JSON + per-engine validation.
         engine_config = {}
-        ec_raw = (row.get('engine_config') or '').strip()
+        ec_raw = (row.get("engine_config") or "").strip()
         if ec_raw:
             try:
                 engine_config = json.loads(ec_raw)
@@ -260,7 +291,7 @@ def validate_rows(company, rows):
                 errors.append("engine_config invalid: " + "; ".join(ec_errors))
 
         # initial_stock numeric + UPDATE rejection.
-        initial_stock_raw = (row.get('initial_stock') or '').strip()
+        initial_stock_raw = (row.get("initial_stock") or "").strip()
         if initial_stock_raw:
             if is_update:
                 errors.append("initial_stock is only allowed on new products (CREATE).")
@@ -273,7 +304,7 @@ def validate_rows(company, rows):
                     errors.append("initial_stock must be numeric.")
 
         # unit_cost numeric.
-        unit_cost_raw = (row.get('unit_cost') or '').strip()
+        unit_cost_raw = (row.get("unit_cost") or "").strip()
         if unit_cost_raw:
             try:
                 Decimal(unit_cost_raw)
@@ -281,13 +312,13 @@ def validate_rows(company, rows):
                 errors.append("unit_cost must be numeric.")
 
         # location existence (only matters when there is initial stock).
-        loc_name = (row.get('location') or '').strip()
+        loc_name = (row.get("location") or "").strip()
         if loc_name and not is_update:
             if not Location.objects.filter(company=company, name=loc_name).exists():
                 errors.append(f"Location '{loc_name}' does not exist.")
 
         # expiry_date shape (lenient: only flag obvious garbage).
-        expiry = (row.get('expiry_date') or '').strip()
+        expiry = (row.get("expiry_date") or "").strip()
         if expiry:
             ok = False
             for fmt in _EXPIRY_FORMATS:
@@ -300,19 +331,21 @@ def validate_rows(company, rows):
             if not ok:
                 errors.append(f"expiry_date '{expiry}' is malformed (expected YYYY-MM-DD).")
 
-        results.append({
-            'row': row.get('_row'),
-            'sku': sku,
-            'name': name,
-            'action': 'ERROR' if errors else action,
-            'errors': errors,
-        })
+        results.append(
+            {
+                "row": row.get("_row"),
+                "sku": sku,
+                "name": name,
+                "action": "ERROR" if errors else action,
+                "errors": errors,
+            }
+        )
 
     return results
 
 
 def _to_decimal(value):
-    value = (value or '').strip()
+    value = (value or "").strip()
     if not value:
         return None
     try:
@@ -332,75 +365,110 @@ def commit(company, rows, user):
 
     Returns {created, updated, errors, results:[per-row dicts]}.
     """
-    validations = {v['row']: v for v in validate_rows(company, rows)}
+    validations = {v["row"]: v for v in validate_rows(company, rows)}
 
     created = updated = error_count = 0
     results = []
 
     for row in rows:
-        rownum = row.get('_row')
-        verdict = validations.get(rownum, {'action': 'ERROR', 'errors': ['unknown row']})
-        if verdict['action'] == 'ERROR':
+        rownum = row.get("_row")
+        verdict = validations.get(rownum, {"action": "ERROR", "errors": ["unknown row"]})
+        if verdict["action"] == "ERROR":
             error_count += 1
-            results.append({
-                'row': rownum, 'sku': verdict.get('sku'),
-                'action': 'ERROR', 'errors': verdict.get('errors', []),
-            })
+            results.append(
+                {
+                    "row": rownum,
+                    "sku": verdict.get("sku"),
+                    "action": "ERROR",
+                    "errors": verdict.get("errors", []),
+                }
+            )
             continue
 
         try:
             with transaction.atomic():
                 action = _commit_row(company, row, user)
-            if action == 'CREATE':
+            if action == "CREATE":
                 created += 1
             else:
                 updated += 1
-            results.append({
-                'row': rownum, 'sku': verdict.get('sku'),
-                'action': action, 'errors': [],
-            })
+            results.append(
+                {
+                    "row": rownum,
+                    "sku": verdict.get("sku"),
+                    "action": action,
+                    "errors": [],
+                }
+            )
         except Exception as exc:  # row isolated — report and continue
             error_count += 1
-            results.append({
-                'row': rownum, 'sku': verdict.get('sku'),
-                'action': 'ERROR', 'errors': [str(exc)],
-            })
+            results.append(
+                {
+                    "row": rownum,
+                    "sku": verdict.get("sku"),
+                    "action": "ERROR",
+                    "errors": [str(exc)],
+                }
+            )
 
     return {
-        'created': created,
-        'updated': updated,
-        'errors': error_count,
-        'results': results,
+        "created": created,
+        "updated": updated,
+        "errors": error_count,
+        "results": results,
     }
+
+
+def _has_stock_history(product):
+    """True if the product carries any stock or ledger history — in which case a
+    profile change (COR-15) would corrupt it."""
+    return (
+        product.physical_products.exists()
+        or Movement.objects.filter(product_model=product).exists()
+        or ProductBatch.objects.filter(product_model=product).exists()
+    )
 
 
 def _commit_row(company, row, user):
     """Create/update a single product (+ optional initial stock). Returns action."""
-    sku = (row.get('sku') or '').strip()
-    name = (row.get('name') or '').strip()
-    profile = (row.get('profile') or '').strip().upper()
-    barcode = (row.get('barcode') or '').strip()
+    sku = (row.get("sku") or "").strip()
+    name = (row.get("name") or "").strip()
+    profile = (row.get("profile") or "").strip().upper()
+    barcode = (row.get("barcode") or "").strip()
 
     engine_config = {}
-    ec_raw = (row.get('engine_config') or '').strip()
+    ec_raw = (row.get("engine_config") or "").strip()
     if ec_raw:
         engine_config = json.loads(ec_raw)
 
     existing = ProductModel.objects.filter(company=company, sku=sku).first()
     if existing is not None:
         existing.name = name
-        existing.profile = profile
+        if profile and profile != existing.profile:
+            # Flipping the profile switches stock semantics (e.g.
+            # SERIALIZED→SIMPLE_COUNT changes where the total is read from) and
+            # makes every existing PhysicalProduct unsaveable. Refuse the change
+            # on a product that already carries stock/history rather than
+            # silently corrupting it (COR-15); the row is reported as an error
+            # and the rest of the import continues.
+            if _has_stock_history(existing):
+                raise ImportError_(
+                    f"Cannot change profile of '{sku}' from {existing.profile} "
+                    f"to {profile}: it already has stock or movement history."
+                )
+            existing.profile = profile
         if barcode:
             existing.barcode = barcode
         if engine_config:
             existing.engine_config = engine_config
         existing.save()
-        return 'UPDATE'
+        return "UPDATE"
 
     # License quota (GOVERNANCE-11): a CREATE counts against max_products, same
     # as the single-create paths. Each row runs in its own savepoint, so a
     # LimitReached here is reported against that row and the import continues.
     from core.license_limits import check_product_limit
+
     check_product_limit(company, user=user)
 
     product = ProductModel(
@@ -415,41 +483,41 @@ def _commit_row(company, row, user):
 
     # Initial stock (CREATE only). Resolve supplier / build branch payloads.
     supplier = None
-    supplier_name = (row.get('supplier') or '').strip()
+    supplier_name = (row.get("supplier") or "").strip()
     if supplier_name:
         supplier, _ = Supplier.objects.get_or_create(company=company, name=supplier_name)
 
     location_id = None
-    loc_name = (row.get('location') or '').strip()
+    loc_name = (row.get("location") or "").strip()
     if loc_name:
         loc = Location.objects.filter(company=company, name=loc_name).first()
         if loc is not None:
             location_id = loc.id
 
-    unit_cost = _to_decimal(row.get('unit_cost'))
+    unit_cost = _to_decimal(row.get("unit_cost"))
 
-    serials = _parse_serials(row.get('serials'))
-    initial_stock = _to_decimal(row.get('initial_stock'))
-    batch_identifier = (row.get('batch_identifier') or '').strip()
+    serials = _parse_serials(row.get("serials"))
+    initial_stock = _to_decimal(row.get("initial_stock"))
+    batch_identifier = (row.get("batch_identifier") or "").strip()
     # Normalize to ISO so downstream expiry parsing/monitoring works regardless
     # of the (validated) input format. None stays None.
-    expiry = _normalize_expiry(row.get('expiry_date'))
+    expiry = _normalize_expiry(row.get("expiry_date"))
 
     initial_batch = None
     initial_serials = None
     initial_balance = None
 
     tracking_mode = product.tracking_mode
-    if tracking_mode == 'INDIVIDUAL':
+    if tracking_mode == "INDIVIDUAL":
         if serials:
             initial_serials = serials
-    elif tracking_mode == 'BATCH':
+    elif tracking_mode == "BATCH":
         if initial_stock and initial_stock > 0:
             initial_batch = {
-                'batch_identifier': batch_identifier or f"IMP-{sku}",
-                'initial_quantity': str(initial_stock),
-                'initial_location_id': location_id,
-                'expiry_date': expiry or None,
+                "batch_identifier": batch_identifier or f"IMP-{sku}",
+                "initial_quantity": str(initial_stock),
+                "initial_location_id": location_id,
+                "expiry_date": expiry or None,
             }
     else:  # BULK
         if initial_stock and initial_stock > 0:
@@ -468,4 +536,4 @@ def _commit_row(company, row, user):
             purchased_cost=unit_cost,
         )
 
-    return 'CREATE'
+    return "CREATE"

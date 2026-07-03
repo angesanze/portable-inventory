@@ -14,8 +14,9 @@ import rest_framework.serializers as serializers
 from drf_spectacular.utils import extend_schema_field
 from drf_spectacular.types import OpenApiTypes
 
+
 class UserSerializer(ModelSerializer):
-    company_name = serializers.CharField(source='company.name', read_only=True)
+    company_name = serializers.CharField(source="company.name", read_only=True)
     account_type = serializers.SerializerMethodField()
     capabilities = serializers.SerializerMethodField()
     role = serializers.SerializerMethodField()
@@ -24,13 +25,21 @@ class UserSerializer(ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'id', 'username', 'email', 'company', 'company_name',
-            'account_type', 'is_superuser', 'capabilities', 'role', 'license',
+            "id",
+            "username",
+            "email",
+            "company",
+            "company_name",
+            "account_type",
+            "is_superuser",
+            "capabilities",
+            "role",
+            "license",
         ]
 
     @extend_schema_field(OpenApiTypes.STR)
     def get_account_type(self, obj):
-        company = getattr(obj, 'company', None)
+        company = getattr(obj, "company", None)
         return company.account_type if company else None
 
     @extend_schema_field(OpenApiTypes.STR)
@@ -39,7 +48,8 @@ class UserSerializer(ModelSerializer):
         # for legacy/blank rows (which resolve to ADMIN). Same value the backend
         # capability intersection uses.
         from .permissions import normalize_role
-        return normalize_role(getattr(obj, 'role', None))
+
+        return normalize_role(getattr(obj, "role", None))
 
     @extend_schema_field(OpenApiTypes.OBJECT)
     def get_capabilities(self, obj):
@@ -56,27 +66,25 @@ class UserSerializer(ModelSerializer):
         on every request. ``None`` for a company-less user (e.g. a bare
         superuser).
         """
-        company = getattr(obj, 'company', None)
+        company = getattr(obj, "company", None)
         if company is None:
             return None
         from inventory.models import ProductModel
+
         return {
-            'expires_at': (
-                company.license_expires_at.isoformat()
-                if company.license_expires_at else None
+            "expires_at": (
+                company.license_expires_at.isoformat() if company.license_expires_at else None
             ),
-            'expired': company.is_license_expired,
-            'limits': {
-                'max_users': company.max_users,
-                'max_products': company.max_products,
-                'max_managed_companies': company.max_managed_companies,
+            "expired": company.is_license_expired,
+            "limits": {
+                "max_users": company.max_users,
+                "max_products": company.max_products,
+                "max_managed_companies": company.max_managed_companies,
             },
-            'usage': {
-                'users': company.users.count(),
-                'products': ProductModel.objects.filter(company=company).count(),
-                'managed_companies': (
-                    company.children.count() if company.is_developer else 0
-                ),
+            "usage": {
+                "users": company.users.count(),
+                "products": ProductModel.objects.filter(company=company).count(),
+                "managed_companies": (company.children.count() if company.is_developer else 0),
             },
         }
 
@@ -92,15 +100,16 @@ class InviteUserSerializer(serializers.Serializer):
     """
 
     username = serializers.CharField(max_length=150)
-    email = serializers.EmailField(required=False, allow_blank=True, default='')
+    email = serializers.EmailField(required=False, allow_blank=True, default="")
     password = serializers.CharField(write_only=True, min_length=8)
     company = serializers.UUIDField()
     # Constrain to the canonical role enum so an unknown role 400s instead of
     # being persisted verbatim (and silently normalized to ADMIN downstream).
     # Blank stays accepted (legacy/unspecified → treated as ADMIN).
     role = serializers.ChoiceField(
-        choices=User.Role.choices, required=False, allow_blank=True, default=''
+        choices=User.Role.choices, required=False, allow_blank=True, default=""
     )
+
 
 class ApiKeyViewSet(viewsets.ModelViewSet):
     """Key management surface — gated to tiers that may manage API keys.
@@ -111,14 +120,15 @@ class ApiKeyViewSet(viewsets.ModelViewSet):
     enforcement of that flag, so the UI hiding the screen is never the only
     protection. Developers/superusers keep full list/create/rotate/delete.
     """
+
     serializer_class = ApiKeySerializer
-    permission_classes = [permissions.IsAuthenticated, require_capability('manage_api_keys')]
+    permission_classes = [permissions.IsAuthenticated, require_capability("manage_api_keys")]
 
     def get_queryset(self):
         # Only show API keys belonging to the user's company
         user = self.request.user
         if user.company:
-            return ApiKey.objects.filter(company=user.company).order_by('-created_at')
+            return ApiKey.objects.filter(company=user.company).order_by("-created_at")
         return ApiKey.objects.none()
 
     def perform_create(self, serializer):
@@ -127,8 +137,8 @@ class ApiKeyViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=False,
-        methods=['get'],
-        url_path='default',
+        methods=["get"],
+        url_path="default",
         permission_classes=[permissions.IsAuthenticated],
     )
     def default(self, request):
@@ -144,28 +154,32 @@ class ApiKeyViewSet(viewsets.ModelViewSet):
         company = request.user.company
         if not company:
             return Response(
-                {'detail': 'No company associated.'},
+                {"detail": "No company associated."},
                 status=status.HTTP_404_NOT_FOUND,
             )
         # Oldest key wins for legacy safety (multiple keys may exist for
         # developer companies); managers only ever have one.
-        api_key = ApiKey.objects.filter(company=company).order_by('created_at').first()
+        api_key = ApiKey.objects.filter(company=company).order_by("created_at").first()
         if api_key is None:
             api_key = ApiKey.objects.create(
                 company=company,
                 key=ApiKey.generate_raw_key(),
-                label='Default Key',
+                label="Default Key",
             )
-        return Response({
-            'id': str(api_key.id),
-            # Plaintext is not stored (SEC-03); hand back a signed, revocable
-            # widget credential the QR/preview flows use exactly like a key.
-            'key': api_key.make_widget_token(),
-            'label': api_key.label,
-            'default_location': str(api_key.default_location_id) if api_key.default_location_id else None,
-        })
+        return Response(
+            {
+                "id": str(api_key.id),
+                # Plaintext is not stored (SEC-03); hand back a signed, revocable
+                # widget credential the QR/preview flows use exactly like a key.
+                "key": api_key.make_widget_token(),
+                "label": api_key.label,
+                "default_location": str(api_key.default_location_id)
+                if api_key.default_location_id
+                else None,
+            }
+        )
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=["post"])
     def rotate(self, request, pk=None):
         """Generate new key value while preserving all config. Old key invalidated.
 
@@ -175,14 +189,17 @@ class ApiKeyViewSet(viewsets.ModelViewSet):
         api_key = self.get_object()
         raw = ApiKey.generate_raw_key()
         api_key.set_key(raw)
-        api_key.save(update_fields=['key', 'key_hash', 'key_prefix'])
-        return Response({
-            'id': str(api_key.id),
-            'key': raw,
-            'label': api_key.label,
-        })
+        api_key.save(update_fields=["key", "key_hash", "key_prefix"])
+        return Response(
+            {
+                "id": str(api_key.id),
+                "key": raw,
+                "label": api_key.label,
+            }
+        )
 
-ALLOWED_SETTINGS_KEYS = {'timezone', 'currency', 'industry_type'}
+
+ALLOWED_SETTINGS_KEYS = {"timezone", "currency", "industry_type"}
 
 
 class CompanySettingsView(APIView):
@@ -192,13 +209,14 @@ class CompanySettingsView(APIView):
     the ``manage_settings`` role capability (GOVERNANCE-11) — OWNER/ADMIN only,
     an OPERATOR/VIEWER is denied.
     """
+
     permission_classes = [permissions.IsAuthenticated]
 
     def get_permissions(self):
-        if self.request.method == 'PATCH':
+        if self.request.method == "PATCH":
             return [
                 permissions.IsAuthenticated(),
-                require_capability('manage_settings')(),
+                require_capability("manage_settings")(),
                 LicenseNotExpired(),
             ]
         return [permissions.IsAuthenticated()]
@@ -206,21 +224,21 @@ class CompanySettingsView(APIView):
     def get(self, request):
         company = request.user.company
         if not company:
-            return Response({'detail': 'No company associated.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "No company associated."}, status=status.HTTP_404_NOT_FOUND)
         return Response(company.settings)
 
     def patch(self, request):
         company = request.user.company
         if not company:
-            return Response({'detail': 'No company associated.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "No company associated."}, status=status.HTTP_404_NOT_FOUND)
         unknown = set(request.data.keys()) - ALLOWED_SETTINGS_KEYS
         if unknown:
             return Response(
-                {'detail': f'Unknown settings keys: {", ".join(sorted(unknown))}'},
+                {"detail": f"Unknown settings keys: {', '.join(sorted(unknown))}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         company.settings.update(request.data)
-        company.save(update_fields=['settings'])
+        company.save(update_fields=["settings"])
         return Response(company.settings)
 
 
@@ -232,15 +250,15 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         return User.objects.filter(id=self.request.user.id)
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=["get"])
     def me(self, request):
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
 
     @action(
         detail=False,
-        methods=['post'],
-        permission_classes=[require_capability('create_users'), LicenseNotExpired],
+        methods=["post"],
+        permission_classes=[require_capability("create_users"), LicenseNotExpired],
     )
     def invite(self, request):
         """Create a user inside a managed tenant (developer/superuser only).
@@ -259,31 +277,30 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         user = request.user
 
         try:
-            target_company = Company.objects.get(pk=data['company'])
+            target_company = Company.objects.get(pk=data["company"])
         except Company.DoesNotExist:
-            raise ValidationError({'company': 'Company not found.'})
+            raise ValidationError({"company": "Company not found."})
 
         if not user.is_superuser:
             # A developer may only invite users into its own child tenants.
             if target_company.parent_id != user.company_id:
-                raise PermissionDenied(
-                    "You may only create users in your own child companies."
-                )
+                raise PermissionDenied("You may only create users in your own child companies.")
 
         # License quota: reject the invite if the target company is at its
         # max_users cap. Superusers bypass. Null cap = unlimited.
         from .license_limits import check_user_limit
+
         check_user_limit(target_company, user=user)
 
         with transaction.atomic():
             new_user = User.objects.create_user(
-                username=data['username'],
-                email=data.get('email', ''),
-                password=data['password'],
+                username=data["username"],
+                email=data.get("email", ""),
+                password=data["password"],
             )
             new_user.company = target_company
-            new_user.role = data.get('role', '')
-            new_user.save(update_fields=['company', 'role'])
+            new_user.role = data.get("role", "")
+            new_user.save(update_fields=["company", "role"])
 
         record_audit(
             user,
@@ -291,6 +308,4 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             target_company=target_company,
             username=new_user.username,
         )
-        return Response(
-            UserSerializer(new_user).data, status=status.HTTP_201_CREATED
-        )
+        return Response(UserSerializer(new_user).data, status=status.HTTP_201_CREATED)

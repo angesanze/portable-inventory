@@ -1,23 +1,24 @@
-from typing import List, Dict, Any
-from django.db import transaction
-from django.db.models import Sum, F
-from django.core.exceptions import ValidationError
+from django.db.models import Sum
 from decimal import Decimal
-from ..models import Movement, Location, ProductModel, PhysicalProduct, ProductBatch, WorkOrder
+from ..models import Movement, Location, ProductModel, PhysicalProduct, ProductBatch
 from ..profiles import profiles_for_tracking_mode
 from ..constants import (
-    TRACKING_MODE_BATCH, TRACKING_MODE_INDIVIDUAL, PROFILE_PERISHABLE,
-    PHYSICAL_STATUS_ACTIVE, LOCATION_TYPE_VIRTUAL, LOCATION_TYPE_LOSS,
+    TRACKING_MODE_BATCH,
+    TRACKING_MODE_INDIVIDUAL,
+    PROFILE_PERISHABLE,
+    PHYSICAL_STATUS_ACTIVE,
+    LOCATION_TYPE_VIRTUAL,
+    LOCATION_TYPE_LOSS,
 )
 
-BULK_PROFILES = profiles_for_tracking_mode('BULK')
-import uuid
+BULK_PROFILES = profiles_for_tracking_mode("BULK")
 from django.utils import timezone
 
 
 def _parse_expiry(value):
     """Parse a batch `expiry_date` string into an aware datetime, or None."""
     from django.utils.dateparse import parse_datetime, parse_date
+
     if not value:
         return None
     exp_dt = parse_datetime(str(value))
@@ -36,7 +37,7 @@ def _batch_expired(batch, now) -> bool:
     return exp_dt is not None and exp_dt <= now
 
 
-def _has_tracker_preset(product_model: 'ProductModel') -> bool:
+def _has_tracker_preset(product_model: "ProductModel") -> bool:
     """True when this product is governed by a tracker state machine.
 
     Either the product carries its own `status_transitions` map, or its
@@ -45,11 +46,11 @@ def _has_tracker_preset(product_model: 'ProductModel') -> bool:
     unit that is still physically on the books — it must NOT zero out
     on-hand stock.
     """
-    cfg = getattr(product_model, 'engine_config', None) or {}
-    if cfg.get('status_transitions'):
+    cfg = getattr(product_model, "engine_config", None) or {}
+    if cfg.get("status_transitions"):
         return True
-    calc = getattr(product_model, 'default_calculator', None)
-    if calc and getattr(calc, 'engine_type', None) == 'tracker':
+    calc = getattr(product_model, "default_calculator", None)
+    if calc and getattr(calc, "engine_type", None) == "tracker":
         return True
     return False
 
@@ -80,13 +81,12 @@ class StockService:
                 )
                 return sum(
                     (b.quantity for b in batches if not _batch_expired(b, now)),
-                    Decimal('0'),
+                    Decimal("0"),
                 )
             total = ProductBatch.objects.filter(
-                product_model=product_model,
-                location=location
-            ).aggregate(t=Sum('quantity'))['t']
-            return total or Decimal('0')
+                product_model=product_model, location=location
+            ).aggregate(t=Sum("quantity"))["t"]
+            return total or Decimal("0")
 
         if product_model.tracking_mode == TRACKING_MODE_INDIVIDUAL:
             qs = PhysicalProduct.objects.filter(
@@ -99,14 +99,12 @@ class StockService:
 
         # BULK: Ledger aggregation
         incoming = Movement.objects.filter(
-            product_model=product_model,
-            to_location=location
-        ).aggregate(total=Sum('quantity'))['total'] or Decimal('0')
+            product_model=product_model, to_location=location
+        ).aggregate(total=Sum("quantity"))["total"] or Decimal("0")
 
         outgoing = Movement.objects.filter(
-            product_model=product_model,
-            from_location=location
-        ).aggregate(total=Sum('quantity'))['total'] or Decimal('0')
+            product_model=product_model, from_location=location
+        ).aggregate(total=Sum("quantity"))["total"] or Decimal("0")
 
         return incoming - outgoing
 
@@ -120,8 +118,11 @@ class StockService:
         present but held pending a return resolution, so they contribute 0.
         """
         if location is not None and not location.is_sellable:
-            return Decimal('0')
-        from .reservations import ReservationService  # inline import: breaks the services import cycle (ledger↔reservations↔stock↔costing)
+            return Decimal("0")
+        from .reservations import (
+            ReservationService,
+        )  # inline import: breaks the services import cycle (ledger↔reservations↔stock↔costing)
+
         physical = StockService.get_stock_for_location(product_model, location)
         return physical - ReservationService.active_reserved_qty(product_model, location)
 
@@ -140,7 +141,7 @@ class StockService:
         ).exclude(type__in=[LOCATION_TYPE_VIRTUAL, LOCATION_TYPE_LOSS])
 
         breakdown = {}
-        total = Decimal('0')
+        total = Decimal("0")
 
         # BATCH: Simple aggregation on ProductBatch
         if product_model.tracking_mode == TRACKING_MODE_BATCH:
@@ -151,24 +152,25 @@ class StockService:
                     product_model=product_model,
                     location__in=locations,
                     quantity__gt=0,
-                ).select_related('location')
+                ).select_related("location")
                 for b in batches:
                     if _batch_expired(b, now):
                         continue
                     name = b.location.name
-                    breakdown[name] = breakdown.get(name, Decimal('0')) + b.quantity
-                total = sum(breakdown.values(), Decimal('0'))
+                    breakdown[name] = breakdown.get(name, Decimal("0")) + b.quantity
+                total = sum(breakdown.values(), Decimal("0"))
                 return {"total": total, "breakdown": breakdown}
 
-            batch_stocks = ProductBatch.objects.filter(
-                product_model=product_model,
-                location__in=locations
-            ).values('location__name').annotate(total_qty=Sum('quantity'))
+            batch_stocks = (
+                ProductBatch.objects.filter(product_model=product_model, location__in=locations)
+                .values("location__name")
+                .annotate(total_qty=Sum("quantity"))
+            )
 
             for entry in batch_stocks:
-                qty = entry['total_qty'] or Decimal('0')
+                qty = entry["total_qty"] or Decimal("0")
                 if qty != 0:
-                    breakdown[entry['location__name']] = qty
+                    breakdown[entry["location__name"]] = qty
                     total += qty
 
             return {"total": total, "breakdown": breakdown}
@@ -178,51 +180,53 @@ class StockService:
         # governs the product (a BROKEN unit is still on the books).
         if product_model.tracking_mode == TRACKING_MODE_INDIVIDUAL:
             from django.db.models import Count
+
             qs = PhysicalProduct.objects.filter(
                 product_model=product_model,
                 location__in=locations,
             )
             if not _has_tracker_preset(product_model):
                 qs = qs.filter(status=PHYSICAL_STATUS_ACTIVE)
-            item_stocks = qs.values('location__name').annotate(total_qty=Count('id'))
+            item_stocks = qs.values("location__name").annotate(total_qty=Count("id"))
 
             for entry in item_stocks:
-                qty = Decimal(entry['total_qty'])
+                qty = Decimal(entry["total_qty"])
                 if qty != 0:
-                    breakdown[entry['location__name']] = qty
+                    breakdown[entry["location__name"]] = qty
                     total += qty
 
             return {"total": total, "breakdown": breakdown}
 
         # BULK: Ledger aggregation (Incoming - Outgoing)
         incoming_map = {
-            item['to_location__name']: item['total_qty'] or Decimal('0')
+            item["to_location__name"]: item["total_qty"] or Decimal("0")
             for item in Movement.objects.filter(
-                product_model=product_model,
-                to_location__in=locations
-            ).values('to_location__name').annotate(total_qty=Sum('quantity'))
+                product_model=product_model, to_location__in=locations
+            )
+            .values("to_location__name")
+            .annotate(total_qty=Sum("quantity"))
         }
 
         outgoing_map = {
-            item['from_location__name']: item['total_qty'] or Decimal('0')
+            item["from_location__name"]: item["total_qty"] or Decimal("0")
             for item in Movement.objects.filter(
-                product_model=product_model,
-                from_location__in=locations
-            ).values('from_location__name').annotate(total_qty=Sum('quantity'))
+                product_model=product_model, from_location__in=locations
+            )
+            .values("from_location__name")
+            .annotate(total_qty=Sum("quantity"))
         }
 
         all_loc_names = set(incoming_map.keys()) | set(outgoing_map.keys())
 
         for loc_name in all_loc_names:
-            net = incoming_map.get(loc_name, Decimal('0')) - outgoing_map.get(loc_name, Decimal('0'))
+            net = incoming_map.get(loc_name, Decimal("0")) - outgoing_map.get(
+                loc_name, Decimal("0")
+            )
             if net != 0:
                 breakdown[loc_name] = net
                 total += net
 
-        return {
-            "total": total,
-            "breakdown": breakdown
-        }
+        return {"total": total, "breakdown": breakdown}
 
     @staticmethod
     def get_quarantine_for_model(product_model: ProductModel) -> dict:
@@ -237,7 +241,7 @@ class StockService:
             is_sellable=False,
         )
         breakdown = {}
-        total = Decimal('0')
+        total = Decimal("0")
         for loc in quarantine_locs:
             qty = StockService.get_stock_for_location(product_model, loc)
             if qty != 0:
@@ -249,23 +253,23 @@ class StockService:
     def get_tracker_status_counts(product_model: ProductModel) -> dict:
         """Returns a dict of {status: count} for all PhysicalProducts of this model."""
         from django.db.models import Count
+
         return dict(
             PhysicalProduct.objects.filter(product_model=product_model)
-            .values_list('status')
-            .annotate(count=Count('id'))
+            .values_list("status")
+            .annotate(count=Count("id"))
         )
 
     @staticmethod
     def get_expiry_display_data(product_model: ProductModel, engine_config: dict) -> dict:
         """Returns {value: total, expired: N, expiring_soon: N} for time-based products."""
         from django.utils import timezone as tz
-        from django.utils.dateparse import parse_datetime, parse_date
         from datetime import timedelta
 
         total = ProductBatch.objects.filter(
             product_model=product_model,
             quantity__gt=0,
-        ).aggregate(t=Sum('quantity'))['t'] or Decimal('0')
+        ).aggregate(t=Sum("quantity"))["t"] or Decimal("0")
 
         time_unit = engine_config.get("time_unit", "days")
         soon_delta = timedelta(days=3) if time_unit == "days" else timedelta(hours=72)
@@ -297,87 +301,101 @@ class StockService:
         """
         Returns a list of all items currently in the location.
         Combines Batches, Physical Items, and Bulk sums.
-        
+
         Optimized to use aggregation for Bulk items, avoiding N+1 queries.
         """
         contents = []
-        
+
         # 1. Batches (Container/Bucket Strategy)
         # Fetch all batches with positive quantity in this location
-        batches = ProductBatch.objects.filter(location=location, quantity__gt=0).select_related('product_model')
+        batches = ProductBatch.objects.filter(location=location, quantity__gt=0).select_related(
+            "product_model"
+        )
         for b in batches:
-            contents.append({
-                "type": "BATCH",
-                "product_id": str(b.product_model.id),
-                "product_name": b.product_model.name,
-                "sku": b.product_model.sku,
-                "quantity": b.quantity,
-                "batch_id": b.batch_identifier,
-                "meta": b.data 
-            })
+            contents.append(
+                {
+                    "type": "BATCH",
+                    "product_id": str(b.product_model.id),
+                    "product_name": b.product_model.name,
+                    "sku": b.product_model.sku,
+                    "quantity": b.quantity,
+                    "batch_id": b.batch_identifier,
+                    "meta": b.data,
+                }
+            )
 
         # 2. Physical Products (Individual Strategy)
         # Fetch all active physical items in this location
-        items = PhysicalProduct.objects.filter(location=location, status=PHYSICAL_STATUS_ACTIVE).select_related('product_model')
+        items = PhysicalProduct.objects.filter(
+            location=location, status=PHYSICAL_STATUS_ACTIVE
+        ).select_related("product_model")
         for i in items:
-            contents.append({
-                "type": "ITEM",
-                "product_id": str(i.product_model.id),
-                "product_name": i.product_model.name,
-                "sku": i.product_model.sku,
-                "quantity": 1,
-                "identifier": i.identifier
-            })
+            contents.append(
+                {
+                    "type": "ITEM",
+                    "product_id": str(i.product_model.id),
+                    "product_name": i.product_model.name,
+                    "sku": i.product_model.sku,
+                    "quantity": 1,
+                    "identifier": i.identifier,
+                }
+            )
 
         # 3. Bulk Items (Ledger Aggregation)
         # Optimize: instead of iterating products, aggregate movements for this location by product
-        
+
         # Incoming quantities by product
-        incoming = Movement.objects.filter(
-            to_location=location,
-            product_model__profile__in=BULK_PROFILES
-        ).values('product_model__id', 'product_model__name', 'product_model__sku').annotate(total=Sum('quantity'))
+        incoming = (
+            Movement.objects.filter(to_location=location, product_model__profile__in=BULK_PROFILES)
+            .values("product_model__id", "product_model__name", "product_model__sku")
+            .annotate(total=Sum("quantity"))
+        )
 
         # Outgoing quantities by product
-        outgoing = Movement.objects.filter(
-            from_location=location,
-            product_model__profile__in=BULK_PROFILES
-        ).values('product_model__id', 'product_model__name', 'product_model__sku').annotate(total=Sum('quantity'))
+        outgoing = (
+            Movement.objects.filter(
+                from_location=location, product_model__profile__in=BULK_PROFILES
+            )
+            .values("product_model__id", "product_model__name", "product_model__sku")
+            .annotate(total=Sum("quantity"))
+        )
 
         stock_map = {}
 
         # Process Incoming
         for entry in incoming:
-            pid = str(entry['product_model__id'])
+            pid = str(entry["product_model__id"])
             if pid not in stock_map:
                 stock_map[pid] = {
-                    "name": entry['product_model__name'],
-                    "sku": entry['product_model__sku'],
-                    "qty": Decimal('0')
+                    "name": entry["product_model__name"],
+                    "sku": entry["product_model__sku"],
+                    "qty": Decimal("0"),
                 }
-            stock_map[pid]['qty'] += entry['total'] or Decimal('0')
+            stock_map[pid]["qty"] += entry["total"] or Decimal("0")
 
         # Process Outgoing
         for entry in outgoing:
-            pid = str(entry['product_model__id'])
+            pid = str(entry["product_model__id"])
             if pid not in stock_map:
-                 # Should not happen (negative stock) but handle gracefully
-                 stock_map[pid] = {
-                    "name": entry['product_model__name'],
-                    "sku": entry['product_model__sku'],
-                    "qty": Decimal('0')
+                # Should not happen (negative stock) but handle gracefully
+                stock_map[pid] = {
+                    "name": entry["product_model__name"],
+                    "sku": entry["product_model__sku"],
+                    "qty": Decimal("0"),
                 }
-            stock_map[pid]['qty'] -= entry['total'] or Decimal('0')
+            stock_map[pid]["qty"] -= entry["total"] or Decimal("0")
 
         # Convert map to list
         for pid, data in stock_map.items():
-            if data['qty'] != 0:
-                contents.append({
-                    "type": "BULK",
-                    "product_id": pid,
-                    "product_name": data['name'],
-                    "sku": data['sku'],
-                    "quantity": data['qty']
-                })
-                  
+            if data["qty"] != 0:
+                contents.append(
+                    {
+                        "type": "BULK",
+                        "product_id": pid,
+                        "product_name": data["name"],
+                        "sku": data["sku"],
+                        "quantity": data["qty"],
+                    }
+                )
+
         return contents

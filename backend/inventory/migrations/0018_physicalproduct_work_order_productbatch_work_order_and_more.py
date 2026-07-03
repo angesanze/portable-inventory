@@ -5,25 +5,44 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inventory', '0017_movement_purchased_cost_alter_movement_batch_and_more'),
+        ("inventory", "0017_movement_purchased_cost_alter_movement_batch_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='physicalproduct',
-            name='work_order',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='physical_products', to='inventory.workorder'),
+            model_name="physicalproduct",
+            name="work_order",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="physical_products",
+                to="inventory.workorder",
+            ),
         ),
         migrations.AddField(
-            model_name='productbatch',
-            name='work_order',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='batches', to='inventory.workorder'),
+            model_name="productbatch",
+            name="work_order",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="batches",
+                to="inventory.workorder",
+            ),
         ),
         migrations.AlterField(
-            model_name='location',
-            name='type',
-            field=models.CharField(choices=[('WAREHOUSE', 'Warehouse'), ('STORE', 'Store'), ('LOSS', 'Loss'), ('VIRTUAL', 'Virtual')], max_length=50),
+            model_name="location",
+            name="type",
+            field=models.CharField(
+                choices=[
+                    ("WAREHOUSE", "Warehouse"),
+                    ("STORE", "Store"),
+                    ("LOSS", "Loss"),
+                    ("VIRTUAL", "Virtual"),
+                ],
+                max_length=50,
+            ),
         ),
     ]

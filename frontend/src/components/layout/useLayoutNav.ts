@@ -2,13 +2,13 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useMenu, useLogout, useGetIdentity } from "@refinedev/core";
 import { useLocation } from "react-router-dom";
 import { useCapabilities } from "../../hooks/useCapabilities";
-import { type NavGroup, type UserIdentity, SETTINGS_GROUP_KEY } from "./types";
+import { type NavGroup, type UserIdentity } from "./types";
 import { visibleNavGroups } from "./navConfig";
 import {
     SIDEBAR_KEY,
-    SETTINGS_NAV_KEY,
+    NAV_GROUPS_KEY,
     getStoredCollapsed,
-    getStoredSettingsExpanded,
+    getStoredExpandedGroups,
 } from "./storage";
 import { useIsMobile } from "./useIsMobile";
 
@@ -20,8 +20,8 @@ export interface SharedSidebarProps {
     selectedKey: string;
     onLogout: () => void;
     onOpenCommandPalette: () => void;
-    settingsExpanded: boolean;
-    onToggleSettingsExpanded: () => void;
+    expandedGroups: Record<string, boolean>;
+    onToggleGroup: (labelKey: string) => void;
 }
 
 export interface LayoutNav {
@@ -38,9 +38,9 @@ export interface LayoutNav {
 
 /**
  * Owns the app-shell navigation state: capability-gated menu, sidebar
- * collapse/drawer/command-palette toggles, keyboard shortcuts, and the
- * Settings auto-expand effect. Returns the derived props consumed by the
- * desktop sidebar and the mobile drawer so {@link Layout} stays a thin shell.
+ * collapse/drawer/command-palette toggles, keyboard shortcuts, and per-group
+ * expand/collapse state. Returns the derived props consumed by the desktop
+ * sidebar and the mobile drawer so {@link Layout} stays a thin shell.
  */
 export function useLayoutNav(): LayoutNav {
     const { selectedKey } = useMenu();
@@ -61,7 +61,7 @@ export function useLayoutNav(): LayoutNav {
     const [collapsed, setCollapsed] = useState(getStoredCollapsed);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-    const [settingsExpanded, setSettingsExpanded] = useState(getStoredSettingsExpanded);
+    const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(getStoredExpandedGroups);
 
     // Close drawer on route change
     useEffect(() => {
@@ -79,13 +79,18 @@ export function useLayoutNav(): LayoutNav {
         });
     }, []);
 
-    const toggleSettingsExpanded = useCallback(() => {
-        setSettingsExpanded((prev) => {
-            const next = !prev;
-            try { localStorage.setItem(SETTINGS_NAV_KEY, String(next)); } catch { /* noop */ }
+    const toggleGroup = useCallback((labelKey: string) => {
+        setExpandedGroups((prev) => {
+            // Flip the group's *effective* state: an explicit stored value wins,
+            // otherwise fall back to !collapsedByDefault so the first click on an
+            // untouched group does the visually-obvious thing.
+            const group = navGroups.find((g) => g.labelKey === labelKey);
+            const currentlyExpanded = prev[labelKey] ?? !(group?.collapsedByDefault ?? false);
+            const next = { ...prev, [labelKey]: !currentlyExpanded };
+            try { localStorage.setItem(NAV_GROUPS_KEY, JSON.stringify(next)); } catch { /* noop */ }
             return next;
         });
-    }, []);
+    }, [navGroups]);
 
     // Keyboard shortcuts: Cmd/Ctrl + \ (toggle sidebar), Cmd/Ctrl + K (command palette placeholder)
     useEffect(() => {
@@ -112,21 +117,8 @@ export function useLayoutNav(): LayoutNav {
         return location.pathname.startsWith(route);
     };
 
-    // Auto-expand Settings group when a settings route is active
-    const isSettingsRouteActive = navGroups
-        .find((g) => g.labelKey === SETTINGS_GROUP_KEY)
-        ?.items.some((item) => isActive(item.route)) ?? false;
-
-    useEffect(() => {
-        if (isSettingsRouteActive && !settingsExpanded) {
-            // Auto-expand the Settings group when the router lands on one of its
-            // routes; reacts to external nav state and persists the choice.
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setSettingsExpanded(true);
-            try { localStorage.setItem(SETTINGS_NAV_KEY, "true"); } catch { /* noop */ }
-        }
-    }, [isSettingsRouteActive, settingsExpanded]);
-
+    // The group owning the active route is force-expanded in SidebarContent
+    // (see `groupHasActive`), so no per-group auto-expand effect is needed here.
     const sidebarProps: SharedSidebarProps = {
         identity: identity ?? undefined,
         navGroups,
@@ -134,8 +126,8 @@ export function useLayoutNav(): LayoutNav {
         selectedKey,
         onLogout: () => logout(),
         onOpenCommandPalette: () => setCommandPaletteOpen(true),
-        settingsExpanded,
-        onToggleSettingsExpanded: toggleSettingsExpanded,
+        expandedGroups,
+        onToggleGroup: toggleGroup,
     };
 
     return {

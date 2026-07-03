@@ -6,34 +6,56 @@ import uuid
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0008_move_license_code_to_company'),
-        ('inventory', '0049_remove_legacy_tracking_engine_columns'),
+        ("core", "0008_move_license_code_to_company"),
+        ("inventory", "0049_remove_legacy_tracking_engine_columns"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Supplier',
+            name="Supplier",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('name', models.CharField(max_length=255)),
-                ('vat_number', models.CharField(blank=True, help_text='Partita IVA / VAT number', max_length=64)),
-                ('email', models.EmailField(blank=True, max_length=254)),
-                ('phone', models.CharField(blank=True, max_length=64)),
-                ('is_active', models.BooleanField(default=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('company', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='suppliers', to='core.company')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+                (
+                    "vat_number",
+                    models.CharField(
+                        blank=True, help_text="Partita IVA / VAT number", max_length=64
+                    ),
+                ),
+                ("email", models.EmailField(blank=True, max_length=254)),
+                ("phone", models.CharField(blank=True, max_length=64)),
+                ("is_active", models.BooleanField(default=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "company",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="suppliers",
+                        to="core.company",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['name'],
-                'unique_together': {('company', 'name')},
+                "ordering": ["name"],
+                "unique_together": {("company", "name")},
             },
         ),
         migrations.AddField(
-            model_name='movement',
-            name='supplier',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='movements', to='inventory.supplier'),
+            model_name="movement",
+            name="supplier",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="movements",
+                to="inventory.supplier",
+            ),
         ),
     ]

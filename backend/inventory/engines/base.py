@@ -1,4 +1,5 @@
 """Abstract base for polymorphic inventory engines."""
+
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, Union
 
@@ -6,10 +7,11 @@ from typing import Any, Dict, Optional, Union
 class BaseEngine(ABC):
     """
     Abstract base class for polymorphic inventory engines.
-    
+
     Each engine defines how UI is configured, how stock deltas are calculated,
     how transactions affect stock values, and how stock is displayed.
     """
+
     def __init__(self, product, config: Dict[str, Any]):
         self.product = product
         self.config = config
@@ -21,7 +23,7 @@ class BaseEngine(ABC):
         Returns list of error strings. Empty list = valid.
         """
         errors = []
-        schema = getattr(cls, 'CONFIG_SCHEMA', None)
+        schema = getattr(cls, "CONFIG_SCHEMA", None)
         if not schema:
             return errors
 
@@ -63,7 +65,7 @@ class BaseEngine(ABC):
     def get_ui_config(self) -> Dict[str, Any]:
         """
         Returns the configuration for the frontend widget.
-        
+
         Returns:
             Dict[str, Any]: UI configuration parameters (labels, input types, etc.)
         """
@@ -90,11 +92,11 @@ class BaseEngine(ABC):
     def process_transaction(self, current_stock: Any, delta_payload: Dict[str, Any]) -> Any:
         """
         Calculates the new stock value based on the delta.
-        
+
         Args:
             current_stock (Any): The existing stock value before the transaction.
             delta_payload (Dict[str, Any]): Input data for the transaction.
-            
+
         Returns:
             Any: The updated stock value.
         """
@@ -136,5 +138,3 @@ class BaseEngine(ABC):
         if operation == "subtract":
             return -value
         raise ValueError(f"Unknown operation: {operation}")
-
-

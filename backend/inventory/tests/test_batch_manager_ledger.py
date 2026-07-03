@@ -2,11 +2,17 @@
 Tests for batch manager audit trail — verifies that _handle_batch_manager_transaction
 creates Movement records for every operation.
 """
+
 from django.test import TestCase
 from decimal import Decimal
 from core.models import Company
 from inventory.models import (
-    ProductModel, Location, Movement, PhysicalProduct, ProductBatch, WorkOrder,
+    ProductModel,
+    Location,
+    Movement,
+    PhysicalProduct,
+    ProductBatch,
+    WorkOrder,
 )
 from inventory.models.composition import ProductComponent
 from inventory.services.widget import WidgetService
@@ -109,17 +115,30 @@ class TestBatchWOMovements(BatchManagerLedgerTestBase):
         self.assertIn("BATCH_REMOVE", m.reason)
         self.assertEqual(m.quantity, Decimal("3"))
 
-    def test_batch_full_remove_deletes_and_creates_movement(self):
+    def test_batch_full_remove_empties_row_even_when_protected(self):
+        # COR-09: a full remove must succeed even though the batch is
+        # PROTECT-referenced by its own audit Movements. Book an add first so a
+        # Movement points at the batch (the exact case that used to raise
+        # ProtectedError on delete()), then remove everything. The row is emptied
+        # to 0, not deleted, so the ledger audit chain survives.
+        WidgetService._handle_batch_manager_transaction(
+            self.work_order,
+            {"batch_id": str(self.batch.id), "delta": 5},
+        )
         result = WidgetService._handle_batch_manager_transaction(
             self.work_order,
-            {"batch_id": str(self.batch.id), "delta": -10},
+            {"batch_id": str(self.batch.id), "delta": -15},
         )
         self.assertTrue(result.get("success"))
-        self.assertFalse(ProductBatch.objects.filter(id=self.batch.id).exists())
+        self.assertTrue(ProductBatch.objects.filter(id=self.batch.id).exists())
+        self.batch.refresh_from_db()
+        self.assertEqual(self.batch.quantity, Decimal("0"))
 
-        m = Movement.objects.filter(work_order=self.work_order).first()
-        self.assertIn("BATCH_REMOVE", m.reason)
-        self.assertEqual(m.quantity, Decimal("10"))
+        m = Movement.objects.filter(
+            work_order=self.work_order, reason__contains="BATCH_REMOVE"
+        ).first()
+        self.assertIsNotNone(m)
+        self.assertEqual(m.batch_id, self.batch.id)
 
 
 class TestGenericBatchCreationMovements(BatchManagerLedgerTestBase):
@@ -192,25 +211,19 @@ class TestCanonicalBatchIdentifier(BatchManagerLedgerTestBase):
         from inventory.exceptions import ItemNotFoundError
 
         other_co = Company.objects.create(name="Other Co", license_code="OTHER1")
-        foreign = ProductModel.objects.create(
-            company=other_co, sku="FOREIGN", name="Foreign"
-        )
+        foreign = ProductModel.objects.create(company=other_co, sku="FOREIGN", name="Foreign")
         with self.assertRaises(ItemNotFoundError):
             WidgetService._handle_batch_manager_transaction(
                 self.work_order,
                 {"product_model_id": str(foreign.id), "delta": 5},
             )
-        self.assertFalse(
-            ProductBatch.objects.filter(product_model=foreign).exists()
-        )
+        self.assertFalse(ProductBatch.objects.filter(product_model=foreign).exists())
 
 
 class TestKitProductionMovements(BatchManagerLedgerTestBase):
     def setUp(self):
         super().setUp()
-        self.kit = ProductModel.objects.create(
-            company=self.company, sku="KIT-A", name="Kit A"
-        )
+        self.kit = ProductModel.objects.create(company=self.company, sku="KIT-A", name="Kit A")
         self.child1 = ProductModel.objects.create(
             company=self.company, sku="CHILD-1", name="Child 1"
         )
@@ -245,8 +258,6 @@ class TestKitProductionMovements(BatchManagerLedgerTestBase):
 
 class TestAtomicTransaction(BatchManagerLedgerTestBase):
     def test_zero_delta_no_movement(self):
-        result = WidgetService._handle_batch_manager_transaction(
-            self.work_order, {"delta": 0}
-        )
+        result = WidgetService._handle_batch_manager_transaction(self.work_order, {"delta": 0})
         self.assertTrue(result.get("success"))
         self.assertEqual(Movement.objects.filter(work_order=self.work_order).count(), 0)

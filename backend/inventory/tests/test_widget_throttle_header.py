@@ -8,6 +8,7 @@ returns ``None``. Header auth is the SEC-04 recommended path, so header-auth
 widget traffic was completely UNthrottled. These tests pin that a header-auth
 request now yields a non-None cache key (i.e. is actually rate-limited).
 """
+
 import pytest
 from django.core.cache import cache
 from rest_framework.test import APIRequestFactory
@@ -31,9 +32,7 @@ def test_header_auth_request_is_throttled():
     _, _, api_key = make_company("THROTTLE_HDR")
 
     factory = APIRequestFactory()
-    request = _drf_request(
-        factory.get("/api/v1/widget/x/", HTTP_X_API_KEY=api_key.key)
-    )
+    request = _drf_request(factory.get("/api/v1/widget/x/", HTTP_X_API_KEY=api_key.key))
     view = APIView()
 
     throttle = WidgetAPIThrottle()
@@ -55,9 +54,7 @@ def test_header_auth_cache_key_without_resolution():
     _, _, api_key = make_company("THROTTLE_HDR2")
 
     factory = APIRequestFactory()
-    request = _drf_request(
-        factory.get("/api/v1/widget/x/", HTTP_X_API_KEY=api_key.key)
-    )
+    request = _drf_request(factory.get("/api/v1/widget/x/", HTTP_X_API_KEY=api_key.key))
 
     throttle = WidgetAPIBurstThrottle()
     key = throttle.get_cache_key(request, APIView())

@@ -13,6 +13,7 @@ to make the assertions meaningful.
   WorkOrder.objects.create() then BatchManagerService.handle_batch_manager_
   transaction(); if the latter raises, the WorkOrder must roll back.
 """
+
 import uuid
 from unittest.mock import patch
 
@@ -36,15 +37,11 @@ def _make_env(suffix):
     company = Company.objects.create(
         name=f"Atomic {suffix}", license_code=uuid.uuid4().hex[:6].upper()
     )
-    User.objects.create_user(
-        username=f"atomic_{suffix}", password="pw", company=company
-    )
+    User.objects.create_user(username=f"atomic_{suffix}", password="pw", company=company)
     api_key = ApiKey.objects.create(
         company=company, label=f"Key {suffix}", key=f"key-{uuid.uuid4().hex[:12]}"
     )
-    warehouse = Location.objects.create(
-        company=company, name=f"WH-{suffix}", type="WAREHOUSE"
-    )
+    warehouse = Location.objects.create(company=company, name=f"WH-{suffix}", type="WAREHOUSE")
     return company, api_key, warehouse
 
 
@@ -85,9 +82,7 @@ def test_configure_qr_legacy_item_rolls_back_on_failure():
     # Force the QR save (the LAST write in the action body, AFTER the
     # get_or_create) to blow up. DRF converts the unhandled error to a 500
     # Response; the action's atomic() must still roll back the new item.
-    with patch.object(
-        DynamicQRCode, "save", side_effect=RuntimeError("boom on qr.save")
-    ):
+    with patch.object(DynamicQRCode, "save", side_effect=RuntimeError("boom on qr.save")):
         resp = view(request)
     assert resp.status_code == 500
 
@@ -106,9 +101,7 @@ def test_produce_kit_on_product_model_rolls_back_wo_on_failure():
     kit = ProductModel.objects.create(
         company=company, sku="ATOMIC-KIT", name="Kit", profile="ASSEMBLED"
     )
-    comp = ProductModel.objects.create(
-        company=company, sku="ATOMIC-COMP", name="Component"
-    )
+    comp = ProductModel.objects.create(company=company, sku="ATOMIC-COMP", name="Component")
     ProductComponent.objects.create(parent=kit, child=comp, quantity=2)
 
     wo_count_before = WorkOrder.objects.filter(company=company).count()
@@ -130,6 +123,6 @@ def test_produce_kit_on_product_model_rolls_back_wo_on_failure():
     # The request fails (the error is wrapped into an InventoryError → non-2xx).
     assert resp.status_code != 200, resp.content
 
-    assert (
-        WorkOrder.objects.filter(company=company).count() == wo_count_before
-    ), "produce_kit is not atomic: an orphan WorkOrder survived a batch-manager failure"
+    assert WorkOrder.objects.filter(company=company).count() == wo_count_before, (
+        "produce_kit is not atomic: an orphan WorkOrder survived a batch-manager failure"
+    )

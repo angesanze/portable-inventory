@@ -9,14 +9,20 @@ being excluded from available stock.
 Every physical stock change goes through LedgerService — the tests assert on
 the resulting Movements and on StockService quantities.
 """
+
 import pytest
 from decimal import Decimal
 
 from core.models import Company, User
 from inventory import constants
 from inventory.models import (
-    Customer, Location, Movement, PhysicalProduct, ReturnOrder,
-    ReturnOrderLine, Supplier,
+    Customer,
+    Location,
+    Movement,
+    PhysicalProduct,
+    ReturnOrder,
+    ReturnOrderLine,
+    Supplier,
 )
 from inventory.services import LedgerService, RmaService, StockService, CounterpartyService
 from inventory.exceptions import InventoryError
@@ -32,23 +38,32 @@ def env(db):
     supplier = Supplier.objects.create(company=company, name="Acme Forniture")
     product = make_simple_product(company)
     return {
-        "company": company, "user": user, "warehouse": warehouse,
-        "customer": customer, "supplier": supplier, "product": product,
+        "company": company,
+        "user": user,
+        "warehouse": warehouse,
+        "customer": customer,
+        "supplier": supplier,
+        "product": product,
     }
 
 
 def make_customer_rma(env, lines):
     """lines: list of (product_model, quantity, physical_product?)."""
     rma = ReturnOrder.objects.create(
-        company=env["company"], kind=constants.RMA_KIND_CUSTOMER_RETURN,
-        customer=env["customer"], number=RmaService.next_number(env["company"]),
+        company=env["company"],
+        kind=constants.RMA_KIND_CUSTOMER_RETURN,
+        customer=env["customer"],
+        number=RmaService.next_number(env["company"]),
         created_by=env["user"],
     )
     for entry in lines:
         product, qty = entry[0], entry[1]
         pp = entry[2] if len(entry) > 2 else None
         ReturnOrderLine.objects.create(
-            return_order=rma, product_model=product, quantity=qty, physical_product=pp,
+            return_order=rma,
+            product_model=product,
+            quantity=qty,
+            physical_product=pp,
         )
     return rma
 
@@ -57,8 +72,12 @@ def stock_in(env, product, qty, location=None):
     """Receive `qty` into the warehouse from the vendor (a real receipt)."""
     vendor = CounterpartyService.resolve(env["company"], constants.COUNTERPARTY_VENDOR)
     LedgerService.transfer_stock(
-        product_model=product, from_location=vendor, to_location=location or env["warehouse"],
-        quantity=qty, user=env["user"], reason="seed",
+        product_model=product,
+        from_location=vendor,
+        to_location=location or env["warehouse"],
+        quantity=qty,
+        user=env["user"],
+        reason="seed",
     )
 
 
@@ -69,8 +88,8 @@ def test_numbers_sequential_per_company(env):
     rma1 = make_customer_rma(env, [(env["product"], Decimal("1"))])
     rma2 = make_customer_rma(env, [(env["product"], Decimal("1"))])
     assert rma1.number.startswith("RMA-")
-    n1 = int(rma1.number.rsplit('-', 1)[1])
-    n2 = int(rma2.number.rsplit('-', 1)[1])
+    n1 = int(rma1.number.rsplit("-", 1)[1])
+    n2 = int(rma2.number.rsplit("-", 1)[1])
     assert n2 == n1 + 1
 
 
@@ -106,7 +125,9 @@ def test_customer_return_restock_and_scrap_acceptance(env):
     → magazzino +2, LOSS +1, quarantena 0, RMA RESOLVED."""
     product = env["product"]
     stock_in(env, product, Decimal("10"))
-    rma = make_customer_rma(env, [(product, Decimal("1")), (product, Decimal("1")), (product, Decimal("1"))])
+    rma = make_customer_rma(
+        env, [(product, Decimal("1")), (product, Decimal("1")), (product, Decimal("1"))]
+    )
     RmaService.receive(rma, env["user"])
     rma.refresh_from_db()
     assert rma.status == constants.RMA_STATUS_RECEIVED
@@ -126,7 +147,8 @@ def test_customer_return_restock_and_scrap_acceptance(env):
     # LOSS holds the scrapped unit.
     loss = Location.objects.get(company=env["company"], type=constants.LOCATION_TYPE_LOSS)
     incoming_loss = Movement.objects.filter(
-        product_model=product, to_location=loss,
+        product_model=product,
+        to_location=loss,
     ).count()
     assert incoming_loss == 1
 
@@ -144,11 +166,18 @@ def test_customer_return_to_supplier(env):
     # A customer return carries no supplier; the RETURN_TO_SUPPLIER resolution
     # attributes one explicitly.
     RmaService.resolve_line(
-        line, constants.RMA_RESOLUTION_RETURN_TO_SUPPLIER, env["user"], supplier=env["supplier"],
+        line,
+        constants.RMA_RESOLUTION_RETURN_TO_SUPPLIER,
+        env["user"],
+        supplier=env["supplier"],
     )
 
     vendor = CounterpartyService.resolve(env["company"], constants.COUNTERPARTY_VENDOR)
-    mv = Movement.objects.filter(product_model=product, to_location=vendor).order_by('-occurred_at').first()
+    mv = (
+        Movement.objects.filter(product_model=product, to_location=vendor)
+        .order_by("-occurred_at")
+        .first()
+    )
     assert mv is not None
     assert mv.supplier_id == env["supplier"].id
 
@@ -167,7 +196,10 @@ def test_serialized_returned_to_active_on_restock(env):
     # sellable (location left at vendor virtual). Customer brings it back.
     vendor = CounterpartyService.resolve(env["company"], constants.COUNTERPARTY_CUSTOMER)
     pp = PhysicalProduct.objects.create(
-        product_model=product, identifier="SN-001", status="RETURNED", location=vendor,
+        product_model=product,
+        identifier="SN-001",
+        status="RETURNED",
+        location=vendor,
     )
     rma = make_customer_rma(env, [(product, Decimal("1"), pp)])
     RmaService.receive(rma, env["user"])
@@ -193,8 +225,10 @@ def test_supplier_return_ships_from_warehouse(env):
     product = env["product"]
     stock_in(env, product, Decimal("6"))
     rma = ReturnOrder.objects.create(
-        company=env["company"], kind=constants.RMA_KIND_SUPPLIER_RETURN,
-        supplier=env["supplier"], number=RmaService.next_number(env["company"]),
+        company=env["company"],
+        kind=constants.RMA_KIND_SUPPLIER_RETURN,
+        supplier=env["supplier"],
+        number=RmaService.next_number(env["company"]),
         created_by=env["user"],
     )
     ReturnOrderLine.objects.create(return_order=rma, product_model=product, quantity=Decimal("2"))
@@ -205,7 +239,9 @@ def test_supplier_return_ships_from_warehouse(env):
     assert StockService.get_stock_for_location(product, env["warehouse"]) == Decimal("4")
     vendor = CounterpartyService.resolve(env["company"], constants.COUNTERPARTY_VENDOR)
     mv = Movement.objects.filter(
-        product_model=product, from_location=env["warehouse"], to_location=vendor,
+        product_model=product,
+        from_location=env["warehouse"],
+        to_location=vendor,
     ).first()
     assert mv is not None
     assert mv.supplier_id == env["supplier"].id
@@ -241,6 +277,7 @@ def test_cannot_resolve_before_receive(env):
 
 def test_cross_company_quarantine_isolation(db):
     from .helpers import make_company
+
     company_a, user_a, _ = make_company("A")
     company_b, user_b, _ = make_company("B")
     Location.objects.create(company=company_a, name="WH-A", type="WAREHOUSE")
@@ -250,14 +287,20 @@ def test_cross_company_quarantine_isolation(db):
 
     vendor_a = CounterpartyService.resolve(company_a, constants.COUNTERPARTY_VENDOR)
     LedgerService.transfer_stock(
-        product_model=prod_a, from_location=vendor_a,
+        product_model=prod_a,
+        from_location=vendor_a,
         to_location=Location.objects.get(company=company_a, name="WH-A"),
-        quantity=Decimal("5"), user=user_a, reason="seed",
+        quantity=Decimal("5"),
+        user=user_a,
+        reason="seed",
     )
 
     rma_a = ReturnOrder.objects.create(
-        company=company_a, kind=constants.RMA_KIND_CUSTOMER_RETURN, customer=cust_a,
-        number=RmaService.next_number(company_a), created_by=user_a,
+        company=company_a,
+        kind=constants.RMA_KIND_CUSTOMER_RETURN,
+        customer=cust_a,
+        number=RmaService.next_number(company_a),
+        created_by=user_a,
     )
     ReturnOrderLine.objects.create(return_order=rma_a, product_model=prod_a, quantity=Decimal("2"))
     RmaService.receive(rma_a, user_a)

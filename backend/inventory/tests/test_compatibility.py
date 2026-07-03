@@ -1,4 +1,5 @@
 """Tests for profile-based product creation and validation."""
+
 import pytest
 from inventory.models import ProductModel
 from core.models import Company
@@ -7,6 +8,7 @@ from core.models import Company
 @pytest.fixture
 def company(db):
     import uuid
+
     return Company.objects.create(name="Compat Co", license_code=uuid.uuid4().hex[:6].upper())
 
 

@@ -12,8 +12,9 @@ class Supplier(models.Model):
     physical from/to Location semantics are unchanged — the supplier is an
     attribution layer on top of the existing "External Vendor" virtual location.
     """
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='suppliers')
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="suppliers")
     name = models.CharField(max_length=255)
     vat_number = models.CharField(max_length=64, blank=True, help_text="Partita IVA / VAT number")
     email = models.EmailField(blank=True)
@@ -23,8 +24,8 @@ class Supplier(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('company', 'name')
-        ordering = ['name']
+        unique_together = ("company", "name")
+        ordering = ["name"]
 
     def __str__(self):
         return self.name

@@ -5,6 +5,7 @@ REORDER / CRITICAL / OUT / OVERSTOCK columns and attaches per-card
 analytics (urgency score, 7-day velocity, days-to-runout, 14-day sparkline).
 Single Movement query for the whole company avoids N+1.
 """
+
 from collections import defaultdict
 from datetime import timedelta
 from decimal import Decimal
@@ -31,7 +32,11 @@ def _resolve_threshold(product, field):
             return float(raw)
         except (TypeError, ValueError):
             return None
-    if field == "reorder_threshold" and product.attributes and "min_threshold" in product.attributes:
+    if (
+        field == "reorder_threshold"
+        and product.attributes
+        and "min_threshold" in product.attributes
+    ):
         try:
             return float(product.attributes["min_threshold"])
         except (TypeError, ValueError):
@@ -84,8 +89,13 @@ class RestockService:
 
         products = list(
             ProductModel.objects.filter(company=company).only(
-                "id", "sku", "name", "attributes",
-                "reorder_threshold", "critical_threshold", "max_threshold",
+                "id",
+                "sku",
+                "name",
+                "attributes",
+                "reorder_threshold",
+                "critical_threshold",
+                "max_threshold",
                 "profile",
             )
         )
@@ -371,7 +381,8 @@ class RestockService:
 
         if reorder is None and max_t is None and critical is None:
             MonitoringRule.objects.filter(
-                product_model=product, name=cls.SYNCED_RULE_NAME,
+                product_model=product,
+                name=cls.SYNCED_RULE_NAME,
             ).delete()
             return
 

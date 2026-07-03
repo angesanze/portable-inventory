@@ -9,14 +9,19 @@ Also documents that some viewsets (MovementViewSet, StockViewSet) use custom
 get_queryset that does NOT include a superuser bypass, so superusers without
 a company see empty results on those endpoints.
 """
+
 from django.test import TestCase
 from rest_framework.test import APIClient
 from rest_framework import status
 
 from core.models import User
 from inventory.models import (
-    ProductModel, Location, Movement, ProductBatch,
-    PhysicalProduct, WorkOrder, EventLog,
+    ProductModel,
+    Location,
+    Movement,
+    PhysicalProduct,
+    WorkOrder,
+    EventLog,
 )
 from inventory.tests.helpers import make_company as _make_company
 
@@ -40,18 +45,26 @@ class SuperuserCrossTenantBaseSetUp(TestCase):
 
         # -- Company A data --
         self.product_a = ProductModel.objects.create(
-            company=self.company_a, sku="PROD-A", name="Product A",
+            company=self.company_a,
+            sku="PROD-A",
+            name="Product A",
         )
         self.loc_a = Location.objects.create(
-            company=self.company_a, name="Warehouse A", type="WAREHOUSE",
+            company=self.company_a,
+            name="Warehouse A",
+            type="WAREHOUSE",
         )
 
         # -- Company B data --
         self.product_b = ProductModel.objects.create(
-            company=self.company_b, sku="PROD-B", name="Product B",
+            company=self.company_b,
+            sku="PROD-B",
+            name="Product B",
         )
         self.loc_b = Location.objects.create(
-            company=self.company_b, name="Warehouse B", type="WAREHOUSE",
+            company=self.company_b,
+            name="Warehouse B",
+            type="WAREHOUSE",
         )
 
         self.client = APIClient()
@@ -85,10 +98,14 @@ class SuperuserWorkOrderAccessTest(SuperuserCrossTenantBaseSetUp):
     def setUp(self):
         super().setUp()
         self.wo_a = WorkOrder.objects.create(
-            company=self.company_a, name="WO-A", product_model=self.product_a,
+            company=self.company_a,
+            name="WO-A",
+            product_model=self.product_a,
         )
         self.wo_b = WorkOrder.objects.create(
-            company=self.company_b, name="WO-B", product_model=self.product_b,
+            company=self.company_b,
+            name="WO-B",
+            product_model=self.product_b,
         )
 
     def test_superuser_sees_all_company_work_orders(self):
@@ -114,10 +131,12 @@ class SuperuserEventLogAccessTest(SuperuserCrossTenantBaseSetUp):
     def setUp(self):
         super().setUp()
         self.event_a = EventLog.objects.create(
-            product=self.product_a, message="Alert for A",
+            product=self.product_a,
+            message="Alert for A",
         )
         self.event_b = EventLog.objects.create(
-            product=self.product_b, message="Alert for B",
+            product=self.product_b,
+            message="Alert for B",
         )
 
     def test_superuser_sees_all_company_event_logs(self):
@@ -188,7 +207,9 @@ class SuperuserMovementAccessTest(SuperuserCrossTenantBaseSetUp):
     def setUp(self):
         super().setUp()
         loc_a2 = Location.objects.create(
-            company=self.company_a, name="Store A", type="STORE",
+            company=self.company_a,
+            name="Store A",
+            type="STORE",
         )
         self.movement_a = Movement.objects.create(
             product_model=self.product_a,

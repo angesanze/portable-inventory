@@ -4,14 +4,13 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inventory', '0010_productmodel_min_stock_threshold'),
+        ("inventory", "0010_productmodel_min_stock_threshold"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='productmodel',
-            name='min_stock_threshold',
+            model_name="productmodel",
+            name="min_stock_threshold",
         ),
     ]

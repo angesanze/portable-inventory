@@ -18,8 +18,15 @@ const convertFiltersToParams = (filters?: CrudFilters): Record<string, string> =
             const { field, operator, value } = filter;
 
             if (field === "search" || operator === "contains") {
-                // Use DRF SearchFilter
-                params["search"] = String(value);
+                // DRF SearchFilter exposes a single `search` param (AND across
+                // terms / search_fields). Multiple `contains` filters must
+                // COMBINE, not overwrite each other — otherwise the last one wins
+                // and the earlier field silently drops (FE-05). Space-join, the
+                // same shape the CSV export already builds, so list and export
+                // return the same rows for identical filters.
+                params["search"] = params["search"]
+                    ? `${params["search"]} ${String(value)}`
+                    : String(value);
             } else if (operator === "eq") {
                 // Direct field filter for DjangoFilterBackend
                 params[field] = String(value);
@@ -68,9 +75,17 @@ export const safeDataProvider = (apiUrl: string, httpClient: AxiosInstance): Dat
 
             // Add pagination (DRF PageNumberPagination uses ?page=N&page_size=N)
             if (pagination) {
-                const { current, pageSize } = pagination;
-                if (current) queryParams["page"] = String(current);
-                if (pageSize) queryParams["page_size"] = String(pageSize);
+                const { current, pageSize, mode } = pagination;
+                if (mode === "off") {
+                    // Fetch-all (dropdowns, pickers, KPI rollups). Refine fills
+                    // current/pageSize defaults even for mode:"off", so sending
+                    // them would truncate the result to a single page. Signal the
+                    // backend to disable pagination instead (FE-02).
+                    queryParams["page_size"] = "0";
+                } else {
+                    if (current) queryParams["page"] = String(current);
+                    if (pageSize) queryParams["page_size"] = String(pageSize);
+                }
             }
 
             // Add filters (converted to DRF format)

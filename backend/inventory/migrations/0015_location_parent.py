@@ -5,15 +5,20 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inventory', '0014_physicalproduct_location'),
+        ("inventory", "0014_physicalproduct_location"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='location',
-            name='parent',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='children', to='inventory.location'),
+            model_name="location",
+            name="parent",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="children",
+                to="inventory.location",
+            ),
         ),
     ]

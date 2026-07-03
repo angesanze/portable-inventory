@@ -13,6 +13,7 @@ silently orphan or cascade-delete the children. Delete the children first.
 
 See ``docs/operations/data-retention.md`` for what is removed and what remains.
 """
+
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
@@ -38,22 +39,22 @@ def _collect_counts(company):
 
     cid = company.id
     return {
-        'users': company.users.count(),
-        'api_keys': company.api_keys.count(),
-        'products': ProductModel.objects.filter(company_id=cid).count(),
-        'locations': Location.objects.filter(company_id=cid).count(),
-        'suppliers': Supplier.objects.filter(company_id=cid).count(),
-        'customers': Customer.objects.filter(company_id=cid).count(),
-        'movements': Movement.objects.filter(product_model__company_id=cid).count(),
-        'batches': ProductBatch.objects.filter(product_model__company_id=cid).count(),
-        'physical_products': PhysicalProduct.objects.filter(product_model__company_id=cid).count(),
-        'qr_codes': DynamicQRCode.objects.filter(company_id=cid).count(),
-        'reservations': Reservation.objects.filter(company_id=cid).count(),
-        'purchase_orders': PurchaseOrder.objects.filter(company_id=cid).count(),
-        'sales_orders': SalesOrder.objects.filter(company_id=cid).count(),
-        'transfer_orders': TransferOrder.objects.filter(company_id=cid).count(),
-        'return_orders': ReturnOrder.objects.filter(company_id=cid).count(),
-        'work_orders': WorkOrder.objects.filter(company_id=cid).count(),
+        "users": company.users.count(),
+        "api_keys": company.api_keys.count(),
+        "products": ProductModel.objects.filter(company_id=cid).count(),
+        "locations": Location.objects.filter(company_id=cid).count(),
+        "suppliers": Supplier.objects.filter(company_id=cid).count(),
+        "customers": Customer.objects.filter(company_id=cid).count(),
+        "movements": Movement.objects.filter(product_model__company_id=cid).count(),
+        "batches": ProductBatch.objects.filter(product_model__company_id=cid).count(),
+        "physical_products": PhysicalProduct.objects.filter(product_model__company_id=cid).count(),
+        "qr_codes": DynamicQRCode.objects.filter(company_id=cid).count(),
+        "reservations": Reservation.objects.filter(company_id=cid).count(),
+        "purchase_orders": PurchaseOrder.objects.filter(company_id=cid).count(),
+        "sales_orders": SalesOrder.objects.filter(company_id=cid).count(),
+        "transfer_orders": TransferOrder.objects.filter(company_id=cid).count(),
+        "return_orders": ReturnOrder.objects.filter(company_id=cid).count(),
+        "work_orders": WorkOrder.objects.filter(company_id=cid).count(),
     }
 
 
@@ -61,16 +62,16 @@ class Command(BaseCommand):
     help = "Hard-delete a company and all its data (cascade). Requires --confirm to proceed."
 
     def add_arguments(self, parser):
-        parser.add_argument('company_id', type=str, help="UUID of the company to delete.")
+        parser.add_argument("company_id", type=str, help="UUID of the company to delete.")
         parser.add_argument(
-            '--confirm',
-            action='store_true',
+            "--confirm",
+            action="store_true",
             help="Actually perform the deletion. Without it, only the report is printed.",
         )
 
     def handle(self, *args, **options):
-        company_id = options['company_id']
-        confirm = options['confirm']
+        company_id = options["company_id"]
+        confirm = options["confirm"]
 
         try:
             company = Company.objects.get(pk=company_id)
@@ -80,22 +81,28 @@ class Command(BaseCommand):
         children = list(company.children.all())
         counts = _collect_counts(company)
 
-        self.stdout.write(self.style.WARNING(
-            f"Company: {company.name} ({company.id}) — tier={company.account_type}"
-        ))
+        self.stdout.write(
+            self.style.WARNING(
+                f"Company: {company.name} ({company.id}) — tier={company.account_type}"
+            )
+        )
         self.stdout.write("Rows that will be deleted (cascade):")
         for label, count in counts.items():
             self.stdout.write(f"  {label:20s} {count}")
         if children:
-            self.stdout.write(self.style.ERROR(
-                f"\nThis company owns {len(children)} child tenant(s): "
-                + ", ".join(c.name for c in children)
-            ))
+            self.stdout.write(
+                self.style.ERROR(
+                    f"\nThis company owns {len(children)} child tenant(s): "
+                    + ", ".join(c.name for c in children)
+                )
+            )
 
         if not confirm:
-            self.stdout.write(self.style.NOTICE(
-                "\nDry run. Re-run with --confirm to delete. Nothing was changed."
-            ))
+            self.stdout.write(
+                self.style.NOTICE(
+                    "\nDry run. Re-run with --confirm to delete. Nothing was changed."
+                )
+            )
             return
 
         if children:
@@ -115,8 +122,21 @@ class Command(BaseCommand):
                 name=name,
                 counts=counts,
             )
+            # Movements are never part of the company cascade (their product_model
+            # is SET_NULL and every other FK is PROTECT), yet they PROTECT-reference
+            # the locations / items / batches / suppliers / customers the cascade
+            # must remove — so company.delete() raises ProtectedError for any tenant
+            # that ever recorded one. Delete the ledger first (OPS-01).
+            from django.db.models import Q
+            from inventory.models.ledger import Movement
+
+            Movement.objects.filter(
+                Q(product_model__company=company)
+                | Q(from_location__company=company)
+                | Q(to_location__company=company)
+            ).delete()
             company.delete()
 
-        self.stdout.write(self.style.SUCCESS(
-            f"Deleted company {name} ({company_id}) and all its data."
-        ))
+        self.stdout.write(
+            self.style.SUCCESS(f"Deleted company {name} ({company_id}) and all its data.")
+        )

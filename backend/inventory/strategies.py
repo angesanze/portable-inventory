@@ -1,18 +1,20 @@
 import uuid
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from decimal import Decimal
 from typing import Optional, Dict, Any
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.db import transaction
 from .models import Movement, Location, ProductModel, PhysicalProduct, ProductBatch
-from .services import StockService
 from .validators import StockMovementValidator
 from .exceptions import (
-    InsufficientStockError, InventoryError, ItemNotFoundError,
+    InsufficientStockError,
+    InventoryError,
+    ItemNotFoundError,
     InvalidEngineConfigError,
 )
+
 
 @dataclass
 class TransferContext:
@@ -49,6 +51,7 @@ class TransferContext:
     # Movement.purchased_cost when no purchase_order_line is present.
     purchased_cost: Optional[Any] = None
 
+
 class ProfileBehavior(ABC):
     @abstractmethod
     def validate(self, ctx: TransferContext):
@@ -60,7 +63,9 @@ class ProfileBehavior(ABC):
         """Execute the transfer and return the created Movement."""
         pass
 
-    def _create_movement(self, ctx: TransferContext, batch: Optional[ProductBatch] = None) -> Movement:
+    def _create_movement(
+        self, ctx: TransferContext, batch: Optional[ProductBatch] = None
+    ) -> Movement:
         """Helper to create the immutable movement record."""
         movement = Movement(
             product_model=ctx.product_model,
@@ -82,11 +87,13 @@ class ProfileBehavior(ABC):
             # onboarding cost (e.g. import `unit_cost`) is used.
             purchased_cost=(
                 ctx.purchase_order_line.unit_cost
-                if ctx.purchase_order_line is not None else ctx.purchased_cost
+                if ctx.purchase_order_line is not None
+                else ctx.purchased_cost
             ),
         )
         movement.save()
         return movement
+
 
 class BulkBehavior(ProfileBehavior):
     def validate(self, ctx: TransferContext):
@@ -135,13 +142,17 @@ class AssembledBehavior(BulkBehavior):
             )
         super().validate(ctx)
 
+
 class BatchBehavior(ProfileBehavior):
     def validate(self, ctx: TransferContext):
         StockMovementValidator.validate_bucket_transfer(
             from_location=ctx.from_location,
             to_location=ctx.to_location,
             batch_id=ctx.batch_id,
-            batch_data=ctx.batch_data
+            batch_data=ctx.batch_data,
+            product=ctx.product_model,
+            quantity=ctx.quantity,
+            reservation=ctx.reservation,
         )
 
     def execute(self, ctx: TransferContext) -> Movement:
@@ -153,27 +164,30 @@ class BatchBehavior(ProfileBehavior):
             try:
                 # SELECT FOR UPDATE IS CRITICAL HERE
                 source_batch = ProductBatch.objects.select_for_update().get(
-                    id=ctx.batch_id,
-                    location=ctx.from_location,
-                    product_model=ctx.product_model
+                    id=ctx.batch_id, location=ctx.from_location, product_model=ctx.product_model
                 )
             except ProductBatch.DoesNotExist:
-                 raise ItemNotFoundError(detail="Specified Batch not found in source location.")
+                raise ItemNotFoundError(detail="Specified Batch not found in source location.")
 
             # Available within the batch = quantity − active reservations
             # bound to this batch (a fulfilling transfer gets its own back).
             from django.db.models import Sum as _Sum
+
             reserved = source_batch.reservations.filter(status=RESERVATION_STATUS_ACTIVE).aggregate(
-                t=_Sum('quantity'))['t'] or Decimal('0')
-            if ctx.reservation is not None and ctx.reservation.status == RESERVATION_STATUS_ACTIVE \
-                    and ctx.reservation.batch_id == source_batch.id:
+                t=_Sum("quantity")
+            )["t"] or Decimal("0")
+            if (
+                ctx.reservation is not None
+                and ctx.reservation.status == RESERVATION_STATUS_ACTIVE
+                and ctx.reservation.batch_id == source_batch.id
+            ):
                 reserved -= ctx.reservation.quantity
             if source_batch.quantity - reserved < ctx.quantity:
-                 raise InsufficientStockError(
-                     detail=f"Insufficient available stock in Batch {source_batch.batch_identifier} (reserved: {reserved}).",
-                     current_stock=source_batch.quantity - reserved,
-                     requested=ctx.quantity,
-                 )
+                raise InsufficientStockError(
+                    detail=f"Insufficient available stock in Batch {source_batch.batch_identifier} (reserved: {reserved}).",
+                    current_stock=source_batch.quantity - reserved,
+                    requested=ctx.quantity,
+                )
 
             source_batch.quantity -= ctx.quantity
             source_batch.save()
@@ -189,8 +203,8 @@ class BatchBehavior(ProfileBehavior):
                 data = source_batch.data
             elif ctx.batch_data or ctx.batch_id:
                 # New Batch (e.g. from Supplier)
-                identifier = ctx.batch_id or (ctx.batch_data or {}).get('batch_identifier')
-                data = (ctx.batch_data or {}).get('data', ctx.batch_data or {})
+                identifier = ctx.batch_id or (ctx.batch_data or {}).get("batch_identifier")
+                data = (ctx.batch_data or {}).get("data", ctx.batch_data or {})
             elif ctx.from_location.type == LOCATION_TYPE_VIRTUAL:
                 # Inbound from external with no batch hint — synthesize so the
                 # first-ever stock for a fresh BATCH/PERISHABLE product can land
@@ -198,14 +212,13 @@ class BatchBehavior(ProfileBehavior):
                 identifier = None
                 data = {}
             else:
-                 # Should have been caught in validate, but safety net
-                 raise InventoryError(detail="Cannot determine batch identifier.")
+                # Should have been caught in validate, but safety net
+                raise InventoryError(detail="Cannot determine batch identifier.")
 
             if not identifier:
                 if ctx.from_location.type == LOCATION_TYPE_VIRTUAL:
                     identifier = (
-                        f"AUTO-{timezone.now().strftime('%Y%m%d')}-"
-                        f"{uuid.uuid4().hex[:6].upper()}"
+                        f"AUTO-{timezone.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
                     )
                 else:
                     raise InventoryError(detail="Batch Identifier is required.")
@@ -216,7 +229,7 @@ class BatchBehavior(ProfileBehavior):
                 location=ctx.to_location,
                 batch_identifier=identifier,
                 work_order=ctx.work_order,
-                defaults={'data': data, 'quantity': 0}
+                defaults={"data": data, "quantity": 0},
             )
             dest_batch.quantity += ctx.quantity
             dest_batch.save()
@@ -226,12 +239,13 @@ class BatchBehavior(ProfileBehavior):
         # Logic from original: batch=dest_batch or source_batch
         return self._create_movement(ctx, batch=dest_batch or source_batch)
 
+
 class SerializedBehavior(ProfileBehavior):
     def validate(self, ctx: TransferContext):
         StockMovementValidator.validate_individual_transfer(
             physical_product=ctx.physical_product,
             from_location=ctx.from_location,
-            quantity=ctx.quantity
+            quantity=ctx.quantity,
         )
 
     def execute(self, ctx: TransferContext) -> Movement:
@@ -239,8 +253,11 @@ class SerializedBehavior(ProfileBehavior):
 
         # Re-validate against the locked row: validate() ran on a snapshot,
         # and a concurrent transfer may have moved the item in between.
-        if ctx.from_location.type != LOCATION_TYPE_VIRTUAL and pp.location_id != ctx.from_location.id:
-            current = pp.location.name if pp.location else 'Unknown'
+        if (
+            ctx.from_location.type != LOCATION_TYPE_VIRTUAL
+            and pp.location_id != ctx.from_location.id
+        ):
+            current = pp.location.name if pp.location else "Unknown"
             raise ValidationError(
                 f"Asset '{pp.identifier}' is not at '{ctx.from_location.name}' "
                 f"(Currently at: '{current}')."
@@ -259,9 +276,17 @@ class SerializedBehavior(ProfileBehavior):
 
         movement = self._create_movement(ctx)
 
-        pp.location = ctx.to_location
-        pp.work_order = ctx.work_order
-        pp.save()
+        # Update only the moved fields via queryset.update(). pp.save() runs
+        # full_clean(), which validates `status` against the hardcoded
+        # STATUS_CHOICES and so rejects any custom tracker status (BROKEN/
+        # REPAIRED/…) the preset state machine legitimately set via .update() —
+        # leaving such items permanently unmovable (COR-10). Company coherence of
+        # location/work_order was already validated above against the locked row.
+        PhysicalProduct.objects.filter(id=pp.id).update(
+            location=ctx.to_location,
+            work_order=ctx.work_order,
+            updated_at=timezone.now(),
+        )
 
         return movement
 
@@ -288,12 +313,12 @@ class TrackerStatusBehavior:
         """
         from django.db import models as db_models
 
-        pp_id = delta_payload.get('physical_product_id')
+        pp_id = delta_payload.get("physical_product_id")
         if not pp_id:
             raise InvalidEngineConfigError(detail="physical_product_id is required")
 
-        notes = delta_payload.get('notes') or ''
-        user = delta_payload.get('user')
+        notes = delta_payload.get("notes") or ""
+        user = delta_payload.get("user")
 
         # `select_for_update` requires an enclosing transaction; the widget
         # transaction service does not start one, so wrap the lock + write
@@ -311,7 +336,7 @@ class TrackerStatusBehavior:
                 # `engine.product` is the ProductModel in production (built by
                 # EngineFactory) but may be an adapter wrapping it via `.model`
                 # (same unwrap idiom as engines/batch.py).
-                engine_product = getattr(engine.product, 'model', engine.product)
+                engine_product = getattr(engine.product, "model", engine.product)
                 item = PhysicalProduct.objects.select_for_update().get(
                     id=pp_id, product_model=engine_product
                 )
@@ -342,17 +367,17 @@ class TrackerStatusBehavior:
                     physical_product=item,
                     from_location=item.location,
                     to_location=item.location,
-                    quantity=Decimal('0'),
+                    quantity=Decimal("0"),
                     performed_by=user,
                     reason=reason_text[:255],
                 )
 
             # Build fresh status counts
-            product_model = getattr(engine.product, 'model', engine.product)
+            product_model = getattr(engine.product, "model", engine.product)
             counts = dict(
                 PhysicalProduct.objects.filter(product_model=product_model)
-                .values_list('status')
-                .annotate(count=db_models.Count('id'))
+                .values_list("status")
+                .annotate(count=db_models.Count("id"))
             )
 
         return counts
@@ -361,14 +386,21 @@ class TrackerStatusBehavior:
 # --- Profile-keyed factory ---
 
 from .constants import (
-    PROFILE_SIMPLE_COUNT, PROFILE_UNIT_CONVERSION, PROFILE_DIMENSIONAL,
-    PROFILE_BATCH_TRACKED, PROFILE_PERISHABLE, PROFILE_SERIALIZED,
+    PROFILE_SIMPLE_COUNT,
+    PROFILE_UNIT_CONVERSION,
+    PROFILE_DIMENSIONAL,
+    PROFILE_BATCH_TRACKED,
+    PROFILE_PERISHABLE,
+    PROFILE_SERIALIZED,
     PROFILE_ASSEMBLED,
 )
+
 # Imported at module load (before any behavior method runs) so the literals
 # below resolve from the module namespace.
 from .constants import (  # noqa: E402
-    LOCATION_TYPE_VIRTUAL, SOURCE_DOCUMENT_PURCHASE, RESERVATION_STATUS_ACTIVE,
+    LOCATION_TYPE_VIRTUAL,
+    SOURCE_DOCUMENT_PURCHASE,
+    RESERVATION_STATUS_ACTIVE,
 )
 
 BEHAVIOR_MAP = {

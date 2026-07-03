@@ -7,12 +7,21 @@ class SupplierSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Supplier
-        fields = ['id', 'name', 'vat_number', 'email', 'phone', 'is_active', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        fields = [
+            "id",
+            "name",
+            "vat_number",
+            "email",
+            "phone",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
 
     def validate_name(self, value):
-        request = self.context.get('request')
-        if not request or not getattr(request.user, 'company', None):
+        request = self.context.get("request")
+        if not request or not getattr(request.user, "company", None):
             return value
         qs = Supplier.objects.filter(company=request.user.company, name=value)
         if self.instance:

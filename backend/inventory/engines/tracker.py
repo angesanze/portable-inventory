@@ -1,4 +1,5 @@
 """Status-machine engine for serialized items: Tracker."""
+
 from typing import Any, Dict
 
 from .base import BaseEngine
@@ -9,6 +10,7 @@ class TrackerEngine(BaseEngine):
     Engine for tracking individual serialized items (PhysicalProduct)
     through status transitions: ACTIVE → IN_USE → RETURNED → EXPIRED → DISPOSED.
     """
+
     returns_numeric_delta = False
 
     CONFIG_SCHEMA = {
@@ -16,16 +18,16 @@ class TrackerEngine(BaseEngine):
         "properties": {
             "status_transitions": {"type": "object"},
             "item_fields": {"type": "array", "items": {"type": "object"}},
-        }
+        },
     }
 
-    VALID_STATUSES = ['ACTIVE', 'IN_USE', 'RETURNED', 'EXPIRED', 'DISPOSED']
+    VALID_STATUSES = ["ACTIVE", "IN_USE", "RETURNED", "EXPIRED", "DISPOSED"]
     DEFAULT_TRANSITIONS = {
-        'ACTIVE': ['IN_USE', 'EXPIRED', 'DISPOSED'],
-        'IN_USE': ['RETURNED', 'EXPIRED', 'DISPOSED'],
-        'RETURNED': ['ACTIVE', 'IN_USE', 'DISPOSED'],
-        'EXPIRED': ['DISPOSED'],
-        'DISPOSED': [],
+        "ACTIVE": ["IN_USE", "EXPIRED", "DISPOSED"],
+        "IN_USE": ["RETURNED", "EXPIRED", "DISPOSED"],
+        "RETURNED": ["ACTIVE", "IN_USE", "DISPOSED"],
+        "EXPIRED": ["DISPOSED"],
+        "DISPOSED": [],
     }
 
     def _allowed_statuses(self) -> set:
@@ -37,7 +39,7 @@ class TrackerEngine(BaseEngine):
         must accept those names — not the hardcoded default whitelist.
         Falls back to `VALID_STATUSES` only when no custom map is configured.
         """
-        transitions = (self.config or {}).get('status_transitions')
+        transitions = (self.config or {}).get("status_transitions")
         if not transitions or not isinstance(transitions, dict):
             return set(self.VALID_STATUSES)
         allowed = set(transitions.keys())
@@ -56,12 +58,12 @@ class TrackerEngine(BaseEngine):
         """
         ui: Dict[str, Any] = {"input_type": "tracker"}
 
-        transitions = (self.config or {}).get('status_transitions')
+        transitions = (self.config or {}).get("status_transitions")
         if transitions:
             ui["status_transitions"] = transitions
 
-        attributes = getattr(self.product, 'attributes', None) or {}
-        attr_fields = attributes.get('fields') if isinstance(attributes, dict) else None
+        attributes = getattr(self.product, "attributes", None) or {}
+        attr_fields = attributes.get("fields") if isinstance(attributes, dict) else None
         if attr_fields:
             ui["fields"] = attr_fields
 
@@ -69,15 +71,15 @@ class TrackerEngine(BaseEngine):
 
     def calculate_delta(self, delta_payload: Dict[str, Any]) -> Dict[str, Any]:
         """Returns status change metadata rather than numeric delta."""
-        new_status = delta_payload.get('new_status')
+        new_status = delta_payload.get("new_status")
         if new_status not in self._allowed_statuses():
             raise ValueError(f"Invalid status: {new_status}")
 
         return {
             "type": "status_change",
-            "physical_product_id": delta_payload.get('physical_product_id'),
+            "physical_product_id": delta_payload.get("physical_product_id"),
             "new_status": new_status,
-            "notes": delta_payload.get('notes', ''),
+            "notes": delta_payload.get("notes", ""),
         }
 
     def process_transaction(self, current_stock: Any, delta_payload: Dict[str, Any]) -> Any:
@@ -97,18 +99,18 @@ class TrackerEngine(BaseEngine):
             ValueError: If transition is invalid or physical_product_id missing.
         """
         delta = self.calculate_delta(delta_payload)
-        new_status = delta['new_status']
-        pp_id = delta['physical_product_id']
+        new_status = delta["new_status"]
+        pp_id = delta["physical_product_id"]
 
         if not pp_id:
             raise ValueError("physical_product_id is required")
 
         # current_stock must provide the item's current status
-        if not isinstance(current_stock, dict) or 'current_status' not in current_stock:
+        if not isinstance(current_stock, dict) or "current_status" not in current_stock:
             raise ValueError("current_stock must be a dict with 'current_status' key")
 
-        old_status = current_stock['current_status']
-        transitions = self.config.get('status_transitions', self.DEFAULT_TRANSITIONS)
+        old_status = current_stock["current_status"]
+        transitions = self.config.get("status_transitions", self.DEFAULT_TRANSITIONS)
 
         # Bootstrap rule: when the item's current status is not a node of the
         # configured state machine (typically the model-default 'ACTIVE' on a
@@ -124,8 +126,7 @@ class TrackerEngine(BaseEngine):
 
         if new_status not in allowed:
             raise ValueError(
-                f"Cannot transition from {old_status} to {new_status}. "
-                f"Allowed: {allowed}"
+                f"Cannot transition from {old_status} to {new_status}. Allowed: {allowed}"
             )
 
         return {
@@ -151,17 +152,15 @@ class TrackerEngine(BaseEngine):
             for status in self.VALID_STATUSES:
                 count = stock_value.get(status, 0)
                 if count > 0:
-                    label = status.lower().replace('_', '-')
+                    label = status.lower().replace("_", "-")
                     parts.append(f"{count} {label}")
                 seen.add(status)
             for status, count in stock_value.items():
                 if status in seen or not count:
                     continue
-                label = status.lower().replace('_', '-')
+                label = status.lower().replace("_", "-")
                 parts.append(f"{count} {label}")
             return ", ".join(parts) if parts else "0 items"
 
         val = int(stock_value) if stock_value else 0
         return f"{val} items"
-
-

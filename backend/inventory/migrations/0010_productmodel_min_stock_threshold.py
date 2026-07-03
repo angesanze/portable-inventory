@@ -4,15 +4,20 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inventory', '0009_monitoringrule_eventlog'),
+        ("inventory", "0009_monitoringrule_eventlog"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='productmodel',
-            name='min_stock_threshold',
-            field=models.DecimalField(blank=True, decimal_places=4, help_text='Override Minimum Stock Level', max_digits=12, null=True),
+            model_name="productmodel",
+            name="min_stock_threshold",
+            field=models.DecimalField(
+                blank=True,
+                decimal_places=4,
+                help_text="Override Minimum Stock Level",
+                max_digits=12,
+                null=True,
+            ),
         ),
     ]

@@ -4,6 +4,7 @@ Base ViewSet classes to eliminate repetitive patterns.
 This module provides reusable base classes for common ViewSet patterns,
 eliminating code duplication across inventory admin API ViewSets.
 """
+
 import uuid
 
 from rest_framework import permissions, status, viewsets
@@ -53,6 +54,7 @@ def bulk_delete_response(deleted, preserved_movements=0, http_status=status.HTTP
         status=http_status,
     )
 
+
 # Sentinel marking "effective company not yet resolved on this request".
 _UNRESOLVED = object()
 
@@ -81,7 +83,7 @@ class CompanyScopedMixin:
                            from 'company' (e.g. 'product_model__company').
     """
 
-    company_field = 'company'  # Override in subclass if needed
+    company_field = "company"  # Override in subclass if needed
 
     def get_effective_company(self):
         """
@@ -93,7 +95,7 @@ class CompanyScopedMixin:
         the acting-company header names a company the requester may not act as
         — this is how the 403 deferred by ``CompanyScopeMiddleware`` surfaces.
         """
-        cached = getattr(self.request, '_effective_company', _UNRESOLVED)
+        cached = getattr(self.request, "_effective_company", _UNRESOLVED)
         if cached is not _UNRESOLVED:
             return cached
         company = resolve_effective_company(self.request)
@@ -113,7 +115,7 @@ class CompanyScopedMixin:
         company = self.get_effective_company()
 
         if company is None:
-            if getattr(user, 'is_authenticated', False) and user.is_superuser:
+            if getattr(user, "is_authenticated", False) and user.is_superuser:
                 return self.queryset
             return self.queryset.none()
 
@@ -121,10 +123,10 @@ class CompanyScopedMixin:
         return self.queryset.filter(**filter_kwargs)
 
 
-# Actions that mutate inventory and therefore require write capability.
-_WRITE_ACTIONS = frozenset({'create', 'update', 'partial_update'})
-# Actions that destroy inventory and therefore require delete capability.
-_DELETE_ACTIONS = frozenset({'destroy', 'bulk_delete'})
+# Actions that destroy inventory and therefore require delete capability. These
+# are matched by name because a bulk-delete is conventionally a POST, so the HTTP
+# verb alone would under-classify it as an ordinary write.
+_DELETE_ACTIONS = frozenset({"destroy", "bulk_delete"})
 
 
 class RoleGatedWriteMixin:
@@ -133,23 +135,32 @@ class RoleGatedWriteMixin:
     Layers the intra-company role capabilities on top of whatever the viewset
     already declares in ``permission_classes`` (default: ``IsAuthenticated``):
 
-    * write actions (create/update/partial_update) -> ``manage_own_inventory``
-      (an OPERATOR keeps these; a VIEWER is read-only and loses them);
+    * any write (unsafe HTTP verb: POST/PUT/PATCH) -> ``manage_own_inventory``
+      (an OPERATOR keeps these; a VIEWER is read-only and loses them). This is
+      keyed on the HTTP method, not an action allow-list, so custom mutating
+      ``@action``\\ s (ship/fulfill/apply/resolve/receive/release/…) are gated
+      too — the historical hole (SEC-08) where they fell through to bare
+      ``IsAuthenticated``;
     * delete actions (destroy/bulk-delete) -> ``delete_inventory``
       (only OWNER/ADMIN; an OPERATOR or VIEWER is denied).
 
     Conservative by construction: ``manage_own_inventory`` and
     ``delete_inventory`` are BOTH true for the default (blank/legacy = ADMIN)
     role, so existing callers keep full access — only OPERATOR/VIEWER are
-    constrained. Read actions inherit the base permissions unchanged.
+    constrained. Safe reads (GET/HEAD/OPTIONS) inherit the base permissions
+    unchanged.
     """
 
     def get_permissions(self):
+        method = getattr(self.request, "method", "GET")
         extra = None
         if self.action in _DELETE_ACTIONS:
-            extra = require_capability('delete_inventory')
-        elif self.action in _WRITE_ACTIONS:
-            extra = require_capability('manage_own_inventory')
+            extra = require_capability("delete_inventory")
+        elif method not in permissions.SAFE_METHODS:
+            # Every write verb — covers CRUD create/update/partial_update AND
+            # every mutating custom @action, so a newly-added action can't
+            # silently skip the capability + license gate.
+            extra = require_capability("manage_own_inventory")
         base = super().get_permissions()
         if extra is None:
             return base
@@ -200,12 +211,8 @@ class CompanyScopedViewSet(RoleGatedWriteMixin, CompanyScopedMixin, viewsets.Mod
         user = self.request.user
         company = self.get_effective_company()
 
-        if company is None and not (
-            getattr(user, 'is_authenticated', False) and user.is_superuser
-        ):
-            raise PermissionDenied(
-                "User must be authenticated and belong to a company."
-            )
+        if company is None and not (getattr(user, "is_authenticated", False) and user.is_superuser):
+            raise PermissionDenied("User must be authenticated and belong to a company.")
 
         from django.core.exceptions import ValidationError as DjangoValidationError
         from rest_framework.exceptions import ValidationError as DRFValidationError
@@ -216,9 +223,7 @@ class CompanyScopedViewSet(RoleGatedWriteMixin, CompanyScopedMixin, viewsets.Mod
             else:
                 serializer.save()
         except DjangoValidationError as e:
-            raise DRFValidationError(
-                e.message_dict if hasattr(e, 'message_dict') else str(e)
-            )
+            raise DRFValidationError(e.message_dict if hasattr(e, "message_dict") else str(e))
 
 
 class ReadOnlyCompanyScopedViewSet(CompanyScopedMixin, viewsets.ReadOnlyModelViewSet):

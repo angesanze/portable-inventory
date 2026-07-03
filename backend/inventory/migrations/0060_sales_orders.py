@@ -9,85 +9,182 @@ import uuid
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0012_auditlog'),
+        ("core", "0012_auditlog"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('inventory', '0059_purchase_orders'),
+        ("inventory", "0059_purchase_orders"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Customer',
+            name="Customer",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('name', models.CharField(max_length=255)),
-                ('vat_number', models.CharField(blank=True, help_text='Partita IVA / VAT number', max_length=64, validators=[core.validators.validate_partita_iva])),
-                ('email', models.EmailField(blank=True, max_length=254)),
-                ('phone', models.CharField(blank=True, max_length=64)),
-                ('address', models.TextField(blank=True)),
-                ('is_active', models.BooleanField(default=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('company', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='customers', to='core.company')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+                (
+                    "vat_number",
+                    models.CharField(
+                        blank=True,
+                        help_text="Partita IVA / VAT number",
+                        max_length=64,
+                        validators=[core.validators.validate_partita_iva],
+                    ),
+                ),
+                ("email", models.EmailField(blank=True, max_length=254)),
+                ("phone", models.CharField(blank=True, max_length=64)),
+                ("address", models.TextField(blank=True)),
+                ("is_active", models.BooleanField(default=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "company",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="customers",
+                        to="core.company",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['name'],
+                "ordering": ["name"],
             },
         ),
         migrations.CreateModel(
-            name='SalesOrder',
+            name="SalesOrder",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('number', models.CharField(max_length=32)),
-                ('status', models.CharField(choices=[('DRAFT', 'Draft'), ('CONFIRMED', 'Confirmed'), ('PICKING', 'Picking'), ('PARTIALLY_SHIPPED', 'Partially shipped'), ('SHIPPED', 'Shipped'), ('CANCELLED', 'Cancelled')], default='DRAFT', max_length=30)),
-                ('promised_at', models.DateField(blank=True, null=True)),
-                ('notes', models.TextField(blank=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('company', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='sales_orders', to='core.company')),
-                ('created_by', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='sales_orders', to=settings.AUTH_USER_MODEL)),
-                ('customer', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='sales_orders', to='inventory.customer')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("number", models.CharField(max_length=32)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("DRAFT", "Draft"),
+                            ("CONFIRMED", "Confirmed"),
+                            ("PICKING", "Picking"),
+                            ("PARTIALLY_SHIPPED", "Partially shipped"),
+                            ("SHIPPED", "Shipped"),
+                            ("CANCELLED", "Cancelled"),
+                        ],
+                        default="DRAFT",
+                        max_length=30,
+                    ),
+                ),
+                ("promised_at", models.DateField(blank=True, null=True)),
+                ("notes", models.TextField(blank=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "company",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="sales_orders",
+                        to="core.company",
+                    ),
+                ),
+                (
+                    "created_by",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="sales_orders",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "customer",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="sales_orders",
+                        to="inventory.customer",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-created_at'],
+                "ordering": ["-created_at"],
             },
         ),
         migrations.CreateModel(
-            name='SalesOrderLine',
+            name="SalesOrderLine",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('quantity_ordered', models.DecimalField(decimal_places=4, max_digits=12)),
-                ('unit_price', models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True)),
-                ('quantity_shipped', models.DecimalField(decimal_places=4, default=Decimal('0'), max_digits=12)),
-                ('product_model', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='sales_order_lines', to='inventory.productmodel')),
-                ('sales_order', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='lines', to='inventory.salesorder')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("quantity_ordered", models.DecimalField(decimal_places=4, max_digits=12)),
+                (
+                    "unit_price",
+                    models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True),
+                ),
+                (
+                    "quantity_shipped",
+                    models.DecimalField(decimal_places=4, default=Decimal("0"), max_digits=12),
+                ),
+                (
+                    "product_model",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="sales_order_lines",
+                        to="inventory.productmodel",
+                    ),
+                ),
+                (
+                    "sales_order",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="lines",
+                        to="inventory.salesorder",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['id'],
-                'unique_together': {('sales_order', 'product_model')},
+                "ordering": ["id"],
+                "unique_together": {("sales_order", "product_model")},
             },
         ),
         migrations.AddField(
-            model_name='movement',
-            name='customer',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='movements', to='inventory.customer'),
+            model_name="movement",
+            name="customer",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="movements",
+                to="inventory.customer",
+            ),
         ),
         migrations.AddField(
-            model_name='reservation',
-            name='sales_order_line',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='reservations', to='inventory.salesorderline'),
+            model_name="reservation",
+            name="sales_order_line",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="reservations",
+                to="inventory.salesorderline",
+            ),
         ),
         migrations.AddIndex(
-            model_name='salesorder',
-            index=models.Index(fields=['company', 'status'], name='inventory_s_company_b2911f_idx'),
+            model_name="salesorder",
+            index=models.Index(fields=["company", "status"], name="inventory_s_company_b2911f_idx"),
         ),
         migrations.AlterUniqueTogether(
-            name='salesorder',
-            unique_together={('company', 'number')},
+            name="salesorder",
+            unique_together={("company", "number")},
         ),
         migrations.AlterUniqueTogether(
-            name='customer',
-            unique_together={('company', 'name')},
+            name="customer",
+            unique_together={("company", "name")},
         ),
     ]

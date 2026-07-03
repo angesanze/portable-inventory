@@ -3,6 +3,7 @@ import type { QRScanResult } from "./QRScanner";
 import type { OperationType } from "./ScanResult";
 import { PROFILE_METADATA } from "../../../types/api";
 import type { InventoryProfile } from "../../../types/api";
+import { buildMovePayloadParts } from "../payload";
 
 type FlowStep = "scanning" | "result" | "quantity" | "confirming" | "success" | "error";
 
@@ -138,54 +139,32 @@ export function useScannerConfirmation(options: UseScannerConfirmationOptions) {
             physical_identifier: scanResult.identifier || undefined,
         };
 
-        // Profile-based calculator payload dispatch
-        if (profile) {
-            switch (profile) {
-                case "BATCH_TRACKED":
-                    payload.calculator_payload = {
-                        operation: isAdd ? "add" : "subtract",
-                        quantity,
-                    };
-                    break;
-                case "PERISHABLE":
-                    payload.calculator_payload = {
-                        operation: isAdd ? "add" : "subtract",
-                        quantity,
-                        expiry_date: state.expiryDate || undefined,
-                        batch_ref: state.batchRef || undefined,
-                    };
-                    break;
-                case "DIMENSIONAL":
-                    if (state.dimensionValues) {
-                        payload.calculator_payload = {
-                            operation: isAdd ? "add" : "subtract",
-                            dimension_values: state.dimensionValues,
-                        };
-                    }
-                    break;
-                // SIMPLE_COUNT, UNIT_CONVERSION, SERIALIZED, ASSEMBLED — no calculator_payload needed
-            }
-        } else {
-            // Legacy fallback for QR codes without profile data
-            if (scanResult.engineType === "bucket") {
-                payload.calculator_payload = {
-                    operation: isAdd ? "add" : "subtract",
-                    quantity,
-                };
-            } else if (scanResult.engineType === "dimension" && state.dimensionValues) {
-                payload.calculator_payload = {
-                    operation: isAdd ? "add" : "subtract",
-                    dimension_values: state.dimensionValues,
-                };
-            } else if (scanResult.engineType === "time_based") {
-                payload.calculator_payload = {
-                    operation: isAdd ? "add" : "subtract",
-                    quantity,
-                    expiry_date: state.expiryDate || undefined,
-                    batch_ref: state.batchRef || undefined,
-                };
-            }
-        }
+        // Per-profile move-body pieces via the shared builder (payload.ts) — the
+        // same source of truth as useWidgetOperations, so keys/nesting can't drift.
+        // Legacy QR codes predating the profile field carry only an engine type.
+        const ENGINE_TO_PROFILE: Record<string, InventoryProfile> = {
+            bucket: "BATCH_TRACKED",
+            dimension: "DIMENSIONAL",
+            time_based: "PERISHABLE",
+            tracker: "SERIALIZED",
+        };
+        const effectiveProfile: InventoryProfile | undefined =
+            profile ?? (scanResult.engineType ? ENGINE_TO_PROFILE[scanResult.engineType] : undefined);
+
+        const parts = buildMovePayloadParts(effectiveProfile, isAdd ? "add" : "subtract", {
+            qty: quantity,
+            // The scanner collects dimension values as numbers; the shared builder
+            // parses strings, so stringify them.
+            batchData: Object.fromEntries(
+                Object.entries(state.dimensionValues ?? {}).map(([k, v]) => [k, String(v)]),
+            ),
+            batchIdentifier: state.batchRef,
+            expiryDate: state.expiryDate,
+            batchRef: state.batchRef,
+        });
+        if (parts.calc_payload) payload.calc_payload = parts.calc_payload;
+        if (parts.batch_data) payload.batch_data = parts.batch_data;
+        if (parts.batch_id) payload.batch_id = parts.batch_id;
 
         try {
             const res = await fetch(`${apiUrl}/widget/move/`, {

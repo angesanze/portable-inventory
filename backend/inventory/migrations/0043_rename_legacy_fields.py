@@ -4,30 +4,50 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inventory', '0042_productmodel_profile_required'),
+        ("inventory", "0042_productmodel_profile_required"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='productmodel',
-            name='engine_type',
-            field=models.CharField(choices=[('counter', 'Counter (Discrete)'), ('converter', 'Converter (Continuous)'), ('bucket', 'Bucket (Segmented)'), ('tracker', 'Item Tracker (Serialized)'), ('dimension', 'Dimension (Area/Volume)'), ('time_based', 'Time-Based (Perishable/Rental)')], db_column='engine_type', default='counter', max_length=50),
+            model_name="productmodel",
+            name="engine_type",
+            field=models.CharField(
+                choices=[
+                    ("counter", "Counter (Discrete)"),
+                    ("converter", "Converter (Continuous)"),
+                    ("bucket", "Bucket (Segmented)"),
+                    ("tracker", "Item Tracker (Serialized)"),
+                    ("dimension", "Dimension (Area/Volume)"),
+                    ("time_based", "Time-Based (Perishable/Rental)"),
+                ],
+                db_column="engine_type",
+                default="counter",
+                max_length=50,
+            ),
         ),
         migrations.RenameField(
-            model_name='productmodel',
-            old_name='engine_type',
-            new_name='_engine_type',
+            model_name="productmodel",
+            old_name="engine_type",
+            new_name="_engine_type",
         ),
         migrations.AlterField(
-            model_name='productmodel',
-            name='tracking_mode',
-            field=models.CharField(choices=[('BULK', 'Bulk (Quantity Only)'), ('INDIVIDUAL', 'Individual (Unique Items)'), ('BATCH', 'Batch/Lot Tracking')], db_column='tracking_mode', default='BULK', max_length=20),
+            model_name="productmodel",
+            name="tracking_mode",
+            field=models.CharField(
+                choices=[
+                    ("BULK", "Bulk (Quantity Only)"),
+                    ("INDIVIDUAL", "Individual (Unique Items)"),
+                    ("BATCH", "Batch/Lot Tracking"),
+                ],
+                db_column="tracking_mode",
+                default="BULK",
+                max_length=20,
+            ),
         ),
         migrations.RenameField(
-            model_name='productmodel',
-            old_name='tracking_mode',
-            new_name='_tracking_mode',
+            model_name="productmodel",
+            old_name="tracking_mode",
+            new_name="_tracking_mode",
         ),
     ]

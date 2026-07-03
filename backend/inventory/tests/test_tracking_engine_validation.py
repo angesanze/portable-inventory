@@ -15,16 +15,14 @@ class ProfileDerivedFieldsTest(TestCase):
 
     def test_serialized_derives_individual_tracker(self):
         pm = ProductModel(
-            company=self.company, sku="SER-OK", name="Valid Serialized",
-            profile="SERIALIZED"
+            company=self.company, sku="SER-OK", name="Valid Serialized", profile="SERIALIZED"
         )
         self.assertEqual(pm.tracking_mode, "INDIVIDUAL")
         self.assertEqual(pm.engine_type, "tracker")
 
     def test_serialized_full_clean_passes(self):
         pm = ProductModel(
-            company=self.company, sku="SER-CLN", name="Serialized Clean",
-            profile="SERIALIZED"
+            company=self.company, sku="SER-CLN", name="Serialized Clean", profile="SERIALIZED"
         )
         pm.full_clean()  # should not raise
 
@@ -32,7 +30,9 @@ class ProfileDerivedFieldsTest(TestCase):
 
     def test_batch_tracked_derives_batch_bucket(self):
         pm = ProductModel(
-            company=self.company, sku="BAT-OK", name="Valid Batch",
+            company=self.company,
+            sku="BAT-OK",
+            name="Valid Batch",
             profile="BATCH_TRACKED",
         )
         self.assertEqual(pm.tracking_mode, "BATCH")
@@ -40,7 +40,9 @@ class ProfileDerivedFieldsTest(TestCase):
 
     def test_batch_tracked_full_clean_passes(self):
         pm = ProductModel(
-            company=self.company, sku="BAT-CLN", name="Batch Clean",
+            company=self.company,
+            sku="BAT-CLN",
+            name="Batch Clean",
             profile="BATCH_TRACKED",
         )
         pm.full_clean()
@@ -49,7 +51,9 @@ class ProfileDerivedFieldsTest(TestCase):
 
     def test_perishable_derives_batch_time_based(self):
         pm = ProductModel(
-            company=self.company, sku="PER-OK", name="Valid Perishable",
+            company=self.company,
+            sku="PER-OK",
+            name="Valid Perishable",
             profile="PERISHABLE",
         )
         self.assertEqual(pm.tracking_mode, "BATCH")
@@ -59,8 +63,7 @@ class ProfileDerivedFieldsTest(TestCase):
 
     def test_simple_count_derives_bulk_counter(self):
         pm = ProductModel(
-            company=self.company, sku="SC-OK", name="Valid Simple Count",
-            profile="SIMPLE_COUNT"
+            company=self.company, sku="SC-OK", name="Valid Simple Count", profile="SIMPLE_COUNT"
         )
         self.assertEqual(pm.tracking_mode, "BULK")
         self.assertEqual(pm.engine_type, "counter")
@@ -69,8 +72,10 @@ class ProfileDerivedFieldsTest(TestCase):
 
     def test_unit_conversion_derives_bulk_converter(self):
         pm = ProductModel(
-            company=self.company, sku="UC-OK", name="Valid Unit Conversion",
-            profile="UNIT_CONVERSION"
+            company=self.company,
+            sku="UC-OK",
+            name="Valid Unit Conversion",
+            profile="UNIT_CONVERSION",
         )
         self.assertEqual(pm.tracking_mode, "BULK")
         self.assertEqual(pm.engine_type, "converter")
@@ -79,8 +84,7 @@ class ProfileDerivedFieldsTest(TestCase):
 
     def test_dimensional_derives_bulk_dimension(self):
         pm = ProductModel(
-            company=self.company, sku="DIM-OK", name="Valid Dimensional",
-            profile="DIMENSIONAL"
+            company=self.company, sku="DIM-OK", name="Valid Dimensional", profile="DIMENSIONAL"
         )
         self.assertEqual(pm.tracking_mode, "BULK")
         self.assertEqual(pm.engine_type, "dimension")
@@ -90,16 +94,14 @@ class ProfileDerivedFieldsTest(TestCase):
     def test_batch_tracked_without_strategy_valid(self):
         """BATCH_TRACKED profile is self-sufficient — no strategy FK needed."""
         pm = ProductModel(
-            company=self.company, sku="NO-STRAT", name="No Strategy",
-            profile="BATCH_TRACKED"
+            company=self.company, sku="NO-STRAT", name="No Strategy", profile="BATCH_TRACKED"
         )
         pm.full_clean()  # should not raise
 
     def test_save_derives_from_profile(self):
         """save() succeeds and properties derive from profile."""
         pm = ProductModel.objects.create(
-            company=self.company, sku="SYNC-OK", name="Sync Test",
-            profile="SERIALIZED"
+            company=self.company, sku="SYNC-OK", name="Sync Test", profile="SERIALIZED"
         )
         self.assertEqual(pm.tracking_mode, "INDIVIDUAL")
         self.assertEqual(pm.engine_type, "tracker")

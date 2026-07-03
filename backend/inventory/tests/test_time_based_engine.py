@@ -6,7 +6,10 @@ from datetime import timedelta
 
 from core.models import Company
 from inventory.models import (
-    ProductModel, Location, ProductBatch, MonitoringRule,
+    ProductModel,
+    Location,
+    ProductBatch,
+    MonitoringRule,
 )
 from inventory.engines import TimeBasedEngine, EngineFactory
 
@@ -56,6 +59,7 @@ def product_no_expiry(db, company):
 
 class FakeAdapter:
     """Mimics product adapter for engine instantiation."""
+
     def __init__(self, product):
         self.model = product
         self.engine_type = product.engine_type
@@ -64,12 +68,17 @@ class FakeAdapter:
 
 # --- Unit tests (no DB) ---
 
+
 class TestTimeBasedEngineUI:
     def test_get_ui_config_with_expiry(self):
-        adapter = type('P', (), {
-            'engine_type': 'time_based',
-            'engine_config': {"time_unit": "days", "expiry_tracking": True},
-        })()
+        adapter = type(
+            "P",
+            (),
+            {
+                "engine_type": "time_based",
+                "engine_config": {"time_unit": "days", "expiry_tracking": True},
+            },
+        )()
         engine = TimeBasedEngine(adapter, adapter.engine_config)
         ui = engine.get_ui_config()
 
@@ -85,10 +94,14 @@ class TestTimeBasedEngineUI:
         assert "fields" not in ui
 
     def test_get_ui_config_no_expiry(self):
-        adapter = type('P', (), {
-            'engine_type': 'time_based',
-            'engine_config': {"time_unit": "hours", "expiry_tracking": False},
-        })()
+        adapter = type(
+            "P",
+            (),
+            {
+                "engine_type": "time_based",
+                "engine_config": {"time_unit": "hours", "expiry_tracking": False},
+            },
+        )()
         engine = TimeBasedEngine(adapter, adapter.engine_config)
         ui = engine.get_ui_config()
 
@@ -100,28 +113,36 @@ class TestTimeBasedEngineUI:
 class TestTimeBasedEngineDelta:
     def _make_engine(self, config=None):
         config = config or {"time_unit": "days", "expiry_tracking": True}
-        adapter = type('P', (), {
-            'engine_type': 'time_based',
-            'engine_config': config,
-        })()
+        adapter = type(
+            "P",
+            (),
+            {
+                "engine_type": "time_based",
+                "engine_config": config,
+            },
+        )()
         return TimeBasedEngine(adapter, config)
 
     def test_calculate_delta_add(self):
         engine = self._make_engine()
-        result = engine.calculate_delta({
-            "quantity": 50,
-            "operation": "add",
-            "expiry_date": "2026-05-01",
-        })
+        result = engine.calculate_delta(
+            {
+                "quantity": 50,
+                "operation": "add",
+                "expiry_date": "2026-05-01",
+            }
+        )
         assert result["delta"] == 50.0
         assert result["expiry_date"] == "2026-05-01"
 
     def test_calculate_delta_subtract(self):
         engine = self._make_engine()
-        result = engine.calculate_delta({
-            "quantity": 20,
-            "operation": "subtract",
-        })
+        result = engine.calculate_delta(
+            {
+                "quantity": 20,
+                "operation": "subtract",
+            }
+        )
         assert result["delta"] == -20.0
         assert "expiry_date" not in result
 
@@ -132,82 +153,109 @@ class TestTimeBasedEngineDelta:
 
     def test_calculate_delta_batch_ref(self):
         engine = self._make_engine()
-        result = engine.calculate_delta({
-            "quantity": 10,
-            "operation": "add",
-            "batch_ref": "LOT-ABC",
-        })
+        result = engine.calculate_delta(
+            {
+                "quantity": 10,
+                "operation": "add",
+                "batch_ref": "LOT-ABC",
+            }
+        )
         assert result["batch_ref"] == "LOT-ABC"
 
     def test_calculate_delta_no_expiry_when_tracking_off(self):
         engine = self._make_engine({"time_unit": "days", "expiry_tracking": False})
-        result = engine.calculate_delta({
-            "quantity": 10,
-            "operation": "add",
-            "expiry_date": "2026-05-01",
-        })
+        result = engine.calculate_delta(
+            {
+                "quantity": 10,
+                "operation": "add",
+                "expiry_date": "2026-05-01",
+            }
+        )
         assert "expiry_date" not in result
 
 
 class TestTimeBasedEngineTransaction:
     def _make_engine(self):
         config = {"time_unit": "days", "expiry_tracking": True}
-        adapter = type('P', (), {
-            'engine_type': 'time_based',
-            'engine_config': config,
-        })()
+        adapter = type(
+            "P",
+            (),
+            {
+                "engine_type": "time_based",
+                "engine_config": config,
+            },
+        )()
         return TimeBasedEngine(adapter, config)
 
     def test_process_transaction_add(self):
         engine = self._make_engine()
-        new_stock = engine.process_transaction(100, {
-            "quantity": 50,
-            "operation": "add",
-            "expiry_date": "2026-06-01",
-        })
+        new_stock = engine.process_transaction(
+            100,
+            {
+                "quantity": 50,
+                "operation": "add",
+                "expiry_date": "2026-06-01",
+            },
+        )
         assert new_stock == 150.0
 
     def test_process_transaction_subtract(self):
         engine = self._make_engine()
-        new_stock = engine.process_transaction(100, {
-            "quantity": 30,
-            "operation": "subtract",
-        })
+        new_stock = engine.process_transaction(
+            100,
+            {
+                "quantity": 30,
+                "operation": "subtract",
+            },
+        )
         assert new_stock == 70.0
 
     def test_process_transaction_negative_stock_rejected(self):
         engine = self._make_engine()
         with pytest.raises(ValueError, match="cannot be negative"):
-            engine.process_transaction(10, {
-                "quantity": 20,
-                "operation": "subtract",
-            })
+            engine.process_transaction(
+                10,
+                {
+                    "quantity": 20,
+                    "operation": "subtract",
+                },
+            )
 
     def test_process_transaction_none_stock(self):
         engine = self._make_engine()
-        new_stock = engine.process_transaction(None, {
-            "quantity": 25,
-            "operation": "add",
-        })
+        new_stock = engine.process_transaction(
+            None,
+            {
+                "quantity": 25,
+                "operation": "add",
+            },
+        )
         assert new_stock == 25.0
 
     def test_process_transaction_invalid_stock(self):
         engine = self._make_engine()
-        new_stock = engine.process_transaction("invalid", {
-            "quantity": 10,
-            "operation": "add",
-        })
+        new_stock = engine.process_transaction(
+            "invalid",
+            {
+                "quantity": 10,
+                "operation": "add",
+            },
+        )
         assert new_stock == 10.0
 
 
 class TestTimeBasedEngineDisplay:
     def _make_engine(self, config=None):
         config = config or {"time_unit": "days", "expiry_tracking": False}
-        adapter = type('P', (), {
-            'engine_type': 'time_based',
-            'engine_config': config,
-            'model': None,
-        })()
+        adapter = type(
+            "P",
+            (),
+            {
+                "engine_type": "time_based",
+                "engine_config": config,
+                "model": None,
+            },
+        )()
         return TimeBasedEngine(adapter, config)
 
     def test_format_integer_stock(self):
@@ -229,6 +277,7 @@ class TestTimeBasedEngineDisplay:
 
 # --- DB-dependent tests ---
 
+
 @pytest.mark.django_db
 class TestTimeBasedEngineFactory:
     def test_factory_returns_time_based_engine(self, time_product):
@@ -246,11 +295,15 @@ class TestTimeBasedExpiryDisplay:
 
     def _make_engine(self, config=None):
         config = config or {"time_unit": "days", "expiry_tracking": True}
-        adapter = type('Adapter', (), {
-            'engine_type': 'time_based',
-            'engine_config': config,
-            'model': None,
-        })()
+        adapter = type(
+            "Adapter",
+            (),
+            {
+                "engine_type": "time_based",
+                "engine_config": config,
+                "model": None,
+            },
+        )()
         return TimeBasedEngine(adapter, config)
 
     def test_format_with_expiring_dict(self):
@@ -295,6 +348,7 @@ class TestTimeBasedExpiryDisplayIntegration:
 
     def test_get_expiry_display_data_with_batches(self, time_product, locations):
         from inventory.services.stock import StockService
+
         now = timezone.now()
         ProductBatch.objects.create(
             product_model=time_product,
@@ -324,6 +378,7 @@ class TestTimeBasedExpiryDisplayIntegration:
 
     def test_get_expiry_display_data_with_expired(self, time_product, locations):
         from inventory.services.stock import StockService
+
         now = timezone.now()
         ProductBatch.objects.create(
             product_model=time_product,
@@ -353,8 +408,11 @@ class TestTimeBasedMonitoringRules:
         assert rule is not None
         assert rule.trigger_type == "DATE_OFFSET"
         assert rule.severity == "WARNING"
-        assert rule.condition_config["field"] == "expiry_date"
-        assert rule.condition_config["offset_value"] == 3
+        # COR-17: the config must use the keys DateOffsetMonitor actually reads
+        # (date_field / days_offset), not the old field/offset_value that were
+        # silently ignored — which left the alert firing only once expired.
+        assert rule.condition_config["date_field"] == "expiry_date"
+        assert rule.condition_config["days_offset"] == 3
         assert rule.product_model == time_product
 
     def test_ensure_monitoring_rules_idempotent(self, time_product):
@@ -382,5 +440,7 @@ class TestTimeBasedMonitoringRules:
         adapter = FakeAdapter(product)
         engine = TimeBasedEngine(adapter, adapter.engine_config)
         rule = engine.ensure_monitoring_rules()
-        assert rule.condition_config["offset_value"] == 72
-        assert rule.condition_config["offset_unit"] == "hours"
+        # DateOffsetMonitor works in whole days; 72 hours == a 3-day advance
+        # warning, expressed via the days_offset key it reads (COR-17).
+        assert rule.condition_config["days_offset"] == 3
+        assert rule.condition_config["date_field"] == "expiry_date"

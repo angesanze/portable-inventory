@@ -8,6 +8,7 @@ the data spine for the superadmin console and is gated on
 :class:`core.permissions.IsSuperuser` (a Django ``is_superuser``); no tenant,
 manager *or* developer, ever reaches it.
 """
+
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Count, OuterRef, Subquery
 from rest_framework import serializers, status, viewsets
@@ -37,9 +38,7 @@ class PlatformCompanySerializer(serializers.ModelSerializer):
     reporting surface, never a write path.
     """
 
-    parent_name = serializers.CharField(
-        source='parent.name', read_only=True, allow_null=True
-    )
+    parent_name = serializers.CharField(source="parent.name", read_only=True, allow_null=True)
     users_count = serializers.IntegerField(read_only=True)
     api_keys_count = serializers.IntegerField(read_only=True)
     children_count = serializers.IntegerField(read_only=True)
@@ -49,10 +48,20 @@ class PlatformCompanySerializer(serializers.ModelSerializer):
     class Meta:
         model = Company
         fields = [
-            'id', 'name', 'account_type', 'license_code', 'vat', 'is_active',
-            'created_at', 'parent', 'parent_name',
-            'users_count', 'api_keys_count', 'children_count', 'last_activity',
-            'children_summary',
+            "id",
+            "name",
+            "account_type",
+            "license_code",
+            "vat",
+            "is_active",
+            "created_at",
+            "parent",
+            "parent_name",
+            "users_count",
+            "api_keys_count",
+            "children_count",
+            "last_activity",
+            "children_summary",
         ]
         read_only_fields = fields
 
@@ -66,8 +75,8 @@ class PlatformCompanySerializer(serializers.ModelSerializer):
         if not obj.is_developer:
             return None
         return [
-            {'id': str(child.id), 'name': child.name, 'is_active': child.is_active}
-            for child in obj.children.all().order_by('name')
+            {"id": str(child.id), "name": child.name, "is_active": child.is_active}
+            for child in obj.children.all().order_by("name")
         ]
 
 
@@ -86,7 +95,9 @@ class PlatformCompanyDetailSerializer(PlatformCompanySerializer):
 
     class Meta(PlatformCompanySerializer.Meta):
         fields = PlatformCompanySerializer.Meta.fields + [
-            'users', 'api_keys', 'recent_activity',
+            "users",
+            "api_keys",
+            "recent_activity",
         ]
         read_only_fields = fields
 
@@ -94,44 +105,40 @@ class PlatformCompanyDetailSerializer(PlatformCompanySerializer):
     def get_users(self, obj):
         return [
             {
-                'id': str(user.id),
-                'username': user.username,
-                'email': user.email,
-                'role': user.role,
-                'is_active': user.is_active,
+                "id": str(user.id),
+                "username": user.username,
+                "email": user.email,
+                "role": user.role,
+                "is_active": user.is_active,
             }
-            for user in obj.users.all().order_by('username')
+            for user in obj.users.all().order_by("username")
         ]
 
     @extend_schema_field(OpenApiTypes.OBJECT)
     def get_api_keys(self, obj):
         return [
             {
-                'id': str(key.id),
-                'label': key.label,
-                'is_active': key.is_active,
-                'rate_limit_tier': key.rate_limit_tier,
-                'usage_count': key.usage_count,
-                'last_used_at': key.last_used_at,
-                'created_at': key.created_at,
+                "id": str(key.id),
+                "label": key.label,
+                "is_active": key.is_active,
+                "rate_limit_tier": key.rate_limit_tier,
+                "usage_count": key.usage_count,
+                "last_used_at": key.last_used_at,
+                "created_at": key.created_at,
             }
-            for key in obj.api_keys.all().order_by('-created_at')
+            for key in obj.api_keys.all().order_by("-created_at")
         ]
 
     @extend_schema_field(OpenApiTypes.OBJECT)
     def get_recent_activity(self, obj):
-        recent = (
-            obj.audit_logs
-            .select_related('actor')
-            .order_by('-created_at')[:20]
-        )
+        recent = obj.audit_logs.select_related("actor").order_by("-created_at")[:20]
         return [
             {
-                'id': str(entry.id),
-                'action': entry.action,
-                'actor_username': entry.actor.username if entry.actor else None,
-                'metadata': entry.metadata,
-                'created_at': entry.created_at,
+                "id": str(entry.id),
+                "action": entry.action,
+                "actor_username": entry.actor.username if entry.actor else None,
+                "metadata": entry.metadata,
+                "created_at": entry.created_at,
             }
             for entry in recent
         ]
@@ -151,9 +158,9 @@ class ProvisionDeveloperSerializer(serializers.Serializer):
     admin_password = serializers.CharField(required=False, allow_blank=True, write_only=True)
 
     def validate(self, attrs):
-        if attrs.get('admin_email') and not attrs.get('admin_password'):
+        if attrs.get("admin_email") and not attrs.get("admin_password"):
             raise serializers.ValidationError(
-                {'admin_password': "A password is required when seeding an admin user."}
+                {"admin_password": "A password is required when seeding an admin user."}
             )
         return attrs
 
@@ -176,15 +183,15 @@ class PlatformCompanyViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PlatformCompanySerializer
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['account_type', 'is_active']
-    search_fields = ['name', 'vat', 'license_code']
-    ordering_fields = ['created_at', 'name', 'last_activity']
-    ordering = ['-created_at']
+    filterset_fields = ["account_type", "is_active"]
+    search_fields = ["name", "vat", "license_code"]
+    ordering_fields = ["created_at", "name", "last_activity"]
+    ordering = ["-created_at"]
 
     def get_serializer_class(self):
         # The drill-down (retrieve) embeds users/api_keys/recent_activity; the
         # list and write actions keep the lean row serializer.
-        if self.action == 'retrieve':
+        if self.action == "retrieve":
             return PlatformCompanyDetailSerializer
         return PlatformCompanySerializer
 
@@ -192,30 +199,28 @@ class PlatformCompanyViewSet(viewsets.ReadOnlyModelViewSet):
         # A movement is tied to a company through its product_model; the most
         # recent occurred_at across that company's movements is its last activity.
         last_activity = (
-            Movement.objects
-            .filter(product_model__company=OuterRef('pk'))
-            .order_by('-occurred_at')
-            .values('occurred_at')[:1]
+            Movement.objects.filter(product_model__company=OuterRef("pk"))
+            .order_by("-occurred_at")
+            .values("occurred_at")[:1]
         )
         # The drill-down embeds the company's users/keys/audit trail, so prefetch
         # them for retrieve to keep the response a fixed handful of queries.
-        prefetch = ['children']
-        if self.action == 'retrieve':
-            prefetch += ['users', 'api_keys', 'audit_logs__actor']
+        prefetch = ["children"]
+        if self.action == "retrieve":
+            prefetch += ["users", "api_keys", "audit_logs__actor"]
         return (
-            Company.objects
-            .select_related('parent')
+            Company.objects.select_related("parent")
             .prefetch_related(*prefetch)
             .annotate(
-                users_count=Count('users', distinct=True),
-                api_keys_count=Count('api_keys', distinct=True),
-                children_count=Count('children', distinct=True),
+                users_count=Count("users", distinct=True),
+                api_keys_count=Count("api_keys", distinct=True),
+                children_count=Count("children", distinct=True),
                 last_activity=Subquery(last_activity),
             )
-            .order_by('-created_at')
+            .order_by("-created_at")
         )
 
-    @action(detail=False, methods=['post'], url_path='provision-developer')
+    @action(detail=False, methods=["post"], url_path="provision-developer")
     def provision_developer(self, request):
         """Provision a new developer company and return its credentials.
 
@@ -229,18 +234,17 @@ class PlatformCompanyViewSet(viewsets.ReadOnlyModelViewSet):
         data = serializer.validated_data
 
         company, admin_user, _api_key, api_key_value = provision_developer_company(
-            name=data['name'],
-            vat=data.get('vat') or None,
-            admin_email=data.get('admin_email') or None,
-            admin_password=data.get('admin_password') or None,
+            name=data["name"],
+            vat=data.get("vat") or None,
+            admin_email=data.get("admin_email") or None,
+            admin_password=data.get("admin_password") or None,
         )
 
         body = self.get_serializer(self._annotated(company.pk)).data
-        body['license_code'] = company.license_code
-        body['api_key'] = api_key_value
-        body['admin'] = (
-            {'id': str(admin_user.id), 'email': admin_user.email}
-            if admin_user else None
+        body["license_code"] = company.license_code
+        body["api_key"] = api_key_value
+        body["admin"] = (
+            {"id": str(admin_user.id), "email": admin_user.email} if admin_user else None
         )
         record_audit(
             request.user,
@@ -250,7 +254,7 @@ class PlatformCompanyViewSet(viewsets.ReadOnlyModelViewSet):
         )
         return Response(body, status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=['post'], url_path='set-tier')
+    @action(detail=True, methods=["post"], url_path="set-tier")
     def set_tier(self, request, pk=None):
         """Promote/demote a company between manager and developer tiers.
 
@@ -262,7 +266,7 @@ class PlatformCompanyViewSet(viewsets.ReadOnlyModelViewSet):
         serializer.is_valid(raise_exception=True)
 
         old_tier = company.account_type
-        new_tier = serializer.validated_data['account_type']
+        new_tier = serializer.validated_data["account_type"]
         company.account_type = new_tier
         # When demoting to manager, a manager may not own children; severing
         # the parent link first would silently orphan tenants, so refuse loudly.
@@ -276,33 +280,29 @@ class PlatformCompanyViewSet(viewsets.ReadOnlyModelViewSet):
             request.user,
             AuditLog.Action.TIER_CHANGED,
             target_company=company,
-            **{'from': old_tier, 'to': new_tier},
+            **{"from": old_tier, "to": new_tier},
         )
         return Response(self.get_serializer(self._annotated(company.pk)).data)
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=["post"])
     def suspend(self, request, pk=None):
         """Suspend a company (blocks its users from login/API)."""
         company = self.get_object()
         response = self._set_active(company, False)
-        record_audit(
-            request.user, AuditLog.Action.COMPANY_SUSPENDED, target_company=company
-        )
+        record_audit(request.user, AuditLog.Action.COMPANY_SUSPENDED, target_company=company)
         return response
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=["post"])
     def reactivate(self, request, pk=None):
         """Lift a company's suspension."""
         company = self.get_object()
         response = self._set_active(company, True)
-        record_audit(
-            request.user, AuditLog.Action.COMPANY_REACTIVATED, target_company=company
-        )
+        record_audit(request.user, AuditLog.Action.COMPANY_REACTIVATED, target_company=company)
         return response
 
     def _set_active(self, company, is_active):
         company.is_active = is_active
-        company.save(update_fields=['is_active'])
+        company.save(update_fields=["is_active"])
         return Response(self.get_serializer(self._annotated(company.pk)).data)
 
     def _annotated(self, pk):
@@ -323,18 +323,22 @@ class AuditLogSerializer(serializers.ModelSerializer):
     only through :func:`core.audit.record_audit`, never the API.
     """
 
-    actor_username = serializers.CharField(
-        source='actor.username', read_only=True, allow_null=True
-    )
+    actor_username = serializers.CharField(source="actor.username", read_only=True, allow_null=True)
     target_company_name = serializers.CharField(
-        source='target_company.name', read_only=True, allow_null=True
+        source="target_company.name", read_only=True, allow_null=True
     )
 
     class Meta:
         model = AuditLog
         fields = [
-            'id', 'action', 'actor', 'actor_username',
-            'target_company', 'target_company_name', 'metadata', 'created_at',
+            "id",
+            "action",
+            "actor",
+            "actor_username",
+            "target_company",
+            "target_company_name",
+            "metadata",
+            "created_at",
         ]
         read_only_fields = fields
 
@@ -342,11 +346,11 @@ class AuditLogSerializer(serializers.ModelSerializer):
 class AuditLogFilter(df_filters.FilterSet):
     """Exact-match filters plus a ``?since=`` lower bound on ``created_at``."""
 
-    since = df_filters.IsoDateTimeFilter(field_name='created_at', lookup_expr='gte')
+    since = df_filters.IsoDateTimeFilter(field_name="created_at", lookup_expr="gte")
 
     class Meta:
         model = AuditLog
-        fields = ['action', 'target_company', 'actor']
+        fields = ["action", "target_company", "actor"]
 
 
 class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
@@ -361,12 +365,8 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
 
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_class = AuditLogFilter
-    ordering_fields = ['created_at']
-    ordering = ['-created_at']
+    ordering_fields = ["created_at"]
+    ordering = ["-created_at"]
 
     def get_queryset(self):
-        return (
-            AuditLog.objects
-            .select_related('actor', 'target_company')
-            .order_by('-created_at')
-        )
+        return AuditLog.objects.select_related("actor", "target_company").order_by("-created_at")

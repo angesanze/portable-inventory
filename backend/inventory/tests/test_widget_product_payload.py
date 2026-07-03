@@ -16,8 +16,17 @@ from inventory.services.widget_product import WidgetProductService
 
 
 REQUIRED_KEYS = {
-    "id", "sku", "name", "profile", "engine_type", "tracking_mode",
-    "quantity", "stock_display", "calc_config", "components", "unit",
+    "id",
+    "sku",
+    "name",
+    "profile",
+    "engine_type",
+    "tracking_mode",
+    "quantity",
+    "stock_display",
+    "calc_config",
+    "components",
+    "unit",
 }
 
 # Fields that must match exactly between list and detail payloads.
@@ -57,15 +66,18 @@ def _get_list_item(company, product_id):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("profile", [
-    "SIMPLE_COUNT",
-    "UNIT_CONVERSION",
-    "DIMENSIONAL",
-    "BATCH_TRACKED",
-    "PERISHABLE",
-    "SERIALIZED",
-    "ASSEMBLED",
-])
+@pytest.mark.parametrize(
+    "profile",
+    [
+        "SIMPLE_COUNT",
+        "UNIT_CONVERSION",
+        "DIMENSIONAL",
+        "BATCH_TRACKED",
+        "PERISHABLE",
+        "SERIALIZED",
+        "ASSEMBLED",
+    ],
+)
 def test_list_and_detail_share_required_shape(company, profile):
     """Each profile's list-item dict and detail dict must satisfy the
     canonical required keys and agree on parity fields."""
@@ -98,8 +110,7 @@ def test_list_and_detail_share_required_shape(company, profile):
     # Parity fields must agree exactly
     for field in PARITY_FIELDS:
         assert list_item[field] == detail[field], (
-            f"{profile} mismatch on {field}: list={list_item[field]!r} "
-            f"detail={detail[field]!r}"
+            f"{profile} mismatch on {field}: list={list_item[field]!r} detail={detail[field]!r}"
         )
 
     # status_transitions must agree across endpoints

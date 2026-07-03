@@ -103,45 +103,57 @@ export function buildTransactionPayload(
     return payload;
 }
 
-/** Raw inputs for the `/widget/move/` nested calculator envelope. */
+/** Raw inputs for building a `/widget/move/` body. */
 export interface MoveInputs {
     qty: number;
+    /** Batch/lot custom fields (BATCH_TRACKED) or dimension values (DIMENSIONAL),
+     *  collected as strings straight from the form. */
     batchData: Record<string, string>;
     batchIdentifier?: string;
     selectedBatchId?: string;
     expiryDate?: string;
     batchRef?: string;
-    /** Whether the product carries a calc_config — legacy counters without one
-     *  send no calculator envelope at all (only the outer move quantity). */
-    hasCalcConfig?: boolean;
 }
 
-/** Nested `calculator_payload` posted inside the `/widget/move/` body. */
-export interface MoveCalculatorPayload {
+/** Numeric/dimension calculation envelope. Backend key on the move body: `calc_payload`. */
+export interface MoveCalcEnvelope {
     operation: WidgetOperation;
     quantity?: number | string;
     dimension_values?: Record<string, number>;
-    expiry_date?: string;
-    batch_ref?: string;
-    batch_data?: Record<string, string>;
-    batch_id?: string;
+}
+
+/** Batch metadata for a move ADD. The backend reads this TOP-LEVEL as `batch_data`,
+ *  shaped `{ batch_identifier, data }` (see test_bucket_flow.py / BatchBehavior). */
+export interface MoveBatchData {
+    batch_identifier: string;
+    data: Record<string, string>;
 }
 
 /**
- * Build the nested `calculator_payload` for the `/widget/move/` endpoint from a
- * product profile + form inputs. Distinct envelope from the flat
- * {@link buildTransactionPayload}, but kept here so the per-profile field rules
- * for the two widget paths live in one module and can't drift (MOD-03).
+ * Pieces to merge into a `/widget/move/` body at the EXACT positions the backend
+ * orchestrator (`handle_widget_movement`) reads them:
+ *   - `calc_payload` → numeric/dimension engines (`calculate_delta`);
+ *   - `batch_data`   → TOP-LEVEL, batch/perishable ADD;
+ *   - `batch_id`     → TOP-LEVEL, batch/perishable SUBTRACT.
  *
- * Returns `null` when no envelope should be sent — i.e. serialized/tracker
- * products (the caller carries a ±1 on the outer payload) and legacy counters
- * without a calc_config.
+ * Replaces the historical bug where the whole envelope was posted under
+ * `calculator_payload` — a key the backend never reads — with `batch_id`/`batch_data`
+ * nested inside it. The backend then silently fell back to the raw outer quantity,
+ * corrupting converter/dimension amounts and dropping expiry/lot data. Keeping the
+ * per-profile field rules in this one function stops the move and scanner callers
+ * from drifting again (MOD-03).
  */
-export function buildMoveCalculatorPayload(
+export interface MovePayloadParts {
+    calc_payload?: MoveCalcEnvelope;
+    batch_data?: MoveBatchData;
+    batch_id?: string;
+}
+
+export function buildMovePayloadParts(
     profile: InventoryProfile | undefined,
     operation: WidgetOperation,
     inputs: MoveInputs,
-): MoveCalculatorPayload | null {
+): MovePayloadParts {
     const meta = profile ? PROFILE_METADATA[profile] : null;
 
     if (profile === 'DIMENSIONAL') {
@@ -150,30 +162,76 @@ export function buildMoveCalculatorPayload(
             const num = parseFloat(v);
             if (!isNaN(num)) dimension_values[k] = num;
         }
-        return { operation, dimension_values };
+        return { calc_payload: { operation, dimension_values } };
     }
     if (profile === 'PERISHABLE') {
-        return {
-            operation,
-            quantity: inputs.qty,
-            expiry_date: inputs.expiryDate || undefined,
-            batch_ref: inputs.batchRef || undefined,
-        };
+        if (operation === 'add') {
+            return {
+                batch_data: {
+                    batch_identifier: inputs.batchRef ?? '',
+                    data: inputs.expiryDate ? { expiry_date: inputs.expiryDate } : {},
+                },
+            };
+        }
+        return inputs.selectedBatchId ? { batch_id: inputs.selectedBatchId } : {};
     }
     if (meta?.supportsSerials) {
-        // tracker: ±1 on the outer payload, no calculator envelope.
-        return null;
+        // tracker: the caller sends ±1 + physical_identifier; no envelope.
+        return {};
     }
     if (meta?.supportsBatches) {
         if (operation === 'add') {
             return {
-                operation,
-                quantity: inputs.qty,
-                batch_data: { batch_identifier: inputs.batchIdentifier ?? '', ...inputs.batchData },
+                batch_data: {
+                    batch_identifier: inputs.batchIdentifier ?? '',
+                    data: { ...inputs.batchData },
+                },
             };
         }
-        return { operation, quantity: inputs.qty, batch_id: inputs.selectedBatchId };
+        return inputs.selectedBatchId ? { batch_id: inputs.selectedBatchId } : {};
     }
-    // counter / converter: only emit an envelope when a calc_config exists.
-    return inputs.hasCalcConfig ? { operation, quantity: inputs.qty } : null;
+    // counter / converter: numeric envelope so the converter ratio is applied
+    // backend-side (calculate_delta). Harmless for a plain counter.
+    return { calc_payload: { operation, quantity: inputs.qty } };
+}
+
+/** Input for a `batch_update_item` operation (WorkOrder composition). */
+export interface BatchUpdateItemInput {
+    productModelId?: string;
+    delta: number;
+    physicalIdentifier?: string | null;
+    physicalProductId?: string | null;
+    batchId?: string | null;
+}
+
+/** Body posted to `/widget/{workOrderId}/transaction/` for batch composition.
+ *  The index signature lets it flow into the `Record<string, unknown>` JSON-body
+ *  slots (Refine `values`, the widget `finalPayload`) while keeping the known
+ *  keys typed. */
+export interface BatchUpdateItemPayload {
+    operation: 'batch_update_item';
+    product_model_id?: string;
+    delta: number;
+    physical_identifier?: string;
+    physical_product_id?: string;
+    batch_id?: string;
+    [key: string]: unknown;
+}
+
+/**
+ * Build the `batch_update_item` body. Single source of truth for the four call
+ * sites (widget move, PolymorphicWidget, work-order show add/remove) so their
+ * optional fields — `physical_identifier` / `physical_product_id` / `batch_id` —
+ * can't drift apart (MOD-06). Falsy optionals are omitted.
+ */
+export function buildBatchUpdatePayload(input: BatchUpdateItemInput): BatchUpdateItemPayload {
+    const payload: BatchUpdateItemPayload = {
+        operation: 'batch_update_item',
+        product_model_id: input.productModelId,
+        delta: input.delta,
+    };
+    if (input.physicalIdentifier) payload.physical_identifier = input.physicalIdentifier;
+    if (input.physicalProductId) payload.physical_product_id = input.physicalProductId;
+    if (input.batchId) payload.batch_id = input.batchId;
+    return payload;
 }

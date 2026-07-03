@@ -14,8 +14,9 @@ Note: Django's test framework sets DEBUG=False before URLs are imported, so
 the seed-e2e URL is never registered in test runs. View-level tests use
 RequestFactory to bypass URL routing and test the view directly.
 """
+
 import json
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from django.test import TestCase, override_settings, RequestFactory
 from rest_framework.test import APIClient
@@ -42,26 +43,26 @@ class SeedE2EDebugTrueTest(TestCase):
         """POST should run seed command and return 200."""
         from inventory.e2e_views import SeedE2EView
 
-        request = self.factory.post('/api/v1/seed-e2e/')
-        with patch('inventory.e2e_views.call_command') as mock_cmd:
+        request = self.factory.post("/api/v1/seed-e2e/")
+        with patch("inventory.e2e_views.call_command") as mock_cmd:
             response = SeedE2EView.as_view()(request)
         self.assertEqual(response.status_code, 200)
         data = _parse_json(response)
-        self.assertTrue(data['success'])
-        self.assertEqual(data['message'], 'E2E seed completed')
-        self.assertIn('output', data)
-        mock_cmd.assert_called_once_with('seed_e2e', stdout=mock_cmd.call_args[1]['stdout'])
+        self.assertTrue(data["success"])
+        self.assertEqual(data["message"], "E2E seed completed")
+        self.assertIn("output", data)
+        mock_cmd.assert_called_once_with("seed_e2e", stdout=mock_cmd.call_args[1]["stdout"])
 
     @override_settings(DEBUG=True)
     def test_get_returns_helper_message(self):
         """GET should return usage hint."""
         from inventory.e2e_views import SeedE2EView
 
-        request = self.factory.get('/api/v1/seed-e2e/')
+        request = self.factory.get("/api/v1/seed-e2e/")
         response = SeedE2EView.as_view()(request)
         self.assertEqual(response.status_code, 200)
         data = _parse_json(response)
-        self.assertEqual(data['message'], 'Use POST to seed E2E data')
+        self.assertEqual(data["message"], "Use POST to seed E2E data")
 
     @override_settings(DEBUG=True)
     def test_post_returns_seed_output(self):
@@ -70,29 +71,29 @@ class SeedE2EDebugTrueTest(TestCase):
 
         def fake_seed(cmd, stdout=None):
             if stdout:
-                stdout.write('Seeding complete.')
+                stdout.write("Seeding complete.")
 
-        request = self.factory.post('/api/v1/seed-e2e/')
-        with patch('inventory.e2e_views.call_command', side_effect=fake_seed):
+        request = self.factory.post("/api/v1/seed-e2e/")
+        with patch("inventory.e2e_views.call_command", side_effect=fake_seed):
             response = SeedE2EView.as_view()(request)
         data = _parse_json(response)
-        self.assertEqual(data['output'], 'Seeding complete.')
+        self.assertEqual(data["output"], "Seeding complete.")
 
     @override_settings(DEBUG=True)
     def test_post_handles_seed_failure(self):
         """POST returns 500 if seed command raises an exception."""
         from inventory.e2e_views import SeedE2EView
 
-        request = self.factory.post('/api/v1/seed-e2e/')
+        request = self.factory.post("/api/v1/seed-e2e/")
         with patch(
-            'inventory.e2e_views.call_command',
-            side_effect=Exception('seed exploded'),
+            "inventory.e2e_views.call_command",
+            side_effect=Exception("seed exploded"),
         ):
             response = SeedE2EView.as_view()(request)
         self.assertEqual(response.status_code, 500)
         data = _parse_json(response)
-        self.assertFalse(data['success'])
-        self.assertIn('seed exploded', data['error'])
+        self.assertFalse(data["success"])
+        self.assertIn("seed exploded", data["error"])
 
 
 class SeedE2EViewLevelGuardTest(TestCase):
@@ -111,11 +112,11 @@ class SeedE2EViewLevelGuardTest(TestCase):
         """POST should return 403 with error message when DEBUG=False."""
         from inventory.e2e_views import SeedE2EView
 
-        request = self.factory.post('/api/v1/seed-e2e/')
+        request = self.factory.post("/api/v1/seed-e2e/")
         response = SeedE2EView.as_view()(request)
         self.assertEqual(response.status_code, 403)
         data = _parse_json(response)
-        self.assertEqual(data['error'], 'Not available in production')
+        self.assertEqual(data["error"], "Not available in production")
 
     @override_settings(DEBUG=False)
     def test_get_has_no_debug_guard(self):
@@ -126,7 +127,7 @@ class SeedE2EViewLevelGuardTest(TestCase):
         """
         from inventory.e2e_views import SeedE2EView
 
-        request = self.factory.get('/api/v1/seed-e2e/')
+        request = self.factory.get("/api/v1/seed-e2e/")
         response = SeedE2EView.as_view()(request)
         self.assertEqual(response.status_code, 200)
 
@@ -144,7 +145,7 @@ class SeedE2EURLRegistrationTest(TestCase):
 
     def test_endpoint_not_routable_in_test_env(self):
         """Path returns 404 because URL was not registered (DEBUG=False at import)."""
-        response = self.client.post('/api/v1/seed-e2e/')
+        response = self.client.post("/api/v1/seed-e2e/")
         self.assertEqual(response.status_code, 404)
 
     def test_url_conditional_on_debug_setting(self):
@@ -153,5 +154,5 @@ class SeedE2EURLRegistrationTest(TestCase):
         from inventory import urls as inv_urls
 
         source = inspect.getsource(inv_urls)
-        self.assertIn('if settings.DEBUG:', source)
+        self.assertIn("if settings.DEBUG:", source)
         self.assertIn("seed-e2e", source)

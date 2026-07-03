@@ -4,6 +4,7 @@ Covers the snapshot for all three tracking modes, ADJUSTMENT booking in both
 directions (surplus and shortfall), the one-open-session-per-location rule,
 uncounted skip/zero, the APPLIED immutability, and cross-company isolation.
 """
+
 import pytest
 from decimal import Decimal
 
@@ -12,16 +13,24 @@ from rest_framework.test import APIClient
 
 from core.models import Company, User
 from inventory.models import (
-    CountLine, CountSession, Location, Movement, PhysicalProduct, ProductBatch,
+    CountSession,
+    Location,
+    Movement,
+    PhysicalProduct,
 )
 from inventory.models.stocktake import CS_STATUS_APPLIED, CS_STATUS_COUNTING
 from inventory.services import (
-    CounterpartyService, LedgerService, StockService, StocktakeService,
+    CounterpartyService,
+    LedgerService,
+    StockService,
+    StocktakeService,
 )
 from inventory.exceptions import InventoryError
 from inventory import constants
 from .helpers import (
-    make_batch_product, make_serialized_product, make_simple_product,
+    make_batch_product,
+    make_serialized_product,
+    make_simple_product,
 )
 
 
@@ -32,32 +41,53 @@ def env(db):
     warehouse = Location.objects.create(company=company, name="Warehouse", type="WAREHOUSE")
     external = Location.objects.create(company=company, name="External Vendor", type="VIRTUAL")
     return {
-        "company": company, "user": user, "warehouse": warehouse, "external": external,
+        "company": company,
+        "user": user,
+        "warehouse": warehouse,
+        "external": external,
     }
 
 
 def seed_bulk(env, product, qty, location=None):
     return LedgerService.transfer_stock(
-        product, env["external"], location or env["warehouse"], Decimal(str(qty)),
-        env["user"], "Seed",
+        product,
+        env["external"],
+        location or env["warehouse"],
+        Decimal(str(qty)),
+        env["user"],
+        "Seed",
     )
 
 
 def seed_batch(env, product, qty, identifier, location=None):
     return LedgerService.transfer_stock(
-        product, env["external"], location or env["warehouse"], Decimal(str(qty)),
-        env["user"], "Seed", batch_data={'batch_identifier': identifier},
+        product,
+        env["external"],
+        location or env["warehouse"],
+        Decimal(str(qty)),
+        env["user"],
+        "Seed",
+        batch_data={"batch_identifier": identifier},
     )
 
 
 def seed_serial(env, product, identifier, location=None):
     from inventory.orchestrators import InventoryOrchestrator
+
     pp = InventoryOrchestrator.resolve_or_create_item(
-        product, identifier, env["external"], inbound=True,
+        product,
+        identifier,
+        env["external"],
+        inbound=True,
     )
     LedgerService.transfer_stock(
-        product, env["external"], location or env["warehouse"], Decimal('1'),
-        env["user"], "Seed", physical_product=pp,
+        product,
+        env["external"],
+        location or env["warehouse"],
+        Decimal("1"),
+        env["user"],
+        "Seed",
+        physical_product=pp,
     )
     return PhysicalProduct.objects.get(product_model=product, identifier=identifier)
 
@@ -71,7 +101,7 @@ def test_snapshot_bulk(env):
     session = StocktakeService.open_session(env["warehouse"], env["user"])
     assert session.status == CS_STATUS_COUNTING
     line = session.lines.get(product_model=product)
-    assert line.expected_qty == Decimal('100')
+    assert line.expected_qty == Decimal("100")
     assert line.batch_id is None and line.physical_product_id is None
 
 
@@ -83,7 +113,8 @@ def test_snapshot_batch(env):
     lines = session.lines.filter(product_model=product)
     assert lines.count() == 2
     assert {l.batch.batch_identifier: l.expected_qty for l in lines} == {
-        "LOT-A": Decimal('40'), "LOT-B": Decimal('10'),
+        "LOT-A": Decimal("40"),
+        "LOT-B": Decimal("10"),
     }
 
 
@@ -94,7 +125,7 @@ def test_snapshot_serialized(env):
     session = StocktakeService.open_session(env["warehouse"], env["user"])
     lines = session.lines.filter(product_model=product)
     assert lines.count() == 2
-    assert all(l.expected_qty == Decimal('1') and l.physical_product_id for l in lines)
+    assert all(l.expected_qty == Decimal("1") and l.physical_product_id for l in lines)
 
 
 # ── Apply: ADJUSTMENT in both directions ────────────────────────────
@@ -111,12 +142,12 @@ def test_apply_bulk_shortfall(env):
     adjustment = CounterpartyService.resolve(env["company"], constants.COUNTERPARTY_ADJUSTMENT)
     result = StocktakeService.apply(session, env["user"])
 
-    assert result['adjustments'] == 1
-    m = Movement.objects.get(id=result['movement_ids'][0])
-    assert m.quantity == Decimal('3')
+    assert result["adjustments"] == 1
+    m = Movement.objects.get(id=result["movement_ids"][0])
+    assert m.quantity == Decimal("3")
     assert m.from_location_id == env["warehouse"].id
     assert m.to_location_id == adjustment.id
-    assert StockService.get_stock_for_location(product, env["warehouse"]) == Decimal('97')
+    assert StockService.get_stock_for_location(product, env["warehouse"]) == Decimal("97")
     session.refresh_from_db()
     assert session.status == CS_STATUS_APPLIED
 
@@ -132,11 +163,11 @@ def test_apply_bulk_surplus(env):
     adjustment = CounterpartyService.resolve(env["company"], constants.COUNTERPARTY_ADJUSTMENT)
     result = StocktakeService.apply(session, env["user"])
 
-    m = Movement.objects.get(id=result['movement_ids'][0])
-    assert m.quantity == Decimal('5')
+    m = Movement.objects.get(id=result["movement_ids"][0])
+    assert m.quantity == Decimal("5")
     assert m.from_location_id == adjustment.id
     assert m.to_location_id == env["warehouse"].id
-    assert StockService.get_stock_for_location(product, env["warehouse"]) == Decimal('55')
+    assert StockService.get_stock_for_location(product, env["warehouse"]) == Decimal("55")
 
 
 def test_apply_batch_shortfall(env):
@@ -146,7 +177,7 @@ def test_apply_batch_shortfall(env):
     line = session.lines.get(product_model=product)
     StocktakeService.record_count(line, 30, env["user"])
     StocktakeService.apply(session, env["user"])
-    assert StockService.get_stock_for_location(product, env["warehouse"]) == Decimal('30')
+    assert StockService.get_stock_for_location(product, env["warehouse"]) == Decimal("30")
 
 
 def test_apply_serialized_missing(env):
@@ -159,12 +190,12 @@ def test_apply_serialized_missing(env):
 
     adjustment = CounterpartyService.resolve(env["company"], constants.COUNTERPARTY_ADJUSTMENT)
     result = StocktakeService.apply(session, env["user"])
-    assert result['adjustments'] == 1
-    m = Movement.objects.get(id=result['movement_ids'][0])
+    assert result["adjustments"] == 1
+    m = Movement.objects.get(id=result["movement_ids"][0])
     assert m.physical_product_id == pp.id
     assert m.from_location_id == env["warehouse"].id
     assert m.to_location_id == adjustment.id
-    assert StockService.get_stock_for_location(product, env["warehouse"]) == Decimal('0')
+    assert StockService.get_stock_for_location(product, env["warehouse"]) == Decimal("0")
 
 
 def test_no_variance_no_movement(env):
@@ -174,7 +205,7 @@ def test_no_variance_no_movement(env):
     line = session.lines.get(product_model=product)
     StocktakeService.record_count(line, 20, env["user"])
     result = StocktakeService.apply(session, env["user"])
-    assert result['adjustments'] == 0
+    assert result["adjustments"] == 0
 
 
 # ── One open session per location ───────────────────────────────────
@@ -191,7 +222,9 @@ def test_double_session_same_location_forbidden(env):
 def test_clean_blocks_second_active_session(env):
     StocktakeService.open_session(env["warehouse"], env["user"])
     dup = CountSession(
-        company=env["company"], location=env["warehouse"], status=CS_STATUS_COUNTING,
+        company=env["company"],
+        location=env["warehouse"],
+        status=CS_STATUS_COUNTING,
     )
     with pytest.raises(DjangoValidationError):
         dup.clean()
@@ -217,18 +250,18 @@ def test_uncounted_skip_leaves_stock(env):
     seed_bulk(env, product, 30)
     session = StocktakeService.open_session(env["warehouse"], env["user"])
     # Do not count anything.
-    result = StocktakeService.apply(session, env["user"], uncounted='skip')
-    assert result['adjustments'] == 0
-    assert StockService.get_stock_for_location(product, env["warehouse"]) == Decimal('30')
+    result = StocktakeService.apply(session, env["user"], uncounted="skip")
+    assert result["adjustments"] == 0
+    assert StockService.get_stock_for_location(product, env["warehouse"]) == Decimal("30")
 
 
 def test_uncounted_zero_writes_off(env):
     product = make_simple_product(env["company"])
     seed_bulk(env, product, 30)
     session = StocktakeService.open_session(env["warehouse"], env["user"])
-    result = StocktakeService.apply(session, env["user"], uncounted='zero')
-    assert result['adjustments'] == 1
-    assert StockService.get_stock_for_location(product, env["warehouse"]) == Decimal('0')
+    result = StocktakeService.apply(session, env["user"], uncounted="zero")
+    assert result["adjustments"] == 1
+    assert StockService.get_stock_for_location(product, env["warehouse"]) == Decimal("0")
 
 
 # ── APPLIED immutability ────────────────────────────────────────────
@@ -265,11 +298,11 @@ def test_variance_report_flags_movements_after_snapshot(env):
     seed_bulk(env, product, 50)
     session = StocktakeService.open_session(env["warehouse"], env["user"])
     report = StocktakeService.variance_report(session)
-    assert report['movements_after_snapshot'] is False
+    assert report["movements_after_snapshot"] is False
     # A non-stocktake movement after the snapshot trips the warning.
     seed_bulk(env, product, 5)
     report = StocktakeService.variance_report(session)
-    assert report['movements_after_snapshot'] is True
+    assert report["movements_after_snapshot"] is True
 
 
 def test_variance_report_lists_uncounted_and_variances(env):
@@ -281,10 +314,10 @@ def test_variance_report_lists_uncounted_and_variances(env):
     l1 = session.lines.get(product_model=p1)
     StocktakeService.record_count(l1, 97, env["user"])
     report = StocktakeService.variance_report(session)
-    assert len(report['variances']) == 1
-    assert report['variances'][0]['variance'] == Decimal('-3')
-    assert len(report['uncounted']) == 1
-    assert report['uncounted'][0]['product_id'] == str(p2.id)
+    assert len(report["variances"]) == 1
+    assert report["variances"][0]["variance"] == Decimal("-3")
+    assert len(report["uncounted"]) == 1
+    assert report["uncounted"][0]["product_id"] == str(p2.id)
 
 
 # ── APPLIED report stays consultable ────────────────────────────────
@@ -299,8 +332,8 @@ def test_applied_report_consultable(env):
     StocktakeService.apply(session, env["user"])
     session.refresh_from_db()
     report = StocktakeService.variance_report(session)
-    assert report['status'] == CS_STATUS_APPLIED
-    assert len(report['variances']) == 1
+    assert report["status"] == CS_STATUS_APPLIED
+    assert len(report["variances"]) == 1
 
 
 # ── Cross-company isolation (API) ───────────────────────────────────
@@ -325,6 +358,8 @@ def test_cannot_open_session_on_foreign_location(env):
     client = APIClient()
     client.force_authenticate(user=other_user)
     resp = client.post(
-        "/api/v1/count-sessions/", {"location_id": str(env["warehouse"].id)}, format="json",
+        "/api/v1/count-sessions/",
+        {"location_id": str(env["warehouse"].id)},
+        format="json",
     )
     assert resp.status_code == 400

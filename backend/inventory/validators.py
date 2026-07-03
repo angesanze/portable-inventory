@@ -1,6 +1,5 @@
 from decimal import Decimal
 from django.core.exceptions import ValidationError
-from .models import Location
 from .services import StockService
 from .exceptions import InsufficientStockError
 
@@ -41,6 +40,7 @@ def validate_gtin(code: str) -> bool:
     expected = (10 - (total % 10)) % 10
     return expected == check
 
+
 class StockMovementValidator:
     @staticmethod
     def validate_bulk_transfer(product, from_location, quantity, reservation=None):
@@ -50,7 +50,7 @@ class StockMovementValidator:
         reservation gets that reservation's quantity back.
         """
         # Virtual locations (Suppliers/Loss) have infinite stock
-        if from_location.type == 'VIRTUAL':
+        if from_location.type == "VIRTUAL":
             return
 
         from .services.reservations import ReservationService
@@ -58,8 +58,11 @@ class StockMovementValidator:
         physical = StockService.get_stock_for_location(product, from_location)
         reserved = ReservationService.active_reserved_qty(product, from_location)
         available = physical - reserved
-        if reservation is not None and reservation.status == 'ACTIVE' \
-                and reservation.product_model_id == product.pk:
+        if (
+            reservation is not None
+            and reservation.status == "ACTIVE"
+            and reservation.product_model_id == product.pk
+        ):
             available += reservation.quantity
 
         if available < quantity:
@@ -71,30 +74,71 @@ class StockMovementValidator:
             )
 
     @staticmethod
-    def validate_bucket_transfer(from_location, to_location, batch_id, batch_data):
-        if from_location.type != 'VIRTUAL':
+    def validate_bucket_transfer(
+        from_location,
+        to_location,
+        batch_id,
+        batch_data,
+        product=None,
+        quantity=None,
+        reservation=None,
+    ):
+        if from_location.type != "VIRTUAL":
             if not batch_id:
                 raise ValidationError("Batch ID is required for consuming Bucket products.")
 
-        if to_location.type != 'VIRTUAL':
+            # Protect reserved stock at the product/location level. A sales
+            # reservation on a BATCH product is booked batchless (no batch FK), so
+            # BatchBehavior's per-batch reserved check can't see it and the
+            # withdrawal would consume promised stock (COR-13). Mirror the BULK
+            # rule: available = total batch stock − active reservations, with the
+            # fulfilling reservation added back so a ship can spend its own hold.
+            # Only engages when reservations exist — plain over-withdrawal is left
+            # to BatchBehavior's per-batch check (which names the specific lot).
+            if product is not None and quantity is not None:
+                from .services.reservations import ReservationService
+
+                reserved = ReservationService.active_reserved_qty(product, from_location)
+                if reserved > 0:
+                    physical = StockService.get_stock_for_location(product, from_location)
+                    available = physical - reserved
+                    if (
+                        reservation is not None
+                        and reservation.status == "ACTIVE"
+                        and reservation.product_model_id == product.pk
+                    ):
+                        available += reservation.quantity
+                    if available < quantity:
+                        raise InsufficientStockError(
+                            detail=f"Insufficient available stock at {from_location.name} (reserved: {reserved}).",
+                            current_stock=available,
+                            requested=quantity,
+                            location=from_location.name,
+                        )
+
+        if to_location.type != "VIRTUAL":
             # Inbound from VIRTUAL (external/supplier) with no batch info is
             # allowed — BatchBehavior.execute synthesizes an identifier so a
             # brand-new BATCH/PERISHABLE product can receive its first stock
             # without the user pre-creating a batch (PRESET-LOGIC-07).
-            if from_location.type == 'VIRTUAL':
+            if from_location.type == "VIRTUAL":
                 return
             if not batch_id and not batch_data:
-                 raise ValidationError("Missing batch_data or batch_id for incoming Bucket product.")
+                raise ValidationError("Missing batch_data or batch_id for incoming Bucket product.")
 
     @staticmethod
     def validate_individual_transfer(physical_product, from_location, quantity):
         if not physical_product:
-             raise ValidationError("Serialized (Individual) movements require a specific Physical Product.")
-        
-        if quantity != Decimal('1'):
-             raise ValidationError(f"Serialized items must be moved one at a time. Got {quantity}")
+            raise ValidationError(
+                "Serialized (Individual) movements require a specific Physical Product."
+            )
 
-        if from_location.type != 'VIRTUAL':
+        if quantity != Decimal("1"):
+            raise ValidationError(f"Serialized items must be moved one at a time. Got {quantity}")
+
+        if from_location.type != "VIRTUAL":
             if physical_product.location != from_location:
-                current = physical_product.location.name if physical_product.location else 'Unknown'
-                raise ValidationError(f"Asset '{physical_product.identifier}' is not at '{from_location.name}' (Currently at: '{current}').")
+                current = physical_product.location.name if physical_product.location else "Unknown"
+                raise ValidationError(
+                    f"Asset '{physical_product.identifier}' is not at '{from_location.name}' (Currently at: '{current}')."
+                )

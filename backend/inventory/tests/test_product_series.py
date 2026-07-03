@@ -1,4 +1,5 @@
 """ProductSeriesView + RestockService.product_series tests."""
+
 from datetime import timedelta
 from decimal import Decimal
 
@@ -148,9 +149,7 @@ class ProductSeriesServiceTests(TestCase):
             )
         payload = RestockService.product_series(prod, days=30)
         # burn 1/day * 30 = 30
-        self.assertAlmostEqual(
-            payload["projection"]["suggested_reorder_qty"], 30.0, places=0
-        )
+        self.assertAlmostEqual(payload["projection"]["suggested_reorder_qty"], 30.0, places=0)
 
 
 class ProductSeriesEndpointTests(TestCase):
@@ -158,12 +157,18 @@ class ProductSeriesEndpointTests(TestCase):
         self.company_a, self.user_a, _ = make_company_full("PSA")
         self.company_b, self.user_b, _ = make_company_full("PSB")
         self.prod_a = ProductModel.objects.create(
-            company=self.company_a, sku="MINE", name="Mine",
-            profile="SIMPLE_COUNT", reorder_threshold=Decimal("5"),
+            company=self.company_a,
+            sku="MINE",
+            name="Mine",
+            profile="SIMPLE_COUNT",
+            reorder_threshold=Decimal("5"),
         )
         self.prod_b = ProductModel.objects.create(
-            company=self.company_b, sku="OTHER", name="Other",
-            profile="SIMPLE_COUNT", reorder_threshold=Decimal("5"),
+            company=self.company_b,
+            sku="OTHER",
+            name="Other",
+            profile="SIMPLE_COUNT",
+            reorder_threshold=Decimal("5"),
         )
 
     def test_endpoint_returns_series(self):

@@ -9,12 +9,15 @@ interface InfoTipProps {
     content: string | React.ReactNode;
     title?: string;
     position?: InfoTipPosition;
+    /** Overrides the default "More info" trigger aria-label (e.g. "More info: Setup"). */
+    ariaLabel?: string;
 }
 
 export const InfoTip: React.FC<InfoTipProps> = ({
     content,
     title,
     position = "top",
+    ariaLabel,
 }) => {
     const { t } = useTranslation("common");
     const [open, setOpen] = useState(false);
@@ -109,7 +112,7 @@ export const InfoTip: React.FC<InfoTipProps> = ({
                 type="button"
                 onClick={handleToggle}
                 className="inline-flex items-center justify-center text-zinc-500 hover:text-zinc-300 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30 rounded-full"
-                aria-label={t("moreInfo")}
+                aria-label={ariaLabel ?? t("moreInfo")}
                 aria-expanded={open}
             >
                 <CircleHelp size={14} />

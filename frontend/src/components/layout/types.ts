@@ -26,6 +26,12 @@ export interface NavItem {
 export interface NavGroup {
     labelKey: string;
     items: NavItem[];
+    /**
+     * When true, the group renders collapsed on first load. A stored per-group
+     * preference (see {@link SidebarContentProps.expandedGroups}) or the group
+     * owning the active route overrides this. Absent = expanded by default.
+     */
+    collapsedByDefault?: boolean;
 }
 
 export const SETTINGS_GROUP_KEY = "settings";
@@ -60,6 +66,12 @@ export interface SidebarContentProps {
     onToggleCollapsed: () => void;
     showCollapseToggle: boolean;
     onOpenCommandPalette: () => void;
-    settingsExpanded: boolean;
-    onToggleSettingsExpanded: () => void;
+    /**
+     * Per-group expanded state keyed by `labelKey`. A missing entry falls back
+     * to the group's {@link NavGroup.collapsedByDefault}; the group owning the
+     * active route is always shown expanded.
+     */
+    expandedGroups: Record<string, boolean>;
+    /** Toggle a nav group's expanded/collapsed state (persisted). */
+    onToggleGroup: (labelKey: string) => void;
 }

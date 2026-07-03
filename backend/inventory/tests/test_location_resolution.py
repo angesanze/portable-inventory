@@ -15,7 +15,7 @@ def company(db):
     code = uuid.uuid4().hex[:6].upper()
     comp = Company.objects.create(name="TestCo", license_code=code)
     # Remove auto-seeded physical locations so tests control location state
-    Location.objects.filter(company=comp, type__in=['WAREHOUSE', 'PHYSICAL', 'STORE']).delete()
+    Location.objects.filter(company=comp, type__in=["WAREHOUSE", "PHYSICAL", "STORE"]).delete()
     return comp
 
 
@@ -40,14 +40,16 @@ class TestLocationResolution:
         wh1 = Location.objects.create(name="WH1", type="WAREHOUSE", company=company)
         wh2 = Location.objects.create(name="WH2", type="WAREHOUSE", company=company)
 
-        with patch('inventory.services.widget_transaction.LedgerService.transfer_stock') as mock_ts:
+        with patch("inventory.services.widget_transaction.LedgerService.transfer_stock") as mock_ts:
             WidgetTransactionService.process_transaction(
-                company, "test-key", str(product.id),
-                {"operation": "add", "quantity": 1, "location_id": str(wh2.id)}
+                company,
+                "test-key",
+                str(product.id),
+                {"operation": "add", "quantity": 1, "location_id": str(wh2.id)},
             )
             call_kwargs = mock_ts.call_args[1]
             # wh2 should be used as either source or destination
-            locations = {call_kwargs.get('from_location'), call_kwargs.get('to_location')}
+            locations = {call_kwargs.get("from_location"), call_kwargs.get("to_location")}
             assert wh2 in locations
 
     @pytest.mark.django_db
@@ -60,13 +62,12 @@ class TestLocationResolution:
         api_key.label = "test-key"
         api_key.default_location = wh2
 
-        with patch('inventory.services.widget_transaction.LedgerService.transfer_stock') as mock_ts:
+        with patch("inventory.services.widget_transaction.LedgerService.transfer_stock") as mock_ts:
             WidgetTransactionService.process_transaction(
-                company, api_key, str(product.id),
-                {"operation": "add", "quantity": 1}
+                company, api_key, str(product.id), {"operation": "add", "quantity": 1}
             )
             call_kwargs = mock_ts.call_args[1]
-            locations = {call_kwargs.get('from_location'), call_kwargs.get('to_location')}
+            locations = {call_kwargs.get("from_location"), call_kwargs.get("to_location")}
             assert wh2 in locations
 
     @pytest.mark.django_db
@@ -74,13 +75,12 @@ class TestLocationResolution:
         """Company with exactly one physical location — auto-select it."""
         wh = Location.objects.create(name="Only WH", type="WAREHOUSE", company=company)
 
-        with patch('inventory.services.widget_transaction.LedgerService.transfer_stock') as mock_ts:
+        with patch("inventory.services.widget_transaction.LedgerService.transfer_stock") as mock_ts:
             WidgetTransactionService.process_transaction(
-                company, "test-key", str(product.id),
-                {"operation": "add", "quantity": 1}
+                company, "test-key", str(product.id), {"operation": "add", "quantity": 1}
             )
             call_kwargs = mock_ts.call_args[1]
-            locations = {call_kwargs.get('from_location'), call_kwargs.get('to_location')}
+            locations = {call_kwargs.get("from_location"), call_kwargs.get("to_location")}
             assert wh in locations
 
     @pytest.mark.django_db
@@ -91,20 +91,18 @@ class TestLocationResolution:
 
         with pytest.raises(InventoryError, match="Multiple locations found"):
             WidgetTransactionService.process_transaction(
-                company, "test-key", str(product.id),
-                {"operation": "add", "quantity": 1}
+                company, "test-key", str(product.id), {"operation": "add", "quantity": 1}
             )
 
     @pytest.mark.django_db
     def test_no_locations_raises(self, company, product, external):
         """No physical locations at all = error."""
         # Remove any auto-created physical locations
-        Location.objects.filter(company=company).exclude(type='VIRTUAL').delete()
+        Location.objects.filter(company=company).exclude(type="VIRTUAL").delete()
 
         with pytest.raises(InventoryError, match="No Warehouse found"):
             WidgetTransactionService.process_transaction(
-                company, "test-key", str(product.id),
-                {"operation": "add", "quantity": 1}
+                company, "test-key", str(product.id), {"operation": "add", "quantity": 1}
             )
 
     @pytest.mark.django_db
@@ -117,13 +115,15 @@ class TestLocationResolution:
         api_key.label = "test-key"
         api_key.default_location = wh1  # default is wh1
 
-        with patch('inventory.services.widget_transaction.LedgerService.transfer_stock') as mock_ts:
+        with patch("inventory.services.widget_transaction.LedgerService.transfer_stock") as mock_ts:
             WidgetTransactionService.process_transaction(
-                company, api_key, str(product.id),
-                {"operation": "add", "quantity": 1, "location_id": str(wh2.id)}  # explicit wh2
+                company,
+                api_key,
+                str(product.id),
+                {"operation": "add", "quantity": 1, "location_id": str(wh2.id)},  # explicit wh2
             )
             call_kwargs = mock_ts.call_args[1]
-            locations = {call_kwargs.get('from_location'), call_kwargs.get('to_location')}
+            locations = {call_kwargs.get("from_location"), call_kwargs.get("to_location")}
             assert wh2 in locations
 
     @pytest.mark.django_db
@@ -131,10 +131,9 @@ class TestLocationResolution:
         """Passing a plain string as api_key still works (backward compat)."""
         Location.objects.create(name="WH", type="WAREHOUSE", company=company)
 
-        with patch('inventory.services.widget_transaction.LedgerService.transfer_stock') as mock_ts:
+        with patch("inventory.services.widget_transaction.LedgerService.transfer_stock") as mock_ts:
             WidgetTransactionService.process_transaction(
-                company, "legacy-key", str(product.id),
-                {"operation": "add", "quantity": 1}
+                company, "legacy-key", str(product.id), {"operation": "add", "quantity": 1}
             )
             call_kwargs = mock_ts.call_args[1]
-            assert "legacy-key" in call_kwargs['reason']
+            assert "legacy-key" in call_kwargs["reason"]

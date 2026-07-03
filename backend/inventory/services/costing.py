@@ -26,15 +26,16 @@ critical section around the average math.
 Decimals: 4 internal places (see ProductCost). `valued_qty` is clamped to
 >= 0 — the weighted average is undefined below zero.
 """
+
 import logging
 from decimal import Decimal
 
 from ..constants import LOCATION_TYPE_LOSS, LOCATION_TYPE_VIRTUAL
 from ..models import Movement, ProductCost
 
-logger = logging.getLogger('inventory.costing')
+logger = logging.getLogger("inventory.costing")
 
-ZERO = Decimal('0')
+ZERO = Decimal("0")
 
 
 def _is_inbound(movement: Movement) -> bool:
@@ -61,17 +62,60 @@ class CostingService:
     @staticmethod
     def _lock_state(product_model) -> ProductCost:
         """Fetch-or-create the per-product cost row under a row lock."""
-        state = (
-            ProductCost.objects.select_for_update()
-            .filter(product_model=product_model)
-            .first()
-        )
+        state = ProductCost.objects.select_for_update().filter(product_model=product_model).first()
         if state is None:
             state, _ = ProductCost.objects.get_or_create(product_model=product_model)
-            state = (
-                ProductCost.objects.select_for_update().get(pk=state.pk)
-            )
+            state = ProductCost.objects.select_for_update().get(pk=state.pk)
         return state
+
+    @staticmethod
+    def rebuild_for_product(product_model, *, dry_run: bool = False) -> bool:
+        """Replay the immutable ledger for one product to reconstruct its
+        ``ProductCost`` (avg_unit_cost / valued_qty) and re-stamp each outbound
+        movement's frozen ``cogs_unit_cost``.
+
+        Deterministic because the ledger is ordered. Single source of truth for
+        the ``rebuild_costs`` command AND for realigning after ledger surgery
+        such as a movement bulk-delete (COR-14). Returns True if stock went
+        negative during the replay (valued_qty is clamped to 0).
+        """
+        avg = ZERO
+        valued = ZERO
+        negative_seen = False
+
+        movements = (
+            Movement.objects.filter(product_model=product_model)
+            .select_related("from_location", "to_location")
+            .order_by("occurred_at", "id")
+        )
+        for mv in movements:
+            qty = Decimal(mv.quantity)
+            if _is_inbound(mv):
+                unit_cost = mv.purchased_cost
+                if unit_cost is not None:
+                    new_qty = valued + qty
+                    if new_qty > 0:
+                        avg = ((valued * avg) + (qty * Decimal(unit_cost))) / new_qty
+                    valued = new_qty
+                else:
+                    valued = valued + qty
+                if valued < 0:
+                    valued = ZERO
+            elif _is_outbound(mv):
+                if not dry_run:
+                    Movement.objects.filter(pk=mv.pk).update(cogs_unit_cost=avg)
+                valued = valued - qty
+                if valued < 0:
+                    negative_seen = True
+                    valued = ZERO
+            # else: internal transfer, no cost effect.
+
+        if not dry_run:
+            ProductCost.objects.update_or_create(
+                product_model=product_model,
+                defaults={"avg_unit_cost": avg, "valued_qty": valued},
+            )
+        return negative_seen
 
     @staticmethod
     def on_inbound(movement: Movement, *, unit_cost: Decimal = None) -> None:
@@ -104,7 +148,7 @@ class CostingService:
 
         if state.valued_qty < 0:
             state.valued_qty = ZERO
-        state.save(update_fields=['avg_unit_cost', 'valued_qty', 'updated_at'])
+        state.save(update_fields=["avg_unit_cost", "valued_qty", "updated_at"])
 
     @staticmethod
     def on_outbound(movement: Movement) -> None:
@@ -128,10 +172,11 @@ class CostingService:
         if state.valued_qty < 0:
             logger.warning(
                 "Negative valued_qty for product %s after outbound %s; clamping to 0",
-                movement.product_model_id, movement.pk,
+                movement.product_model_id,
+                movement.pk,
             )
             state.valued_qty = ZERO
-        state.save(update_fields=['valued_qty', 'updated_at'])
+        state.save(update_fields=["valued_qty", "updated_at"])
 
     @staticmethod
     def apply(movement: Movement) -> None:

@@ -6,6 +6,7 @@ migration's `backfill_engine_config` function directly against the live
 app registry — the function only uses `apps.get_model` so it works
 identically.
 """
+
 import importlib
 import uuid
 
@@ -17,7 +18,7 @@ from inventory.models import CalculatorTemplate, ProductModel
 
 # Migration module name starts with a digit, so import via importlib.
 _migration_mod = importlib.import_module(
-    'inventory.migrations.0052_backfill_engine_config_from_preset'
+    "inventory.migrations.0052_backfill_engine_config_from_preset"
 )
 backfill_engine_config = _migration_mod.backfill_engine_config
 

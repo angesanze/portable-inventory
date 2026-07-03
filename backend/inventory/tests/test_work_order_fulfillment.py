@@ -61,9 +61,7 @@ class WorkOrderFulfillmentTestBase(TestCase):
             self.company, sku="WO-SERIAL", name="Serial Model"
         )  # SERIALIZED → tracker / INDIVIDUAL
 
-        self.wo = WorkOrder.objects.create(
-            company=self.company, name="WO-FULFILL", status="OPEN"
-        )
+        self.wo = WorkOrder.objects.create(company=self.company, name="WO-FULFILL", status="OPEN")
 
         # BATCH bucket: stock lives in the ProductBatch row itself.
         self.batch = ProductBatch.objects.create(
@@ -123,16 +121,12 @@ class FulfillServiceTest(WorkOrderFulfillmentTestBase):
             0,
         )
         self.assertEqual(
-            PhysicalProduct.objects.filter(
-                work_order=self.wo, status="ACTIVE"
-            ).count(),
+            PhysicalProduct.objects.filter(work_order=self.wo, status="ACTIVE").count(),
             0,
         )
 
         # One outbound movement per item, tagged with the WO, into External.
-        outbound = Movement.objects.filter(
-            work_order=self.wo, to_location=self.external
-        )
+        outbound = Movement.objects.filter(work_order=self.wo, to_location=self.external)
         self.assertEqual(outbound.count(), 3)
 
     def test_fulfill_idempotent_on_closed(self):
@@ -176,9 +170,7 @@ class FulfillServiceTest(WorkOrderFulfillmentTestBase):
             movements_after_first,
         )
         self.assertEqual(
-            Movement.objects.filter(
-                work_order=self.wo, to_location=self.external
-            ).count(),
+            Movement.objects.filter(work_order=self.wo, to_location=self.external).count(),
             outbound_after_first,
         )
         # Batch quantity not driven negative by a phantom second discharge.
@@ -191,22 +183,18 @@ class FulfillServiceTest(WorkOrderFulfillmentTestBase):
         double-booking. (The status guard short-circuits first; this pins the
         per-line key is deterministic by re-running the ledger leg directly.)"""
         key = "11111111-1111-1111-1111-111111111111"
-        summary = WorkOrderFulfillmentService.fulfill(
-            self.wo, user=self.user, idempotency_key=key
-        )
+        summary = WorkOrderFulfillmentService.fulfill(self.wo, user=self.user, idempotency_key=key)
         self.assertTrue(summary["success"])
 
         # Every outbound leg carries a (deterministic) idempotency_key, so a
         # replay with the same base key would map to the same Movement rows.
-        stamped = Movement.objects.filter(
-            work_order=self.wo, to_location=self.external
-        ).exclude(idempotency_key__isnull=True)
+        stamped = Movement.objects.filter(work_order=self.wo, to_location=self.external).exclude(
+            idempotency_key__isnull=True
+        )
         self.assertEqual(stamped.count(), 3)
 
     def test_fulfill_empty_work_order(self):
-        empty_wo = WorkOrder.objects.create(
-            company=self.company, name="WO-EMPTY", status="OPEN"
-        )
+        empty_wo = WorkOrder.objects.create(company=self.company, name="WO-EMPTY", status="OPEN")
 
         summary = WorkOrderFulfillmentService.fulfill(empty_wo, user=self.user)
 

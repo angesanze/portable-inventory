@@ -124,7 +124,7 @@ Add application-level health endpoint for deeper checks:
 
 ```bash
 # Quick liveness check
-curl -f http://localhost:8000/admin/login/ && echo "OK"
+curl -f http://localhost:8001/admin/login/ && echo "OK"
 
 # Database connectivity (via Django)
 docker compose exec backend python manage.py dbshell -c "SELECT 1"

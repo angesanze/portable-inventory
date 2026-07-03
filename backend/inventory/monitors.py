@@ -9,41 +9,57 @@ from .constants import TRACKING_MODE_BATCH, TRIGGER_TYPE_THRESHOLD, TRIGGER_TYPE
 
 logger = logging.getLogger(__name__)
 
+
 class Monitor:
     """Base class for specific monitoring logic."""
+
     def check(self, rule: MonitoringRule, product_model: ProductModel):
         pass
+
 
 class ThresholdMonitor(Monitor):
     def check(self, rule: MonitoringRule, product_model: ProductModel):
         config = rule.condition_config
-        min_threshold = config.get('min')
-        max_threshold = config.get('max')
-        
+        min_threshold = config.get("min")
+        max_threshold = config.get("max")
+
         # Determine current quantity using StockService
         stock_data = StockService.get_stock_for_model(product_model)
-        current_qty = stock_data.get('total', 0)
-            
+        current_qty = stock_data.get("total", 0)
+
         # Check Min
         if min_threshold is not None and current_qty < min_threshold:
-            self._log_event(rule, product_model, f"Stock quantity {current_qty} is below minimum threshold of {min_threshold}.")
+            self._log_event(
+                rule,
+                product_model,
+                f"Stock quantity {current_qty} is below minimum threshold of {min_threshold}.",
+            )
 
         # Check Max
         if max_threshold is not None and current_qty > max_threshold:
-             self._log_event(rule, product_model, f"Stock quantity {current_qty} is above maximum threshold of {max_threshold}.")
+            self._log_event(
+                rule,
+                product_model,
+                f"Stock quantity {current_qty} is above maximum threshold of {max_threshold}.",
+            )
 
     def _log_event(self, rule, product_model, message):
+        # A "virtual" rule (e.g. the legacy attribute-threshold) is an unsaved
+        # MonitoringRule built only to carry config. Its auto-populated random
+        # pk points at no DB row, so persisting it into EventLog.rule is a
+        # dangling FK — silently tolerated on SQLite but an IntegrityError on
+        # Postgres that aborts the whole check_rules run. Store NULL for those;
+        # _event_type() already treats a missing rule as THRESHOLD (COR-08).
+        rule_fk = rule if (rule is not None and not rule._state.adding) else None
         event, created = EventLog.objects.get_or_create(
-            rule=rule,
-            product=product_model,
-            status='OPEN',
-            defaults={'message': message}
+            rule=rule_fk, product=product_model, status="OPEN", defaults={"message": message}
         )
         # Notify only on the transition (new OPEN event), not on every re-check
         # of an already-open one. Hooked here — not via post_save — so EventLogs
         # created directly in tests/fixtures don't trigger deliveries.
         if created:
             NotificationService.dispatch_event(event)
+
 
 class DateOffsetMonitor(Monitor):
     def check(self, rule: MonitoringRule, product_model: ProductModel):
@@ -57,8 +73,8 @@ class DateOffsetMonitor(Monitor):
         # Every writer (stock/purchasing/onboarding/importer/widget/engines)
         # persists the date under `expiry_date`. Keep it configurable but
         # default to the canonical key so rules without an explicit field fire.
-        date_field = config.get('date_field', 'expiry_date')
-        days_offset = config.get('days_offset', 0)
+        date_field = config.get("date_field", "expiry_date")
+        days_offset = config.get("days_offset", 0)
 
         today = timezone.now().date()
         target_date = today + timedelta(days=days_offset)
@@ -71,14 +87,19 @@ class DateOffsetMonitor(Monitor):
             b_date_str = (batch.data or {}).get(date_field)
             if not b_date_str:
                 continue
-                
+
             try:
                 # Compare as dates, not strings: a batch may store a full ISO
                 # datetime while target_date is date-only, so a lexical compare
                 # is fragile. _parse_expiry handles both date and datetime input.
                 b_dt = _parse_expiry(b_date_str)
                 if b_dt is not None and b_dt.date() <= target_date:
-                     self._log_event(rule, product_model, batch, f"Batch {batch.batch_identifier} approaches expiry ({b_date_str}).")
+                    self._log_event(
+                        rule,
+                        product_model,
+                        batch,
+                        f"Batch {batch.batch_identifier} approaches expiry ({b_date_str}).",
+                    )
             except Exception as e:
                 logger.error(f"Error parsing date {b_date_str}: {e}")
 
@@ -90,11 +111,12 @@ class DateOffsetMonitor(Monitor):
             rule=rule,
             product=product_model,
             batch=batch,
-            status='OPEN',
-            defaults={'message': message},
+            status="OPEN",
+            defaults={"message": message},
         )
         if created:
             NotificationService.dispatch_event(event)
+
 
 class RuleEvaluator:
     _monitors = {
@@ -109,20 +131,20 @@ class RuleEvaluator:
         """
         # 1. Individual Threshold (via Attributes)
         attributes = product_model.attributes or {}
-        min_threshold = attributes.get('min_threshold') or attributes.get('min_stock')
-        
+        min_threshold = attributes.get("min_threshold") or attributes.get("min_stock")
+
         if min_threshold is not None:
-             try:
-                 val = float(min_threshold)
-                 virtual_rule = MonitoringRule(
-                     name="Attribute Threshold",
-                     trigger_type=TRIGGER_TYPE_THRESHOLD, 
-                     condition_config={"min": val},
-                     severity="WARNING"
-                 )
-                 cls._monitors[TRIGGER_TYPE_THRESHOLD].check(virtual_rule, product_model)
-             except (ValueError, TypeError):
-                 pass
+            try:
+                val = float(min_threshold)
+                virtual_rule = MonitoringRule(
+                    name="Attribute Threshold",
+                    trigger_type=TRIGGER_TYPE_THRESHOLD,
+                    condition_config={"min": val},
+                    severity="WARNING",
+                )
+                cls._monitors[TRIGGER_TYPE_THRESHOLD].check(virtual_rule, product_model)
+            except (ValueError, TypeError):
+                pass
 
         # 2. Rules linked to product_model
         for rule in product_model.monitoring_rules.all():

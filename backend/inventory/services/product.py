@@ -3,6 +3,7 @@
 Keeps non-trivial product construction logic out of the view layer so it can be
 reused and unit-tested independently of the HTTP request cycle.
 """
+
 import uuid
 
 from ..models import ProductModel

@@ -1,14 +1,21 @@
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 
 from django.conf import settings
-from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 from drf_spectacular.types import OpenApiTypes
 
-from ..models import Movement, EventLog, DynamicQRCode, ProductModel, Location, PhysicalProduct, WorkOrder, Supplier
+from ..models import (
+    Movement,
+    EventLog,
+    DynamicQRCode,
+    ProductModel,
+    Location,
+    PhysicalProduct,
+    WorkOrder,
+    Supplier,
+)
 from ..services import LedgerService
-from .products import ProductModelSerializer, PhysicalProductSerializer
 from .locations import LocationSerializer
 from .work_orders import ProductBatchSerializer
 
@@ -34,8 +41,11 @@ class MovementSerializer(serializers.ModelSerializer):
     to_location_name = serializers.CharField(write_only=True, required=False)
     to_id = serializers.UUIDField(write_only=True, required=False)
     qty = serializers.DecimalField(
-        write_only=True, required=False, allow_null=True,
-        max_digits=12, decimal_places=4,
+        write_only=True,
+        required=False,
+        allow_null=True,
+        max_digits=12,
+        decimal_places=4,
     )
 
     # Batch handling
@@ -50,8 +60,10 @@ class MovementSerializer(serializers.ModelSerializer):
 
     # --- Status-change transaction (tracker engine) ---
     transaction_type = serializers.ChoiceField(
-        write_only=True, required=False, default='movement',
-        choices=['movement', 'status_change'],
+        write_only=True,
+        required=False,
+        default="movement",
+        choices=["movement", "status_change"],
     )
     physical_identifier = serializers.CharField(write_only=True, required=False, allow_blank=True)
     new_status = serializers.CharField(write_only=True, required=False, allow_blank=True)
@@ -60,39 +72,61 @@ class MovementSerializer(serializers.ModelSerializer):
     class Meta:
         model = Movement
         fields = [
-            'id', 'product_model', 'from_location', 'to_location',
-            'quantity', 'reason', 'occurred_at',
-            'sku', 'product_id',
-            'from_location_name', 'from_id',
-            'to_location_name', 'to_id',
-            'qty',
-            'batch_id', 'batch_data', 'batch',
-            'physical_product_id', 'work_order_id', 'work_order',
-            'supplier', 'supplier_id',
-            'transaction_type', 'physical_identifier', 'new_status', 'notes',
+            "id",
+            "product_model",
+            "from_location",
+            "to_location",
+            "quantity",
+            "reason",
+            "occurred_at",
+            "sku",
+            "product_id",
+            "from_location_name",
+            "from_id",
+            "to_location_name",
+            "to_id",
+            "qty",
+            "batch_id",
+            "batch_data",
+            "batch",
+            "physical_product_id",
+            "work_order_id",
+            "work_order",
+            "supplier",
+            "supplier_id",
+            "transaction_type",
+            "physical_identifier",
+            "new_status",
+            "notes",
         ]
         read_only_fields = [
-            'id', 'product_model', 'from_location', 'to_location',
-            'occurred_at', 'batch', 'work_order', 'supplier',
+            "id",
+            "product_model",
+            "from_location",
+            "to_location",
+            "occurred_at",
+            "batch",
+            "work_order",
+            "supplier",
         ]
         extra_kwargs = {
-            'quantity': {'required': False},
-            'reason': {'required': False, 'default': 'API Movement'},
+            "quantity": {"required": False},
+            "reason": {"required": False, "default": "API Movement"},
         }
 
     def to_internal_value(self, data):
         """Map legacy field aliases before standard validation."""
         # Convert QueryDict to plain dict for safe mutation
-        if hasattr(data, 'dict'):
+        if hasattr(data, "dict"):
             data = data.dict()
         else:
             data = dict(data)
         # 'from' is a Python keyword — accept it as alias for from_location_name
-        if 'from' in data and 'from_location_name' not in data and 'from_id' not in data:
-            data['from_location_name'] = data.pop('from')
+        if "from" in data and "from_location_name" not in data and "from_id" not in data:
+            data["from_location_name"] = data.pop("from")
         # 'to' alias
-        if 'to' in data and 'to_location_name' not in data and 'to_id' not in data:
-            data['to_location_name'] = data.pop('to')
+        if "to" in data and "to_location_name" not in data and "to_id" not in data:
+            data["to_location_name"] = data.pop("to")
         return super().to_internal_value(data)
 
     def validate_qty(self, value):
@@ -101,7 +135,7 @@ class MovementSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
-        request = self.context.get('request')
+        request = self.context.get("request")
         if not request:
             return attrs
 
@@ -112,157 +146,165 @@ class MovementSerializer(serializers.ModelSerializer):
         # Effective company, not user.company: a developer acting on a child
         # tenant (X-Acting-Company) must create movements scoped to the child.
         from core.scope import resolve_effective_company
+
         company = resolve_effective_company(request)
         if company is None:
             raise serializers.ValidationError("A company context is required to create movements.")
 
-        transaction_type = attrs.pop('transaction_type', 'movement')
-        attrs['_transaction_type'] = transaction_type
-        is_status_change = transaction_type == 'status_change'
+        transaction_type = attrs.pop("transaction_type", "movement")
+        attrs["_transaction_type"] = transaction_type
+        is_status_change = transaction_type == "status_change"
 
         # --- Resolve ProductModel (required in both branches) ---
-        product_id = attrs.pop('product_id', None)
-        sku = attrs.pop('sku', None)
+        product_id = attrs.pop("product_id", None)
+        sku = attrs.pop("sku", None)
         if product_id:
             try:
-                attrs['_product_model'] = ProductModel.objects.get(id=product_id, company=company)
+                attrs["_product_model"] = ProductModel.objects.get(id=product_id, company=company)
             except ProductModel.DoesNotExist:
-                raise serializers.ValidationError({'product_id': 'Product not found.'})
+                raise serializers.ValidationError({"product_id": "Product not found."})
         elif sku:
             try:
-                attrs['_product_model'] = ProductModel.objects.get(sku=sku, company=company)
+                attrs["_product_model"] = ProductModel.objects.get(sku=sku, company=company)
             except ProductModel.DoesNotExist:
-                raise serializers.ValidationError({'sku': f'Product with SKU "{sku}" not found.'})
+                raise serializers.ValidationError({"sku": f'Product with SKU "{sku}" not found.'})
         else:
             raise serializers.ValidationError('Either "sku" or "product_id" is required.')
 
         if is_status_change:
-            physical_identifier = attrs.pop('physical_identifier', None)
-            new_status = attrs.pop('new_status', None)
+            physical_identifier = attrs.pop("physical_identifier", None)
+            new_status = attrs.pop("new_status", None)
             if not physical_identifier:
                 raise serializers.ValidationError(
-                    {'physical_identifier': 'Required for status_change transactions.'}
+                    {"physical_identifier": "Required for status_change transactions."}
                 )
             if not new_status:
                 raise serializers.ValidationError(
-                    {'new_status': 'Required for status_change transactions.'}
+                    {"new_status": "Required for status_change transactions."}
                 )
             try:
-                attrs['_physical_product'] = PhysicalProduct.objects.get(
-                    product_model=attrs['_product_model'],
+                attrs["_physical_product"] = PhysicalProduct.objects.get(
+                    product_model=attrs["_product_model"],
                     identifier=physical_identifier,
                 )
             except PhysicalProduct.DoesNotExist:
                 raise serializers.ValidationError(
-                    {'physical_identifier': f'Physical product "{physical_identifier}" not found.'}
+                    {"physical_identifier": f'Physical product "{physical_identifier}" not found.'}
                 )
-            attrs['_new_status'] = new_status
-            attrs['_notes'] = attrs.pop('notes', '') or ''
+            attrs["_new_status"] = new_status
+            attrs["_notes"] = attrs.pop("notes", "") or ""
             # Drop unused movement fields so create() doesn't trip on them
-            attrs.pop('from_id', None)
-            attrs.pop('from_location_name', None)
-            attrs.pop('to_id', None)
-            attrs.pop('to_location_name', None)
-            attrs.pop('qty', None)
-            attrs.pop('quantity', None)
+            attrs.pop("from_id", None)
+            attrs.pop("from_location_name", None)
+            attrs.pop("to_id", None)
+            attrs.pop("to_location_name", None)
+            attrs.pop("qty", None)
+            attrs.pop("quantity", None)
             return attrs
 
         # --- Resolve from_location ---
-        from_id = attrs.pop('from_id', None)
-        from_name = attrs.pop('from_location_name', None)
+        from_id = attrs.pop("from_id", None)
+        from_name = attrs.pop("from_location_name", None)
         if from_id:
             try:
-                attrs['_from_location'] = Location.objects.get(id=from_id, company=company)
+                attrs["_from_location"] = Location.objects.get(id=from_id, company=company)
             except Location.DoesNotExist:
-                raise serializers.ValidationError({'from_id': 'Source location not found.'})
+                raise serializers.ValidationError({"from_id": "Source location not found."})
         elif from_name:
             if from_name == "External Vendor":
-                attrs['_from_location'], _ = Location.objects.get_or_create(
-                    company=company, name="External Vendor", defaults={'type': 'VIRTUAL'},
+                attrs["_from_location"], _ = Location.objects.get_or_create(
+                    company=company,
+                    name="External Vendor",
+                    defaults={"type": "VIRTUAL"},
                 )
             else:
                 try:
-                    attrs['_from_location'] = Location.objects.get(name=from_name, company=company)
+                    attrs["_from_location"] = Location.objects.get(name=from_name, company=company)
                 except Location.DoesNotExist:
                     raise serializers.ValidationError(
-                        {'from_location_name': f'Location "{from_name}" not found.'}
+                        {"from_location_name": f'Location "{from_name}" not found.'}
                     )
         else:
-            raise serializers.ValidationError('Either "from_location_name" or "from_id" is required.')
+            raise serializers.ValidationError(
+                'Either "from_location_name" or "from_id" is required.'
+            )
 
         # --- Resolve to_location ---
-        to_id = attrs.pop('to_id', None)
-        to_name = attrs.pop('to_location_name', None)
+        to_id = attrs.pop("to_id", None)
+        to_name = attrs.pop("to_location_name", None)
         if to_id:
             try:
-                attrs['_to_location'] = Location.objects.get(id=to_id, company=company)
+                attrs["_to_location"] = Location.objects.get(id=to_id, company=company)
             except Location.DoesNotExist:
-                raise serializers.ValidationError({'to_id': 'Destination location not found.'})
+                raise serializers.ValidationError({"to_id": "Destination location not found."})
         elif to_name:
             try:
-                attrs['_to_location'] = Location.objects.get(name=to_name, company=company)
+                attrs["_to_location"] = Location.objects.get(name=to_name, company=company)
             except Location.DoesNotExist:
                 raise serializers.ValidationError(
-                    {'to_location_name': f'Location "{to_name}" not found.'}
+                    {"to_location_name": f'Location "{to_name}" not found.'}
                 )
         else:
             raise serializers.ValidationError('Either "to_location_name" or "to_id" is required.')
 
         # --- Resolve quantity ---
-        qty = attrs.pop('qty', None)
-        quantity = attrs.pop('quantity', None)
+        qty = attrs.pop("qty", None)
+        quantity = attrs.pop("quantity", None)
         resolved_qty = qty if qty is not None else quantity
         if resolved_qty is None:
-            resolved_qty = Decimal('0')
-        attrs['_quantity'] = Decimal(str(resolved_qty))
+            resolved_qty = Decimal("0")
+        attrs["_quantity"] = Decimal(str(resolved_qty))
 
         # --- Resolve physical_product (optional) ---
-        pp_id = attrs.pop('physical_product_id', None)
+        pp_id = attrs.pop("physical_product_id", None)
         if pp_id:
             try:
-                attrs['_physical_product'] = PhysicalProduct.objects.get(
-                    id=pp_id, product_model__company=company,
+                attrs["_physical_product"] = PhysicalProduct.objects.get(
+                    id=pp_id,
+                    product_model__company=company,
                 )
             except PhysicalProduct.DoesNotExist:
-                raise serializers.ValidationError({'physical_product_id': 'Physical product not found.'})
+                raise serializers.ValidationError(
+                    {"physical_product_id": "Physical product not found."}
+                )
 
         # --- Resolve work_order (optional) ---
-        wo_id = attrs.pop('work_order_id', None)
+        wo_id = attrs.pop("work_order_id", None)
         if wo_id:
             try:
-                attrs['_work_order'] = WorkOrder.objects.get(id=wo_id, company=company)
+                attrs["_work_order"] = WorkOrder.objects.get(id=wo_id, company=company)
             except WorkOrder.DoesNotExist:
-                raise serializers.ValidationError({'work_order_id': 'Work order not found.'})
+                raise serializers.ValidationError({"work_order_id": "Work order not found."})
 
         # --- Resolve supplier (optional, inbound receipts) ---
-        sup_id = attrs.pop('supplier_id', None)
+        sup_id = attrs.pop("supplier_id", None)
         if sup_id:
             try:
-                attrs['_supplier'] = Supplier.objects.get(id=sup_id, company=company)
+                attrs["_supplier"] = Supplier.objects.get(id=sup_id, company=company)
             except Supplier.DoesNotExist:
-                raise serializers.ValidationError({'supplier_id': 'Supplier not found.'})
+                raise serializers.ValidationError({"supplier_id": "Supplier not found."})
 
         return attrs
 
     def create(self, validated_data):
-        request = self.context['request']
+        request = self.context["request"]
         user = request.user
 
-        if validated_data.get('_transaction_type') == 'status_change':
+        if validated_data.get("_transaction_type") == "status_change":
             return self._create_status_change(validated_data, user)
 
         movement = LedgerService.transfer_stock(
-            product_model=validated_data['_product_model'],
-            from_location=validated_data['_from_location'],
-            to_location=validated_data['_to_location'],
-            quantity=validated_data['_quantity'],
+            product_model=validated_data["_product_model"],
+            from_location=validated_data["_from_location"],
+            to_location=validated_data["_to_location"],
+            quantity=validated_data["_quantity"],
             user=user,
-            reason=validated_data.get('reason', 'API Movement'),
-            batch_id=validated_data.get('batch_id'),
-            batch_data=validated_data.get('batch_data'),
-            physical_product=validated_data.get('_physical_product'),
-            work_order=validated_data.get('_work_order'),
-            supplier=validated_data.get('_supplier'),
+            reason=validated_data.get("reason", "API Movement"),
+            batch_id=validated_data.get("batch_id"),
+            batch_data=validated_data.get("batch_data"),
+            physical_product=validated_data.get("_physical_product"),
+            work_order=validated_data.get("_work_order"),
+            supplier=validated_data.get("_supplier"),
         )
         return movement
 
@@ -276,49 +318,52 @@ class MovementSerializer(serializers.ModelSerializer):
         from ..engines import EngineFactory
         from ..strategies import TrackerStatusBehavior
 
-        product_model = validated_data['_product_model']
-        pp = validated_data['_physical_product']
-        new_status = validated_data['_new_status']
-        notes = validated_data.get('_notes', '') or ''
+        product_model = validated_data["_product_model"]
+        pp = validated_data["_physical_product"]
+        new_status = validated_data["_new_status"]
+        notes = validated_data.get("_notes", "") or ""
 
-        if product_model.engine_type != 'tracker':
-            raise serializers.ValidationError({
-                'transaction_type': (
-                    f"status_change requires a tracker engine "
-                    f"(product engine_type={product_model.engine_type})."
-                )
-            })
+        if product_model.engine_type != "tracker":
+            raise serializers.ValidationError(
+                {
+                    "transaction_type": (
+                        f"status_change requires a tracker engine "
+                        f"(product engine_type={product_model.engine_type})."
+                    )
+                }
+            )
 
         location = pp.location
         if location is None:
-            raise serializers.ValidationError({
-                'physical_identifier': (
-                    "PhysicalProduct has no current location; cannot record "
-                    "status_change audit row."
-                )
-            })
+            raise serializers.ValidationError(
+                {
+                    "physical_identifier": (
+                        "PhysicalProduct has no current location; cannot record "
+                        "status_change audit row."
+                    )
+                }
+            )
 
         engine = EngineFactory.get_engine_for_profile(product_model)
 
         try:
-            TrackerStatusBehavior.execute_status_change(engine, {
-                'physical_product_id': pp.id,
-                'new_status': new_status,
-                'notes': notes,
-                'user': user,
-            })
+            TrackerStatusBehavior.execute_status_change(
+                engine,
+                {
+                    "physical_product_id": pp.id,
+                    "new_status": new_status,
+                    "notes": notes,
+                    "user": user,
+                },
+            )
         except ValueError as exc:
-            raise serializers.ValidationError({'detail': str(exc)})
+            raise serializers.ValidationError({"detail": str(exc)})
 
         # Strategy emits the audit Movement; surface the latest one for the
         # response body.
-        movement = (
-            Movement.objects
-            .filter(physical_product=pp)
-            .order_by('-occurred_at')
-            .first()
-        )
+        movement = Movement.objects.filter(physical_product=pp).order_by("-occurred_at").first()
         return movement
+
 
 class ProductModelMiniSerializer(serializers.ModelSerializer):
     """Lightweight product reference for embedding in list rows.
@@ -328,33 +373,41 @@ class ProductModelMiniSerializer(serializers.ModelSerializer):
     ProductModelSerializer in a list (e.g. movements) is an N+1. The movement
     list only displays sku/name, so this is all it needs.
     """
+
     tracking_mode = serializers.CharField(read_only=True)
 
     class Meta:
         model = ProductModel
-        fields = ['id', 'sku', 'name', 'profile', 'tracking_mode']
+        fields = ["id", "sku", "name", "profile", "tracking_mode"]
 
 
 class MovementReadSerializer(MovementSerializer):
     """Rich serializer for listing movements with expanded relations."""
+
     product_model = ProductModelMiniSerializer(read_only=True)
     from_location = LocationSerializer(read_only=True)
     to_location = LocationSerializer(read_only=True)
-    
+
     class Meta(MovementSerializer.Meta):
-        fields = MovementSerializer.Meta.fields + ['delta', 'sku', 'product_name', 'serial_number', 'work_order_name', 'supplier_name']
-    
-    
+        fields = MovementSerializer.Meta.fields + [
+            "delta",
+            "sku",
+            "product_name",
+            "serial_number",
+            "work_order_name",
+            "supplier_name",
+        ]
+
     # Override quantity to include signed delta
     quantity = serializers.SerializerMethodField()
     delta = serializers.SerializerMethodField()
-    
+
     # Flattened fields for easy frontend display
-    sku = serializers.ReadOnlyField(source='product_model.sku')
-    product_name = serializers.ReadOnlyField(source='product_model.name')
-    serial_number = serializers.ReadOnlyField(source='physical_product.identifier')
-    work_order_name = serializers.ReadOnlyField(source='work_order.name')
-    supplier_name = serializers.ReadOnlyField(source='supplier.name')
+    sku = serializers.ReadOnlyField(source="product_model.sku")
+    product_name = serializers.ReadOnlyField(source="product_model.name")
+    serial_number = serializers.ReadOnlyField(source="physical_product.identifier")
+    work_order_name = serializers.ReadOnlyField(source="work_order.name")
+    supplier_name = serializers.ReadOnlyField(source="supplier.name")
 
     @extend_schema_field(OpenApiTypes.NUMBER)
     def get_quantity(self, obj):
@@ -363,16 +416,16 @@ class MovementReadSerializer(MovementSerializer):
             qty = float(obj.quantity)
         except (ValueError, TypeError):
             return 0.0
-        
+
         # Check if outbound (From Warehouse -> External/Virtual)
         # We consider 'WAREHOUSE' as the internal stock reference
-        is_from_warehouse = obj.from_location and obj.from_location.type == 'WAREHOUSE'
-        is_to_warehouse = obj.to_location and obj.to_location.type == 'WAREHOUSE'
-        
+        is_from_warehouse = obj.from_location and obj.from_location.type == "WAREHOUSE"
+        is_to_warehouse = obj.to_location and obj.to_location.type == "WAREHOUSE"
+
         # Outbound: Warehouse -> !Warehouse (e.g. Consumption, External)
         if is_from_warehouse and not is_to_warehouse:
             return -qty
-            
+
         return qty
 
     @extend_schema_field(OpenApiTypes.NUMBER)
@@ -382,17 +435,25 @@ class MovementReadSerializer(MovementSerializer):
 
 class EventLogSerializer(serializers.ModelSerializer):
     """Read-only serializer for EventLog model."""
+
     class Meta:
         model = EventLog
         fields = [
-            'id', 'rule', 'product', 'batch',
-            'message', 'status', 'created_at', 'resolved_at',
+            "id",
+            "rule",
+            "product",
+            "batch",
+            "message",
+            "status",
+            "created_at",
+            "resolved_at",
         ]
         read_only_fields = fields
 
 
 class DynamicQRCodeSerializer(serializers.ModelSerializer):
     """Serializer for DynamicQRCode model with target display logic."""
+
     target_display = serializers.SerializerMethodField()
     qr_url = serializers.SerializerMethodField()
     product_model_name = serializers.SerializerMethodField()
@@ -404,16 +465,35 @@ class DynamicQRCodeSerializer(serializers.ModelSerializer):
     class Meta:
         model = DynamicQRCode
         fields = [
-            'id', 'code', 'status', 'label',
-            'api_key', 'api_key_label',
-            'product_model', 'product_model_name',
-            'batch', 'batch_identifier',
-            'work_order', 'work_order_name',
-            'physical_product', 'physical_product_identifier',
-            'custom_url', 'target_display', 'qr_url',
-            'created_at', 'updated_at'
+            "id",
+            "code",
+            "status",
+            "label",
+            "api_key",
+            "api_key_label",
+            "product_model",
+            "product_model_name",
+            "batch",
+            "batch_identifier",
+            "work_order",
+            "work_order_name",
+            "physical_product",
+            "physical_product_identifier",
+            "custom_url",
+            "target_display",
+            "qr_url",
+            "created_at",
+            "updated_at",
         ]
-        read_only_fields = ['id', 'code', 'created_at', 'updated_at', 'target_display', 'qr_url', 'api_key_label']
+        read_only_fields = [
+            "id",
+            "code",
+            "created_at",
+            "updated_at",
+            "target_display",
+            "qr_url",
+            "api_key_label",
+        ]
 
     @extend_schema_field(OpenApiTypes.STR)
     def get_target_display(self, obj):
@@ -434,12 +514,15 @@ class DynamicQRCodeSerializer(serializers.ModelSerializer):
         Falls back to PUBLIC_BASE_URL, then the request origin, then a relative
         path — strictly degraded modes for tests.
         """
-        path = f'/go/{obj.code}'
-        base = (getattr(settings, 'FRONTEND_BASE_URL', '') or
-                getattr(settings, 'PUBLIC_BASE_URL', '') or '')
+        path = f"/go/{obj.code}"
+        base = (
+            getattr(settings, "FRONTEND_BASE_URL", "")
+            or getattr(settings, "PUBLIC_BASE_URL", "")
+            or ""
+        )
         if base:
             return f"{base}{path}"
-        request = self.context.get('request')
+        request = self.context.get("request")
         if request:
             return request.build_absolute_uri(path)
         return path
@@ -460,7 +543,7 @@ class DynamicQRCodeSerializer(serializers.ModelSerializer):
     def get_batch_identifier(self, obj):
         try:
             return obj.batch.batch_identifier if obj.batch else None
-        except Exception as e:
+        except Exception:
             return None
 
     @extend_schema_field(OpenApiTypes.STR)

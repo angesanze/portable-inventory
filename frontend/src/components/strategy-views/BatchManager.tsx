@@ -121,13 +121,9 @@ export const BatchManager = ({ product, onUpdate, variant = 'BATCH' }: { product
             setNewBatchQty(1);
             onUpdate?.();
         } catch (err: unknown) {
-            const detail = (err as { response?: { data?: { detail?: string } } } | undefined)
-                ?.response?.data?.detail;
-            open?.({
-                message: "Error",
-                description: detail || "Failed to create",
-                type: "error"
-            });
+            // The API-error toast (with the backend reason) is raised globally by
+            // AxiosErrorHandler; here we just reset state.
+            console.error(err);
         } finally {
             setIsLoading(false);
         }

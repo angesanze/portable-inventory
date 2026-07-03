@@ -145,6 +145,11 @@
       "batchReferenceOptional": "Optional batch reference",
       "addWithExpiry": "Add with Expiry"
     },
+    "batchTrackedForm": {
+      "title": "Load Batch Stock",
+      "lotId": "Lot / Batch ID",
+      "lotIdOptional": "Optional — auto-generated if empty"
+    },
     "trackerPanel": {
       "itemsLoadedFromProduct": "Items loaded from product inventory",
       "updateStatus": "UPDATE STATUS"

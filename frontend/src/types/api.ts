@@ -182,7 +182,9 @@ export interface PhysicalProduct {
     identifier: string;
     location: string | Location;
     work_order?: string | WorkOrder;
-    status: 'ACTIVE' | 'RECALL' | 'EXPIRED';
+    // Mirrors PhysicalProduct.STATUS_CHOICES (models/tracking.py); tracker
+    // presets may add custom values (hence the string fallback for those).
+    status: 'ACTIVE' | 'IN_USE' | 'RETURNED' | 'RECALL' | 'EXPIRED' | 'DISPOSED' | (string & {});
 }
 
 export interface Movement {
@@ -193,14 +195,20 @@ export interface Movement {
     quantity: number;
     occurred_at: string;
     reason: string;
-    user: string;
+    performed_by?: string | null;
 }
 
 export interface DynamicQRCode {
     id: string;
+    code: string;
     status: 'VIRGIN' | 'CONFIGURED' | 'LOCKED';
-    target_type?: string;
-    target_id?: string;
-    api_key?: string;
-    url: string;
+    label?: string;
+    api_key?: string | null;
+    product_model?: string | null;
+    batch?: string | null;
+    work_order?: string | null;
+    physical_product?: string | null;
+    custom_url?: string | null;
+    target_display?: string;
+    qr_url?: string;
 }

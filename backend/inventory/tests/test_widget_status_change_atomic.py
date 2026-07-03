@@ -10,6 +10,7 @@ transactions, so the bug surfaces if the strategy ever loses its own
 atomic block. Default `@pytest.mark.django_db` wraps each test in an
 outer transaction, which masks the issue.
 """
+
 import uuid
 
 import pytest
@@ -30,9 +31,7 @@ def setup(transactional_db):
         label="Widget Key",
         key=f"key-{uuid.uuid4().hex[:12]}",
     )
-    warehouse = Location.objects.create(
-        company=company, name="WH", type="WAREHOUSE"
-    )
+    warehouse = Location.objects.create(company=company, name="WH", type="WAREHOUSE")
     transitions = {
         "ACTIVE": ["IN_USE"],
         "IN_USE": ["RETURNED"],
