@@ -6,7 +6,7 @@
     "varasto-prod": {
       "hosting": {
         "app": ["varasto-prod"],
-        "www": ["varasto-www"]
+        "www": ["varasto-marketing"]
       }
     }
   }

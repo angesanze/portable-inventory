@@ -4,9 +4,9 @@ name: deploy-marketing
 # Hosting target (varasto.rocks) on every push to main that touches marketing/.
 # Auth is keyless via Workload Identity Federation, same as deploy-frontend.
 #
-# NOTE: the "www" target resolves to the Firebase Hosting site `varasto-www`,
-# which must be created once before the first run:
-#   firebase hosting:sites:create varasto-www --project varasto-prod
+# NOTE: the "www" target resolves to the Firebase Hosting site
+# `varasto-marketing`, which must be created once before the first run:
+#   firebase hosting:sites:create varasto-marketing --project varasto-prod
 on:
   push:
     branches: [main]
