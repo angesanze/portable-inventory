@@ -50,4 +50,4 @@ jobs:
           VITE_API_URL: ${{ env.VITE_API_URL }}
 
       - name: Deploy to Firebase Hosting
-        run: npx -y firebase-tools@latest deploy --only hosting --project varasto-prod --non-interactive
+        run: npx -y firebase-tools@latest deploy --only hosting:app --project varasto-prod --non-interactive

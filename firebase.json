@@ -1,7 +1,22 @@
 {
-  "hosting": {
-    "public": "frontend/dist",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-    "rewrites": [{ "source": "**", "destination": "/index.html" }]
-  }
+  "hosting": [
+    {
+      "target": "app",
+      "public": "frontend/dist",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "rewrites": [
+        {
+          "source": "/go/**",
+          "run": { "serviceId": "varasto-api", "region": "europe-west1" }
+        },
+        { "source": "**", "destination": "/index.html" }
+      ]
+    },
+    {
+      "target": "www",
+      "public": "marketing/dist",
+      "cleanUrls": true,
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
+    }
+  ]
 }

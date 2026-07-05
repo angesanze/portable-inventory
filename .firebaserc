@@ -1,5 +1,13 @@
 {
   "projects": {
     "default": "varasto-prod"
+  },
+  "targets": {
+    "varasto-prod": {
+      "hosting": {
+        "app": ["varasto-prod"],
+        "www": ["varasto-www"]
+      }
+    }
   }
 }
