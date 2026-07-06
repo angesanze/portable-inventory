@@ -4,15 +4,20 @@ import { site } from "../data/site";
 const year = new Date().getFullYear();
 ---
 
-<footer class="border-t border-slate-100">
+<footer class="border-t border-white/[0.06]">
   <div
-    class="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-6 py-10 text-sm text-slate-500 sm:flex-row"
+    class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 px-6 py-12 sm:flex-row"
   >
-    <p>© {year} {site.name}</p>
-    <div class="flex items-center gap-6">
-      <a href={site.docsUrl} class="transition hover:text-slate-900">Documentazione</a>
-      <a href={site.githubUrl} class="transition hover:text-slate-900">GitHub</a>
-      <a href={`mailto:${site.email}`} class="transition hover:text-slate-900">Contatti</a>
+    <div class="flex items-center gap-2.5">
+      <img src="/shed-logo.png" alt="" width="26" height="26" class="rounded-md" />
+      <span class="font-semibold text-zinc-200">Varasto</span>
+      <span class="text-sm text-zinc-600">© {year}</span>
+    </div>
+    <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-zinc-500">
+      <a href={site.docsUrl} class="transition hover:text-zinc-200">Documentazione</a>
+      <a href={site.githubUrl} class="transition hover:text-zinc-200">GitHub</a>
+      <a href={site.loginUrl} class="transition hover:text-zinc-200">Accedi</a>
+      <a href={`mailto:${site.email}`} class="transition hover:text-zinc-200">Contatti</a>
     </div>
   </div>
 </footer>

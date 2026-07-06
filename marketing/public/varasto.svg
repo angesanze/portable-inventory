@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Background -->
+  <rect width="128" height="128" rx="22" fill="#0f172a"/>
+
+  <!--
+    Isometric lean-to shed (mono-pitch roof — classic tool shed shape)
+    Scale=14px/unit, origin FL_B=(56,86)
+    East  = (+14, +8)
+    North = (-14, +8)
+    Up    = (0,  -14)
+    Box: W=2.5E × D=1.7N × front H=3U × back H=2U (lean-to)
+
+    Key vertices:
+      FL_B = (56, 86)
+      FR_B = (91, 106)
+      BR_B = (67, 119)
+      BL_B = (32,  99)
+      FL_T = (56,  44)   [H=3 up]
+      FR_T = (91,  64)
+      BL_T = (32,  71)   [H=2 up]
+      BR_T = (67,  84)
+
+    Faces visible:
+      Front (lit)    : FL_B FR_B FR_T FL_T
+      Side  (shadow) : FR_B BR_B BR_T FR_T
+      Roof  (mono)   : FL_T FR_T BR_T BL_T
+  -->
+
+  <!-- Side face — shadow (draw first) -->
+  <polygon points="91,106 67,119 67,84 91,64" fill="#312e81"/>
+
+  <!-- Front face — lit -->
+  <polygon points="56,86 91,106 91,64 56,44" fill="#6366f1"/>
+
+  <!-- Roof mono-slope — partial lit (faces up-and-left) -->
+  <polygon points="56,44 91,64 67,84 32,71" fill="#818cf8"/>
+
+  <!-- Door: large, almost full-height, right portion of front face -->
+  <polygon points="73,94 88,103 88,66 73,57" fill="#1e1b4b"/>
+  <!-- Door centre split -->
+  <line x1="80" y1="58" x2="80" y2="103" stroke="#312e81" stroke-width="1.2"/>
+  <!-- Door knobs -->
+  <circle cx="77" cy="81" r="2" fill="#818cf8"/>
+  <circle cx="83" cy="84" r="2" fill="#818cf8"/>
+
+  <!-- Window: small, on front face left side -->
+  <polygon points="60,62 71,68 71,58 60,52" fill="#1e1b4b"/>
+  <!-- Window pane cross -->
+  <line x1="65" y1="52" x2="65" y2="68" stroke="#818cf8" stroke-width="1"/>
+  <line x1="60" y1="60" x2="71" y2="60" stroke="#818cf8" stroke-width="1"/>
+
+  <!-- Edge highlights for depth -->
+  <!-- Left corner vertical -->
+  <line x1="56" y1="44" x2="56" y2="86" stroke="#0f172a" stroke-width="1.5" opacity="0.7"/>
+  <!-- Front-bottom edge -->
+  <line x1="56" y1="86" x2="91" y2="106" stroke="#0f172a" stroke-width="1.5" opacity="0.7"/>
+  <!-- Roof ridge left edge -->
+  <line x1="56" y1="44" x2="32" y2="71" stroke="#4f46e5" stroke-width="1" opacity="0.8"/>
+  <!-- Front-top edge (face/roof boundary) -->
+  <line x1="56" y1="44" x2="91" y2="64" stroke="#0f172a" stroke-width="1.2" opacity="0.5"/>
+
+  <!-- Ground shadow ellipse -->
+  <ellipse cx="62" cy="115" rx="36" ry="5" fill="#1e1b4b" opacity="0.6"/>
+</svg>

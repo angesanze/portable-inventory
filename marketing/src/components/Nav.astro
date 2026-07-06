@@ -2,22 +2,25 @@
 import { site } from "../data/site";
 ---
 
-<header class="sticky top-0 z-30 border-b border-slate-100 bg-white/80 backdrop-blur">
-  <nav class="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-    <a href="/" class="flex items-center gap-2 font-semibold text-slate-900">
-      <span class="inline-block h-6 w-6 rounded-md bg-indigo-600"></span>
-      {site.name}
+<header class="sticky top-0 z-40 border-b border-white/[0.06] bg-zinc-950/80 backdrop-blur">
+  <nav class="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
+    <a href="/" class="flex items-center gap-2.5">
+      <img src="/shed-logo.png" alt="Varasto" width="30" height="30" class="rounded-lg" />
+      <span class="text-[15px] font-bold tracking-wide text-zinc-100">Varasto</span>
     </a>
-    <div class="flex items-center gap-6 text-sm">
-      <a href="#features" class="hidden text-slate-600 hover:text-slate-900 sm:inline">Funzionalità</a>
-      <a href="#pricing" class="hidden text-slate-600 hover:text-slate-900 sm:inline">Prezzo</a>
-      <a href="#changelog" class="hidden text-slate-600 hover:text-slate-900 sm:inline">Novità</a>
-      <a href={site.docsUrl} class="hidden text-slate-600 hover:text-slate-900 sm:inline">Docs</a>
+    <div class="hidden items-center gap-7 text-sm text-zinc-400 md:flex">
+      <a href="#profili" class="transition hover:text-zinc-100">Profili</a>
+      <a href="#funzioni" class="transition hover:text-zinc-100">Funzioni</a>
+      <a href="#widget" class="transition hover:text-zinc-100">Widget</a>
+      <a href={site.docsUrl} class="transition hover:text-zinc-100">Docs</a>
+    </div>
+    <div class="flex items-center gap-3 text-sm">
+      <a href={site.loginUrl} class="hidden text-zinc-400 transition hover:text-zinc-100 sm:inline">Accedi</a>
       <a
-        href={site.appUrl}
-        class="rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white transition hover:bg-indigo-700"
+        href={site.registerUrl}
+        class="rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white shadow-[0_0_20px_-5px_rgb(99_102_241/0.5)] transition hover:bg-indigo-500"
       >
-        Vai all'app
+        Provalo gratis
       </a>
     </div>
   </nav>
