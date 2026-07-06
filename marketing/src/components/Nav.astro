@@ -1,0 +1,24 @@
+---
+import { site } from "../data/site";
+---
+
+<header class="sticky top-0 z-30 border-b border-slate-100 bg-white/80 backdrop-blur">
+  <nav class="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+    <a href="/" class="flex items-center gap-2 font-semibold text-slate-900">
+      <span class="inline-block h-6 w-6 rounded-md bg-indigo-600"></span>
+      {site.name}
+    </a>
+    <div class="flex items-center gap-6 text-sm">
+      <a href="#features" class="hidden text-slate-600 hover:text-slate-900 sm:inline">Funzionalità</a>
+      <a href="#pricing" class="hidden text-slate-600 hover:text-slate-900 sm:inline">Prezzo</a>
+      <a href="#changelog" class="hidden text-slate-600 hover:text-slate-900 sm:inline">Novità</a>
+      <a href={site.docsUrl} class="hidden text-slate-600 hover:text-slate-900 sm:inline">Docs</a>
+      <a
+        href={site.appUrl}
+        class="rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white transition hover:bg-indigo-700"
+      >
+        Vai all'app
+      </a>
+    </div>
+  </nav>
+</header>

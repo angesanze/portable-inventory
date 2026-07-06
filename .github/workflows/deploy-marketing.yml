@@ -1,0 +1,47 @@
+name: deploy-marketing
+
+# Build the Astro marketing one-pager and deploy it to the "www" Firebase
+# Hosting target (varasto.rocks) on every push to main that touches marketing/.
+# Auth is keyless via Workload Identity Federation, same as deploy-frontend.
+#
+# NOTE: the "www" target resolves to the Firebase Hosting site
+# `varasto-marketing`, which must be created once before the first run:
+#   firebase hosting:sites:create varasto-marketing --project varasto-prod
+on:
+  push:
+    branches: [main]
+    paths:
+      - "marketing/**"
+      - "firebase.json"
+      - ".firebaserc"
+      - ".github/workflows/deploy-marketing.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: marketing/package-lock.json
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - run: npm ci
+        working-directory: marketing
+
+      - run: npm run build
+        working-directory: marketing
+
+      - name: Deploy to Firebase Hosting
+        run: npx -y firebase-tools@latest deploy --only hosting:www --project varasto-prod --non-interactive

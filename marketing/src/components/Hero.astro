@@ -1,0 +1,41 @@
+---
+import { site } from "../data/site";
+---
+
+<section class="mx-auto max-w-5xl px-6 pt-20 pb-8 text-center">
+  <p
+    class="mb-5 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600"
+  >
+    <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+    Open source · Multi-tenant
+  </p>
+  <h1 class="mx-auto max-w-3xl text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
+    {site.tagline}
+  </h1>
+  <p class="mx-auto mt-6 max-w-2xl text-lg text-slate-600">
+    {site.description}
+  </p>
+  <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+    <a
+      href={site.registerUrl}
+      class="rounded-lg bg-indigo-600 px-6 py-3 font-medium text-white transition hover:bg-indigo-700"
+    >
+      Inizia gratis
+    </a>
+    <a
+      href={site.docsUrl}
+      class="rounded-lg border border-slate-200 px-6 py-3 font-medium text-slate-700 transition hover:bg-slate-50"
+    >
+      Documentazione
+    </a>
+  </div>
+
+  <!-- Sostituisci con uno screenshot reale: metti public/preview.png e usa <img>. -->
+  <div class="mx-auto mt-16 max-w-4xl">
+    <div
+      class="flex aspect-[16/9] items-center justify-center rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100 text-sm text-slate-400 shadow-sm"
+    >
+      Screenshot dell'app — sostituisci con <code class="mx-1">public/preview.png</code>
+    </div>
+  </div>
+</section>

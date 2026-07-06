@@ -1,0 +1,23 @@
+---
+import { features } from "../data/features";
+---
+
+<section id="features" class="mx-auto max-w-5xl px-6 py-20">
+  <div class="mb-12 text-center">
+    <h2 class="text-3xl font-bold tracking-tight text-slate-900">Tutto in un'unica interfaccia</h2>
+    <p class="mt-3 text-slate-600">Dal consumabile sfuso all'asset serializzato, nello stesso posto.</p>
+  </div>
+  <div class="grid gap-6 sm:grid-cols-2">
+    {
+      features.map((f) => (
+        <div class="rounded-xl border border-slate-200 p-6 transition hover:border-slate-300 hover:shadow-sm">
+          <div class="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+            <Fragment set:html={f.icon} />
+          </div>
+          <h3 class="font-semibold text-slate-900">{f.title}</h3>
+          <p class="mt-2 text-sm text-slate-600">{f.body}</p>
+        </div>
+      ))
+    }
+  </div>
+</section>

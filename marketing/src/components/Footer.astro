@@ -1,0 +1,18 @@
+---
+import { site } from "../data/site";
+
+const year = new Date().getFullYear();
+---
+
+<footer class="border-t border-slate-100">
+  <div
+    class="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-6 py-10 text-sm text-slate-500 sm:flex-row"
+  >
+    <p>© {year} {site.name}</p>
+    <div class="flex items-center gap-6">
+      <a href={site.docsUrl} class="transition hover:text-slate-900">Documentazione</a>
+      <a href={site.githubUrl} class="transition hover:text-slate-900">GitHub</a>
+      <a href={`mailto:${site.email}`} class="transition hover:text-slate-900">Contatti</a>
+    </div>
+  </div>
+</footer>
