@@ -1,5 +1,4 @@
 // Changelog / "Novità".
-//
 // Voce più recente IN CIMA. Aggiungere una release = aggiungere un oggetto qui
 // e fare push: la CI ridistribuisce il sito automaticamente.
 export interface ChangelogEntry {
@@ -14,8 +13,9 @@ export const changelog: ChangelogEntry[] = [
     version: "1.0.0",
     changes: [
       "Primo rilascio pubblico di Varasto.",
-      "Gestione inventario multi-tenant con registro immutabile dei movimenti.",
-      "Widget embeddabile e generazione di QR code.",
+      "7 profili di tracciamento con 6 motori di calcolo e registro movimenti immutabile.",
+      "Gestione multi-azienda con ruoli, licenze e console superadmin.",
+      "Widget incorporabile, QR dinamici, import Excel/CSV e API REST con docs OpenAPI.",
     ],
   },
 ];
